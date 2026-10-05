@@ -742,7 +742,7 @@ export function Scene() {
       </mesh>
       <FloorGrid />
       <OrbitControls
-        ref={controls} makeDefault enabled={!orbitLocked} enableDamping dampingFactor={0.2}
+        ref={controls} makeDefault enableRotate={!orbitLocked} enablePan={!orbitLocked} enableDamping dampingFactor={0.2}
         minPolarAngle={Math.PI / 2 - ELEVATION} maxPolarAngle={Math.PI / 2 - ELEVATION} screenSpacePanning={false}
         zoomToCursor minZoom={8} maxZoom={300}
       />
