@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Edges, Grid, Html, Line, OrbitControls } from '@react-three/drei';
+import { Edges, Html, Line, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { useStore } from './store';
 import { polylineMidpoint, routePoints } from './model';
@@ -135,9 +135,9 @@ const IconGlyph = ({ icon }) =>
 
 function NodeShape({ shape }) {
   switch (shape) {
-    case 'cylinder': return <cylinderGeometry args={[0.55, 0.55, 1, 32]} />;
-    case 'sphere': return <sphereGeometry args={[0.6, 32, 24]} />;
-    case 'slab': return <boxGeometry args={[1.8, 0.25, 1.8]} />;
+    case 'cylinder': return <cylinderGeometry args={[0.5, 0.5, 1, 40]} />;
+    case 'sphere': return <sphereGeometry args={[0.5, 40, 28]} />;
+    case 'slab': return <boxGeometry args={[3, 0.25, 3]} />;   // a 3x3-cell platform, so its edges stay on cell borders
     default: return <boxGeometry args={[1, 1, 1]} />;
   }
 }
@@ -151,7 +151,7 @@ function useShadowFlags(ref) {
   });
 }
 
-const MODEL_SCALE = 1.5;
+const MODEL_SCALE = 1; // device models are designed to fill one grid cell
 
 // Soft radial blob drawn on the floor under a node. Real cast shadows are directional and vanish for low
 // objects (a chip, a switch); this keeps everything grounded, like a drop shadow.
@@ -242,6 +242,21 @@ function useHoldMove(getPos, setPos, snapAxis) {
   return { lifted, start, move };
 }
 
+// A flat square exactly covering the node's grid cell(s) (cells are centred on whole numbers).
+function CellMarker({ size, color, fill, outline }) {
+  const h = size / 2;
+  const edge = useMemo(() => [[-h, 0, -h], [h, 0, -h], [h, 0, h], [-h, 0, h], [-h, 0, -h]], [h]);
+  return (
+    <group position={[0, -0.47, 0]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} raycast={() => null}>
+        <planeGeometry args={[size, size]} />
+        <meshBasicMaterial color={color} transparent opacity={fill} depthWrite={false} />
+      </mesh>
+      {outline && <Line points={edge} color={color} lineWidth={2} raycast={() => null} />}
+    </group>
+  );
+}
+
 function NodeView({ node }) {
   const portal = usePortal();
   const selected = useStore((s) => s.selection?.type === 'node' && s.selection.id === node.id);
@@ -274,6 +289,7 @@ function NodeView({ node }) {
   };
 
   const basic = !isModel(node.shape);
+  const cell = node.shape === 'slab' ? 3 : 1;   // footprint in grid cells
   const glow = selected || connecting;
   // Models are scaled about their base (floor at y = -0.5), so they keep standing on the floor.
   const baseLift = basic ? 0 : 0.5 * (MODEL_SCALE - 1);
@@ -284,19 +300,9 @@ function NodeView({ node }) {
   // Handlers sit on the group so they fire for every part of a multi-mesh device model.
   return (
     <group position={node.position}>
-      {hold.lifted && (
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.47, 0]} raycast={() => null}>
-          <planeGeometry args={[1.1, 1.1]} />
-          <meshBasicMaterial color={node.color} transparent opacity={0.4} depthWrite={false} />
-        </mesh>
-      )}
-      {!hold.lifted && <ContactShadow size={basic ? (node.shape === 'slab' ? 2.6 : 1.9) : 2.3} />}
-      {glow && !hold.lifted && (
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.47, 0]} raycast={() => null}>
-          <ringGeometry args={[0.62, 0.72, 40]} />
-          <meshBasicMaterial color={connecting ? '#f5a524' : '#4f8cff'} transparent opacity={0.9} depthWrite={false} />
-        </mesh>
-      )}
+      {hold.lifted && <CellMarker size={cell} color={node.color} fill={0.45} />}
+      {!hold.lifted && <ContactShadow size={node.shape === 'slab' ? 4.2 : 1.7} />}
+      {glow && !hold.lifted && <CellMarker size={cell} color={connecting ? '#f5a524' : '#4f8cff'} fill={0.22} outline />}
       <group position={[0, hold.lifted ? 0.5 : 0, 0]}>
         <group
           ref={body} position={[0, baseLift, 0]} scale={(hold.lifted ? 1.1 : 1) * (basic ? 1 : MODEL_SCALE)}
@@ -601,6 +607,67 @@ function CameraRig({ controls }) {
   return null;
 }
 
+// Floor grid. Lines are computed from *world* coordinates, so the pattern can be phase-shifted by half a cell:
+// grid lines then sit on cell borders and every whole-number position (where nodes live) is a cell centre.
+// The quad follows the orbit target and fades out with distance, so it feels endless.
+const GRID_VERT = /* glsl */`
+  uniform vec3 center;
+  varying vec3 wp;
+  void main() {
+    wp = vec3(position.x * 600.0 + center.x, center.y, position.y * 600.0 + center.z);
+    gl_Position = projectionMatrix * viewMatrix * vec4(wp, 1.0);
+  }`;
+const GRID_FRAG = /* glsl */`
+  uniform vec3 center;
+  uniform vec3 cellColor;
+  uniform vec3 sectionColor;
+  uniform vec2 phase;
+  uniform float cellSize, sectionSize, cellThickness, sectionThickness, fadeDistance, fadeStrength;
+  varying vec3 wp;
+  float lines(float size, float thickness) {
+    vec2 r = (wp.xz + phase) / size;
+    vec2 g = abs(fract(r - 0.5) - 0.5) / fwidth(r);
+    return 1.0 - min(min(g.x, g.y) + 1.0 - thickness, 1.0);
+  }
+  void main() {
+    float g1 = lines(cellSize, cellThickness);
+    float g2 = lines(sectionSize, sectionThickness);
+    float d = 1.0 - min(distance(center.xz, wp.xz) / fadeDistance, 1.0);
+    vec3 color = mix(cellColor, sectionColor, min(1.0, sectionThickness * g2));
+    float a = 0.55 * (g1 + g2) * pow(d, fadeStrength);
+    a = mix(0.75 * a, a, g2);
+    if (a <= 0.0) discard;
+    gl_FragColor = vec4(color, a);
+    #include <tonemapping_fragment>
+    #include <colorspace_fragment>
+  }`;
+
+function FloorGrid({ y = -0.5, cell = 1, section = 5 }) {
+  const controls = useThree((st) => st.controls);
+  const material = useMemo(() => new THREE.ShaderMaterial({
+    transparent: true, side: THREE.DoubleSide, depthWrite: false,
+    vertexShader: GRID_VERT, fragmentShader: GRID_FRAG,
+    uniforms: {
+      center: { value: new THREE.Vector3(0, y, 0) },
+      cellColor: { value: new THREE.Color('#d2d6e0') }, sectionColor: { value: new THREE.Color('#b9bfce') },
+      phase: { value: new THREE.Vector2(-0.5, -0.5) },   // lines at k + 0.5
+      cellSize: { value: cell }, sectionSize: { value: section },
+      cellThickness: { value: 0.8 }, sectionThickness: { value: 1.2 },
+      fadeDistance: { value: 80 }, fadeStrength: { value: 1.3 },
+    },
+  }), [y, cell, section]);
+  useEffect(() => () => material.dispose(), [material]);
+  useFrame(() => {
+    const t = controls?.target;
+    if (t) material.uniforms.center.value.set(t.x, y, t.z);
+  });
+  return (
+    <mesh frustumCulled={false} material={material} renderOrder={-2} raycast={() => null}>
+      <planeGeometry args={[1, 1]} />
+    </mesh>
+  );
+}
+
 // Directional light with a shadow frustum that follows the orbit target.
 function Sun() {
   const light = useRef();
@@ -647,12 +714,7 @@ export function Scene() {
         <planeGeometry args={[800, 800]} />
         <shadowMaterial opacity={0.4} />
       </mesh>
-      {/* Floor grid: fine 1-unit lines, slightly heavier every 5. Kept low-contrast so it recedes. */}
-      <Grid
-        position={[0, -0.5, 0]} infiniteGrid cellSize={1} sectionSize={5}
-        cellColor="#d2d6e0" sectionColor="#b9bfce" cellThickness={0.8} sectionThickness={1.2}
-        fadeDistance={90} fadeStrength={1.5}
-      />
+      <FloorGrid />
       <OrbitControls
         ref={controls} makeDefault enabled={!orbitLocked} enableDamping dampingFactor={0.2}
         minPolarAngle={Math.PI / 2 - ELEVATION} maxPolarAngle={Math.PI / 2 - ELEVATION} screenSpacePanning={false}

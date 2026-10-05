@@ -15,7 +15,7 @@ as JSON, and can be shared through a view-only link or an embeddable iframe.
 - Undo / redo (Ctrl+Z, Ctrl+Shift+Z or Ctrl+Y; also buttons in the top bar). Quick edits of the same thing merge into one step
 - Zones: flat, rounded translucent floor areas that nodes sit on (VPCs, clusters, teams); select one to get curved corner grips for resizing. A zone's name is painted on the floor in a darker tint of its colour: along an edge (any of four), centred and scaled to fill the zone, or hidden
 - Connectors: orthogonal, straight or curved; arrows, dashed lines, per-connector colours, mid-line labels, right-angle routing in either X-first or Z-first order; they follow nodes as you move them
-- Everything lives on a flat grid (no height axis). **Press and hold ~0.5 s** on a node or zone to pick it up, move it, and release to drop it on that grid cell; a quick click just selects. Snap can be toggled
+- Everything lives on a flat grid (no height axis): grid lines are the cell borders, and every node fills exactly one square (the slab platform is 3x3). Zone edges lie on grid lines too. **Press and hold ~0.5 s** on a node or zone to pick it up, move it, and release to drop it on that grid cell; a quick click just selects. Snap can be toggled
 - Node labels can carry a second "subtitle" line (IP, port...). Labels are real DOM text (crisp, upright, constant size) with a small safe-markdown description (`**bold**`, `*italic*`, `` `code` ``, `- lists`) shown when a node is selected
 - Autosave to the server, JSON export/import, PNG export of the 3D layer
 - **Share** dialog: view-only link (`/v/<token>`), embed snippet (`/embed/<token>`), and "regenerate" to revoke
