@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Logo } from './Logo';
 import { api } from './api';
 import { Link, navigate } from './App';
 import { EMPTY, parseDiagram } from './model';
@@ -32,7 +33,7 @@ export function Home() {
   return (
     <main className="home">
       <header>
-        <h1><span className="logo" /> Strata</h1>
+        <h1><Logo size={40} /> <span>Strata</span></h1>
         <p>3D diagrams with a free camera and labels you can actually read.</p>
         <div className="row">
           <button className="primary" onClick={() => create()}>New diagram</button>

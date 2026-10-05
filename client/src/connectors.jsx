@@ -9,6 +9,7 @@ import { useStore } from './store';
 import { polylineMidpoint, routePoints } from './model';
 import { UP } from './hold';
 import { Label, useLod } from './labels';
+import { RichText } from './richtext';
 
 const selectConnector = (id) => useStore.getState().select({ type: 'connector', id });
 
@@ -97,12 +98,17 @@ export function ConnectorsLayer() {
           onClick={(e) => { e.stopPropagation(); const r = arrows[e.instanceId]; if (r) selectConnector(r.c.id); }}
         />
       )}
-      {lod !== 'off' && routes.filter((r) => r.c.label).map((r) => (
-        <Label key={r.c.id} position={polylineMidpoint(r.pts)} className={`line-label ${lod === 'full' ? '' : 'small'}`}
-          onClick={() => selectConnector(r.c.id)} priority={1.5}>
-          {r.c.label}
-        </Label>
-      ))}
+      {lod !== 'off' && routes.filter((r) => r.c.label || r.c.subtitle || r.c.id === selId).map((r) => {
+        const selected = r.c.id === selId, full = lod === 'full' || selected;
+        return (
+          <Label key={r.c.id} position={polylineMidpoint(r.pts)} className={`line-label ${selected ? 'selected' : ''} ${full ? '' : 'small'}`}
+            onClick={() => selectConnector(r.c.id)} priority={selected ? 3 : 1.5}>
+            <div className="title">{r.c.label || <em>Connection</em>}</div>
+            {full && r.c.subtitle && <div className="sub">{r.c.subtitle}</div>}
+            {selected && r.c.description && <RichText text={r.c.description} />}
+          </Label>
+        );
+      })}
       <FlowBlobs routes={routes} />
     </>
   );

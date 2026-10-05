@@ -19,12 +19,24 @@ const slug = (s) => (s || 'diagram').toLowerCase().replace(/[^a-z0-9]+/g, '-').r
 export { CameraTools as ViewButtons } from './Topbar';
 
 // Field editors that edit the current selection. `readOnly` shows just the rich-text details.
+const nodeName = (data, id) => data.nodes.find((n) => n.id === id)?.label || 'Untitled';
+
 export function Details({ readOnly }) {
   const sel = useStore((s) => s.selection);
   const data = useStore((s) => s.data);
   if (!sel) return null;
   const node = sel.type === 'node' && data.nodes.find((n) => n.id === sel.id);
+  const conn = sel.type === 'connector' && data.connectors.find((c) => c.id === sel.id);
   if (readOnly) {
+    if (conn) {
+      return (
+        <aside className="panel">
+          <h3>{conn.label || 'Connection'}</h3>
+          <p className="muted route-names">{nodeName(data, conn.from)} → {nodeName(data, conn.to)}{conn.subtitle ? ` · ${conn.subtitle}` : ''}</p>
+          {conn.description ? <RichText text={conn.description} /> : <p className="muted">No description.</p>}
+        </aside>
+      );
+    }
     if (!node) return null;
     return (
       <aside className="panel">
@@ -110,7 +122,12 @@ function Inspector({ sel }) {
     return (
       <aside className="panel">
         <h3>Connector</h3>
+        <p className="muted route-names">{nodeName(data, c.from)} → {nodeName(data, c.to)}</p>
         <label>Label<input value={c.label} onChange={(e) => s.updateConnector(c.id, { label: e.target.value })} /></label>
+        <label>Subtitle <span className="muted">(second line, e.g. port and protocol)</span>
+          <input value={c.subtitle ?? ''} placeholder="TCP 5432 · TLS" onChange={(e) => s.updateConnector(c.id, { subtitle: e.target.value })} /></label>
+        <label>Description <span className="muted">(**bold**, *italic*, `code`, - lists)</span>
+          <textarea rows={4} value={c.description ?? ''} onChange={(e) => s.updateConnector(c.id, { description: e.target.value })} /></label>
         <label>Routing
           <select value={c.route} onChange={(e) => s.updateConnector(c.id, { route: e.target.value })}>
             {ROUTES.map((x) => <option key={x} value={x}>{ROUTE_NAMES[x] ?? x}</option>)}

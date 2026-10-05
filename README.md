@@ -12,6 +12,7 @@ as JSON, and can be shared through a view-only link or an embeddable iframe.
 - Free orthographic orbit / pan / zoom, plus one-click **Front / Top / Side / Free / Fit** views
 - **Data-flow blobs**: any connector can show small dots travelling along it in the arrow's direction, in the line's colour; "both ways" adds a second stream in a return colour, in its own lane
 - Built for big diagrams: node models are baked into merged geometry and drawn with GPU instancing (draw calls depend on the number of model kinds, not nodes), connector lines are merged, and DOM labels are only created near the screen and simplify as you zoom out
+- Connectors carry text like nodes do: a label, a subtitle line (e.g. `TCP 5432 · TLS`), and a markdown description shown when selected, including in view-only links
 - Soft cast shadows from a sun that follows the camera, so objects sit on the floor
 - Nodes: 3D device models (user, server, router/relay, switch, firewall, access point, antenna tower, PC, laptop, phone, printer, database, cache, cloud, container, hub) plus basic shapes (box, cylinder, sphere, slab). All are recolourable; basic shapes can also carry an emoji icon or your own uploaded PNG/JPEG/WebP/GIF
 - Undo / redo (Ctrl+Z, Ctrl+Shift+Z or Ctrl+Y; also buttons in the top bar). Quick edits of the same thing merge into one step
@@ -58,6 +59,10 @@ Troubleshooting:
 There are no accounts. Anyone who can reach the server can list and edit diagrams, so put it behind
 your VPN or a reverse proxy with auth if it is exposed. Viewers only ever get the read-only
 `/api/shared/:token` endpoint, which never reveals the editing id. Embedding is allowed only on `/embed/*`.
+
+## Brand
+
+The Strata mark (three stacked isometric layers) lives in `brand/` as SVG and PNG, in light and dark wordmark variants; `public/` holds the favicon and touch icon.
 
 ## Layout
 

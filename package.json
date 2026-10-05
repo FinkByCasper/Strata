@@ -9,7 +9,7 @@
     "node": ">=22.13"
   },
   "scripts": {
-    "dev": "concurrently -k -n server,client \"node --watch server/index.js\" \"vite\"",
+    "dev": "concurrently -k -n server,client \"node --watch server/index.js --dev\" \"vite\"",
     "dev:server": "node --watch server/index.js",
     "dev:client": "vite",
     "build": "vite build",

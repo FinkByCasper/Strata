@@ -10,6 +10,7 @@ export const EMPTY = { nodes: [], connectors: [], zones: [] };
 export function createApp(store, { dist = process.env.STRATA_DIST || join(here, '..', 'dist') } = {}) {
   const app = express();
   app.disable('x-powered-by');
+  app.locals.hasUi = existsSync(dist);   // is the built web app next to the server?
   app.use(express.json({ limit: '4mb' }));
 
   const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res)).catch(next);

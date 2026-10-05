@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Logo } from './Logo';
 import { Link } from './App';
 import { useStore } from './store';
 
@@ -67,7 +68,7 @@ export function Topbar({ status, onShare, onExportJson, onExportPng, onImport })
   return (
     <header className="topbar">
       <div className="tb-left">
-        <Link to="/" className="logo-link" title="All diagrams"><span className="logo" /></Link>
+        <Link to="/" className="logo-link" title="All diagrams"><Logo size={28} /></Link>
         <input className="title" value={name} onChange={(e) => st.setName(e.target.value)} aria-label="Diagram name" placeholder="Untitled diagram" />
         <span className={`status ${status}`} role="status"><i />{{ saved: 'Saved', saving: 'Saving…', error: 'Save failed' }[status]}</span>
       </div>

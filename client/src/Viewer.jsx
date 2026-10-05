@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Logo } from './Logo';
 import { api } from './api';
 import { Scene } from './Scene';
 import { useStore } from './store';
@@ -20,7 +21,7 @@ export function Viewer({ token, embed = false }) {
   return (
     <div className="app viewer">
       <header className="topbar">
-        <div className="tb-left"><span className="logo" /><strong className="title-static">{state.name}</strong><span className="badge">View only</span></div>
+        <div className="tb-left"><Logo size={26} /><strong className="title-static">{state.name}</strong><span className="badge">View only</span></div>
         <div className="tb-right">
           <CameraTools />
           {embed && <a className="pill" href={`/v/${token}`} target="_blank" rel="noreferrer">Open ↗</a>}
