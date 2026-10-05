@@ -83,8 +83,6 @@ export function ContextMenu() {
     </div>
     <button className="item" onClick={done(() => st.addZoneAt(where))}>Add zone</button>
     <hr />
-    <button className="item" onClick={done(() => st.setMode(st.mode === 'connect' ? 'select' : 'connect'))}>
-      {st.mode === 'connect' ? 'Leave connect mode' : 'Connect mode'}</button>
     <div className="seg">
       {[['rotL', '⟲ 90°'], ['rotR', '⟳ 90°'], ['fit', 'Fit'], ['reset', 'Reset']].map(([k, l]) => (
         <button key={k} onClick={done(() => st.setView(k))}>{l}</button>
