@@ -11,9 +11,9 @@ as JSON, and can be shared through a view-only link or an embeddable iframe.
 
 - Free orthographic orbit / pan / zoom, plus one-click **Front / Top / Side / Free / Fit** views
 - Nodes: box, cylinder, sphere, slab; built-in emoji icons or your own uploaded PNG/JPEG/WebP/GIF
-- Zones: translucent regions that group nodes (VPCs, clusters, teams)
+- Zones: flat translucent floor areas that nodes sit on (VPCs, clusters, teams)
 - Connectors: orthogonal, straight or curved; arrows, dashed lines, mid-line labels; they follow nodes as you move them
-- Grid snapping (toggle) with free height: drag moves on the ground plane, **Shift+drag** moves vertically
+- Everything lives on a flat grid (no height axis). **Press and hold ~0.5 s** on a node or zone to pick it up, move it, and release to drop it on that grid cell; a quick click just selects. Snap can be toggled
 - Labels are real DOM text (crisp, upright, constant size) with a small safe-markdown description (`**bold**`, `*italic*`, `` `code` ``, `- lists`) shown when a node is selected
 - Autosave to the server, JSON export/import, PNG export of the 3D layer
 - **Share** dialog: view-only link (`/v/<token>`), embed snippet (`/embed/<token>`), and "regenerate" to revoke

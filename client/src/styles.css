@@ -156,3 +156,5 @@ button.pill:not(.primary) { background: rgb(127 135 160 / 0.12); border-color: t
 .seg { display: flex; } .seg button { flex: 1; border-radius: 0; margin-left: -1px; padding: 4px 6px; font-size: 12px; }
 .seg button:first-child { border-radius: 6px 0 0 6px; margin-left: 0; } .seg button:last-child { border-radius: 0 6px 6px 0; }
 .panel .field { display: flex; flex-direction: column; gap: 6px; font-size: 12px; font-weight: 600; }
+
+.xz { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }

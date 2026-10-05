@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { Edges, Grid, Html, Line, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
@@ -79,12 +79,75 @@ function NodeShape({ shape }) {
   }
 }
 
+const HOLD_MS = 500;   // press and hold this long to pick an object up
+const SLOP = 6;        // px of movement during the hold that cancels it (user meant to orbit/click)
+const GROUND = new THREE.Plane(UP, 0);
+
+// Hold to lift, drag across the floor, release to drop on that grid cell. A quick click only selects.
+function useHoldMove(getPos, setPos) {
+  const [lifted, setLifted] = useState(false);
+  const st = useRef(null);
+
+  const finish = useCallback(() => {
+    const s = st.current;
+    if (!s) return;
+    clearTimeout(s.timer);
+    st.current = null;
+    window.removeEventListener('pointerup', finish);
+    window.removeEventListener('pointercancel', finish);
+    if (s.lifted) {
+      setLifted(false);
+      useStore.getState().setDragging(false);
+      try { s.target.releasePointerCapture?.(s.pid); } catch { /* already released */ }
+    }
+  }, []);
+  useEffect(() => finish, [finish]);
+
+  const start = (e) => {
+    finish();
+    const hit = new THREE.Vector3();
+    if (!e.ray.intersectPlane(GROUND, hit)) return;
+    const [px, , pz] = getPos();
+    const s = st.current = {
+      x: e.nativeEvent.clientX, y: e.nativeEvent.clientY, dx: hit.x - px, dz: hit.z - pz,
+      lifted: false, target: e.target, pid: e.pointerId,
+    };
+    s.timer = setTimeout(() => {
+      s.lifted = true;
+      setLifted(true);
+      useStore.getState().setDragging(true);
+      try { s.target.setPointerCapture(s.pid); } catch { /* pointer already gone */ }
+    }, HOLD_MS);
+    window.addEventListener('pointerup', finish);
+    window.addEventListener('pointercancel', finish);
+  };
+
+  const move = (e) => {
+    const s = st.current;
+    if (!s) return;
+    if (!s.lifted) {
+      if (Math.hypot(e.nativeEvent.clientX - s.x, e.nativeEvent.clientY - s.y) > SLOP) finish();
+      return;
+    }
+    const hit = new THREE.Vector3();
+    if (!e.ray.intersectPlane(GROUND, hit)) return;
+    const q = useStore.getState().snap ? Math.round : (v) => Math.round(v * 20) / 20;
+    const x = q(hit.x - s.dx), z = q(hit.z - s.dz);
+    const [cx, , cz] = getPos();
+    if (x !== cx || z !== cz) setPos(x, z);
+  };
+
+  return { lifted, start, move };
+}
+
 function NodeView({ node }) {
   const selected = useStore((s) => s.selection?.type === 'node' && s.selection.id === node.id);
   const connecting = useStore((s) => s.connectFrom === node.id);
-  const camera = useThree((s) => s.camera);
-  const drag = useRef(null);
   const yOffset = node.shape === 'slab' ? -0.375 : 0;
+  const hold = useHoldMove(
+    () => node.position,
+    (x, z) => useStore.getState().updateNode(node.id, { position: [x, 0, z] }),
+  );
 
   // Shared by the mesh and its label: connect-mode click, or plain selection.
   const pick = () => {
@@ -97,58 +160,28 @@ function NodeView({ node }) {
   const onDown = (e) => {
     e.stopPropagation();
     if (e.nativeEvent.button !== 0) return;
-    if (!pick()) return;
-    const s = useStore.getState();
-    const plane = new THREE.Plane(UP, -node.position[1]);
-    const hit = new THREE.Vector3();
-    e.ray.intersectPlane(plane, hit);
-    e.target.setPointerCapture(e.pointerId);
-    drag.current = {
-      plane, clientY: e.nativeEvent.clientY, y: node.position[1],
-      dx: hit.x - node.position[0], dz: hit.z - node.position[2], moved: false,
-    };
-    s.setDragging(true);
-  };
-
-  const onMove = (e) => {
-    const d = drag.current;
-    if (!d) return;
-    const s = useStore.getState();
-    const q = s.snap ? (v) => Math.round(v) : (v) => Math.round(v * 20) / 20;
-    let [x, y, z] = node.position;
-    if (e.nativeEvent.shiftKey) {
-      // Shift+drag: move vertically. On-screen pixels map ~1:1 to world units * zoom (orthographic).
-      y = q(d.y + (d.clientY - e.nativeEvent.clientY) / camera.zoom);
-    } else {
-      const hit = new THREE.Vector3();
-      if (!e.ray.intersectPlane(d.plane, hit)) return;
-      x = q(hit.x - d.dx); z = q(hit.z - d.dz);
-    }
-    if (x !== node.position[0] || y !== node.position[1] || z !== node.position[2]) {
-      d.moved = true;
-      s.updateNode(node.id, { position: [x, y, z] });
-    }
-  };
-
-  const onUp = (e) => {
-    if (!drag.current) return;
-    drag.current = null;
-    e.target.releasePointerCapture?.(e.pointerId);
-    useStore.getState().setDragging(false);
+    if (pick()) hold.start(e);
   };
 
   const hover = (on) => () => {
     const s = useStore.getState();
     // Orbit must already be off by pointer-down (OrbitControls reads it first), so key off hover.
     if (!s.readOnly) s.setHovering(on);
-    document.body.style.cursor = on ? (s.mode === 'connect' ? 'crosshair' : s.readOnly ? 'pointer' : 'grab') : '';
+    document.body.style.cursor = on ? (s.mode === 'connect' ? 'crosshair' : s.readOnly ? 'pointer' : 'pointer') : '';
   };
 
   return (
     <group position={node.position}>
+      {hold.lifted && (
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.47, 0]} raycast={() => null}>
+          <planeGeometry args={[1.1, 1.1]} />
+          <meshBasicMaterial color={node.color} transparent opacity={0.4} depthWrite={false} />
+        </mesh>
+      )}
+      <group position={[0, hold.lifted ? 0.5 : 0, 0]}>
       <mesh
-        position={[0, yOffset, 0]} scale={selected ? 1.05 : 1}
-        onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp}
+        position={[0, yOffset, 0]} scale={hold.lifted ? 1.1 : selected ? 1.05 : 1}
+        onPointerDown={onDown} onPointerMove={hold.move}
         onPointerOver={hover(true)} onPointerOut={hover(false)}
       >
         <NodeShape shape={node.shape} />
@@ -174,6 +207,7 @@ function NodeView({ node }) {
         </div>
         {selected && node.description && <RichText text={node.description} />}
       </Label>
+      </group>
     </group>
   );
 }
@@ -212,17 +246,33 @@ function ConnectorView({ connector, from, to }) {
 
 function ZoneView({ zone }) {
   const selected = useStore((s) => s.selection?.type === 'zone' && s.selection.id === zone.id);
-  const [w, h, d] = zone.size;
+  const [w, , d] = zone.size;
+  const hold = useHoldMove(
+    () => zone.position,
+    (x, z) => useStore.getState().updateZone(zone.id, { position: [x, 0, z] }),
+  );
+  const outline = useMemo(() => [[-w / 2, 0, -d / 2], [w / 2, 0, -d / 2], [w / 2, 0, d / 2], [-w / 2, 0, d / 2], [-w / 2, 0, -d / 2]], [w, d]);
+
+  const onDown = (e) => {
+    const s = useStore.getState();
+    if (s.readOnly || s.mode !== 'select' || e.nativeEvent.button !== 0) return;
+    e.stopPropagation();
+    s.select({ type: 'zone', id: zone.id });
+    hold.start(e);
+  };
+
+  // A flat translucent floor area. Nodes sit on top of it and win clicks (they stop propagation).
   return (
-    <group position={zone.position}>
-      {/* Not raycastable: nodes inside a zone must stay clickable. Zones are picked via their label. */}
-      <mesh raycast={() => null}>
-        <boxGeometry args={[w, h, d]} />
-        <meshBasicMaterial color={zone.color} transparent opacity={selected ? 0.14 : 0.07} depthWrite={false} />
-        <Edges color={zone.color} />
+    <group position={[zone.position[0], hold.lifted ? 0.35 : 0, zone.position[2]]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.48, 0]} onPointerDown={onDown} onPointerMove={hold.move}>
+        <planeGeometry args={[w, d]} />
+        <meshBasicMaterial color={zone.color} transparent opacity={selected || hold.lifted ? 0.24 : 0.14} depthWrite={false} side={THREE.DoubleSide} />
       </mesh>
+      <group position={[0, -0.47, 0]}>
+        <Line points={outline} color={zone.color} lineWidth={selected ? 2.4 : 1.5} raycast={() => null} />
+      </group>
       <Label
-        position={[-w / 2, h / 2, -d / 2]} className={`zone-label ${selected ? 'selected' : ''}`}
+        position={[-w / 2, -0.4, -d / 2]} className={`zone-label ${selected ? 'selected' : ''}`}
         onClick={() => useStore.getState().select({ type: 'zone', id: zone.id })}
       >
         <span className="dot" style={{ background: zone.color }} />{zone.label}

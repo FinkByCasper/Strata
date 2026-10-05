@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { EMPTY, freeSpot, newConnector, newNode, newZone, uid } from './model';
+import { EMPTY, flatten, freeSpot, newConnector, newNode, newZone, uid } from './model';
 
 // `rev` bumps on every user edit; the editor watches it to drive autosave.
 export const useStore = create((set, get) => {
@@ -14,8 +14,8 @@ export const useStore = create((set, get) => {
     snap: true, dragging: false, hovering: false, view: null, menu: null,
 
     load: (name, data, readOnly = false) =>
-      set({ name, data, readOnly, rev: 0, selection: null, mode: 'select', connectFrom: null, view: null }),
-    replaceData: (name, data) => edit(() => ({ data, name: name ?? get().name, selection: null })),
+      set({ name, data: flatten(data), readOnly, rev: 0, selection: null, mode: 'select', connectFrom: null, view: null }),
+    replaceData: (name, data) => edit(() => ({ data: flatten(data), name: name ?? get().name, selection: null })),
     setName: (name) => edit(() => ({ name })),
 
     select: (selection) => set({ selection }),
@@ -32,7 +32,7 @@ export const useStore = create((set, get) => {
       edit((s) => ({ data: { ...s.data, nodes: [...s.data.nodes, node] }, selection: { type: 'node', id: node.id } }));
     },
     addZoneAt: (position) => {
-      const zone = newZone([position[0], position[1] + 1.5, position[2]]);
+      const zone = newZone(position);
       edit((s) => ({ data: { ...s.data, zones: [...s.data.zones, zone] }, selection: { type: 'zone', id: zone.id } }));
     },
     duplicateSelection: () => {
@@ -59,7 +59,7 @@ export const useStore = create((set, get) => {
       edit((s) => ({ data: { ...s.data, nodes: [...s.data.nodes, node] }, selection: { type: 'node', id: node.id } }));
     },
     addZone: () => {
-      const zone = newZone([0, 1.5, 0]);
+      const zone = newZone([0, 0, 0]);
       edit((s) => ({ data: { ...s.data, zones: [...s.data.zones, zone] }, selection: { type: 'zone', id: zone.id } }));
     },
     updateNode: (id, patch) => patchList('nodes', id, patch),

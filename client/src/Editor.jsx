@@ -79,8 +79,8 @@ function Inspector({ sel }) {
             onChange={(e) => { uploadIcon(e.target.files[0], n.id); e.target.value = ''; }} />
         </div>
         {iconError && <p className="error">{iconError}</p>}
-        <div className="xyz">
-          {['X', 'Y', 'Z'].map((a, i) => <label key={a}>{a}{num(n.position, i, (p) => s.updateNode(n.id, { position: p }))}</label>)}
+        <div className="xz">
+          {[['X', 0], ['Z', 2]].map(([a, i]) => <label key={a}>{a}{num(n.position, i, (p) => s.updateNode(n.id, { position: p }))}</label>)}
         </div>
         <div className="row">
           <button onClick={() => s.startConnectFrom(n.id)}>Connect from here…</button>
@@ -122,9 +122,9 @@ function Inspector({ sel }) {
       <label>Label<input value={z.label} onChange={(e) => s.updateZone(z.id, { label: e.target.value })} /></label>
       <div className="field">Colour<Swatches value={z.color} onPick={(color) => s.updateZone(z.id, { color })} /></div>
       <p className="muted">Centre</p>
-      <div className="xyz">{['X', 'Y', 'Z'].map((a, i) => <label key={a}>{a}{num(z.position, i, (p) => s.updateZone(z.id, { position: p }))}</label>)}</div>
+      <div className="xz">{[['X', 0], ['Z', 2]].map(([a, i]) => <label key={a}>{a}{num(z.position, i, (p) => s.updateZone(z.id, { position: p }))}</label>)}</div>
       <p className="muted">Size</p>
-      <div className="xyz">{['W', 'H', 'D'].map((a, i) => <label key={a}>{a}{num(z.size, i, (p) => s.updateZone(z.id, { size: p.map((v) => Math.max(1, v)) }))}</label>)}</div>
+      <div className="xz">{[['Width', 0], ['Depth', 2]].map(([a, i]) => <label key={a}>{a}{num(z.size, i, (p) => s.updateZone(z.id, { size: [Math.max(1, p[0]), 0, Math.max(1, p[2])] }))}</label>)}</div>
       <button onClick={s.duplicateSelection}>Duplicate</button>
       <button className="danger" onClick={s.removeSelection}>Delete zone</button>
     </aside>
@@ -216,7 +216,7 @@ export function Editor({ id }) {
 
   const hint = s.mode === 'connect'
     ? (s.connectFrom ? 'Now click the target node' : 'Click the source node, then the target node')
-    : 'Right-click to add · click to edit · drag a node to move it (Shift+drag for height) · drag empty space to rotate around · right-drag to pan · Q/E rotate 90°';
+    : 'Right-click to add · click to edit · hold a node or zone to pick it up · drag empty space to rotate around · right-drag to pan · Q/E rotate 90°';
 
   return (
     <div className="app">

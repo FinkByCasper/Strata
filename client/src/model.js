@@ -15,9 +15,19 @@ export function newNode(shape, position, index) {
   };
 }
 
+// Zones are flat floor areas: only width (size[0]) and depth (size[2]) matter; the middle entry stays 0.
 export const newZone = (position) => ({
-  id: uid(), label: 'New zone', color: '#4f8cff', position, size: [6, 3, 6],
+  id: uid(), label: 'New zone', color: '#4f8cff', position: [position[0], 0, position[2]], size: [6, 0, 6],
 });
+
+// Everything lives on the ground plane. Older diagrams that had heights are flattened on load.
+export function flatten(data) {
+  return {
+    ...data,
+    nodes: data.nodes.map((n) => ({ ...n, position: [n.position[0], 0, n.position[2]] })),
+    zones: data.zones.map((z) => ({ ...z, position: [z.position[0], 0, z.position[2]], size: [z.size[0], 0, z.size[2]] })),
+  };
+}
 
 export function newConnector(from, to) {
   return { id: uid(), from, to, route: 'orthogonal', line: 'solid', arrow: true, label: '' };
