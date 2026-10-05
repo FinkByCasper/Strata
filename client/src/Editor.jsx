@@ -5,6 +5,7 @@ import { Scene } from './Scene';
 import { useStore } from './store';
 import { ICONS, PALETTE, ROUTES, SHAPES, parseDiagram } from './model';
 import { RichText } from './richtext';
+import { ContextMenu, ShapePicker, Swatches } from './Menu';
 
 const download = (name, text, type) => {
   const url = URL.createObjectURL(new Blob([text], { type }));
@@ -75,18 +76,9 @@ function Inspector({ sel }) {
         <label>Label<input value={n.label} onChange={(e) => s.updateNode(n.id, { label: e.target.value })} /></label>
         <label>Description <span className="muted">(**bold**, *italic*, `code`, - lists)</span>
           <textarea rows={5} value={n.description} onChange={(e) => s.updateNode(n.id, { description: e.target.value })} /></label>
-        <label>Shape
-          <select value={n.shape} onChange={(e) => s.updateNode(n.id, { shape: e.target.value })}>
-            {SHAPES.map((x) => <option key={x}>{x}</option>)}
-          </select></label>
-        <div className="swatches">
-          {PALETTE.map((c) => (
-            <button key={c} className={n.color === c ? 'on' : ''} style={{ background: c }} aria-label={c}
-              onClick={() => s.updateNode(n.id, { color: c })} />
-          ))}
-          <input type="color" value={/^#[0-9a-f]{6}$/i.test(n.color) ? n.color : '#4f8cff'}
-            onChange={(e) => s.updateNode(n.id, { color: e.target.value })} aria-label="Custom colour" />
-        </div>
+        <div className="field">Model<ShapePicker value={n.shape} onPick={(shape) => s.updateNode(n.id, { shape })} /></div>
+        <div className="field">Colour<Swatches value={n.color} onPick={(color) => s.updateNode(n.id, { color })} /></div>
+        <div className="field">Icon</div>
         <div className="icons">
           <button className={!n.icon ? 'on' : ''} onClick={() => s.updateNode(n.id, { icon: null })}>∅</button>
           {ICONS.map((i) => <button key={i} className={n.icon === i ? 'on' : ''} onClick={() => s.updateNode(n.id, { icon: i })}>{i}</button>)}
@@ -118,6 +110,7 @@ function Inspector({ sel }) {
           <select value={c.line} onChange={(e) => s.updateConnector(c.id, { line: e.target.value })}>
             <option>solid</option><option>dashed</option>
           </select></label>
+        <div className="field">Colour<Swatches value={c.color || '#475569'} onPick={(color) => s.updateConnector(c.id, { color })} /></div>
         <label className="check"><input type="checkbox" checked={c.arrow} onChange={(e) => s.updateConnector(c.id, { arrow: e.target.checked })} /> Arrow head</label>
         <button onClick={() => s.updateConnector(c.id, { from: c.to, to: c.from })}>Reverse direction</button>
         <button className="danger" onClick={s.removeSelection}>Delete connector</button>
@@ -131,12 +124,7 @@ function Inspector({ sel }) {
     <aside className="panel">
       <h3>Zone</h3>
       <label>Label<input value={z.label} onChange={(e) => s.updateZone(z.id, { label: e.target.value })} /></label>
-      <div className="swatches">
-        {PALETTE.map((c) => (
-          <button key={c} className={z.color === c ? 'on' : ''} style={{ background: c }} aria-label={c}
-            onClick={() => s.updateZone(z.id, { color: c })} />
-        ))}
-      </div>
+      <div className="field">Colour<Swatches value={z.color} onPick={(color) => s.updateZone(z.id, { color })} /></div>
       <p className="muted">Centre</p>
       <div className="xyz">{['X', 'Y', 'Z'].map((a, i) => <label key={a}>{a}{num(z.position, i, (p) => s.updateZone(z.id, { position: p }))}</label>)}</div>
       <p className="muted">Size</p>
@@ -222,7 +210,7 @@ export function Editor({ id }) {
 
   const hint = s.mode === 'connect'
     ? (s.connectFrom ? 'Now click the target node' : 'Click the source node, then the target node')
-    : 'Drag a node to move it (Shift+drag for height) · drag empty space to orbit · right-drag to pan';
+    : 'Right-click to add or edit · drag a node to move it (Shift+drag for height) · drag empty space to orbit · right-drag to pan';
 
   return (
     <div className="app">
@@ -252,6 +240,7 @@ export function Editor({ id }) {
       <div className="stage">
         <Scene />
         <Details />
+        <ContextMenu />
         <div className="hint">{hint}</div>
       </div>
       {sharing && meta && (

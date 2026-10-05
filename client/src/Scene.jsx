@@ -8,15 +8,62 @@ import { RichText } from './richtext';
 
 const UP = new THREE.Vector3(0, 1, 0);
 
+// Right-click plumbing. Objects record themselves as the target on right pointer-up; the canvas
+// listener (which fires in the same tick) then opens the menu for that target, or the "empty" menu.
+let ctxTarget = null;
+const openMenuFor = (target, e, world = null) => {
+  const st = useStore.getState();
+  if (st.readOnly) return;
+  st.select(target);
+  st.openMenu({ x: e.clientX, y: e.clientY, target, world });
+};
+
+function ContextHandler() {
+  const { gl, camera } = useThree();
+  useEffect(() => {
+    const el = gl.domElement;
+    let down = null;
+    const raycaster = new THREE.Raycaster();
+    const plane = new THREE.Plane(UP, 0);
+    const onDown = (e) => { if (e.button === 2) down = { x: e.clientX, y: e.clientY }; };
+    const onUp = (e) => {
+      if (e.button !== 2 || !down) return;
+      const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y) > 5; // right-drag = pan, not a click
+      down = null;
+      if (moved) { ctxTarget = null; return; }
+      const { clientX, clientY } = e;
+      setTimeout(() => {
+        const target = ctxTarget; ctxTarget = null;
+        const rect = el.getBoundingClientRect();
+        raycaster.setFromCamera(new THREE.Vector2(((clientX - rect.left) / rect.width) * 2 - 1, -((clientY - rect.top) / rect.height) * 2 + 1), camera);
+        const hit = new THREE.Vector3();
+        let world = null;
+        if (raycaster.ray.intersectPlane(plane, hit)) {
+          const q = useStore.getState().snap ? Math.round : (v) => Math.round(v * 20) / 20;
+          world = [q(hit.x), 0, q(hit.z)];
+        }
+        openMenuFor(target, { clientX, clientY }, world);
+      }, 0);
+    };
+    const noMenu = (e) => e.preventDefault();
+    el.addEventListener('pointerdown', onDown);
+    el.addEventListener('pointerup', onUp);
+    el.addEventListener('contextmenu', noMenu);
+    return () => { el.removeEventListener('pointerdown', onDown); el.removeEventListener('pointerup', onUp); el.removeEventListener('contextmenu', noMenu); };
+  }, [gl, camera]);
+  return null;
+}
+
 // Labels are plain DOM (crisp, selectable, always screen-aligned) positioned from 3D space.
 // Wheel events are forwarded so zooming still works while the cursor is over a label.
-function Label({ position, children, className = '', onClick }) {
+function Label({ position, children, className = '', onClick, target }) {
   const gl = useThree((s) => s.gl);
   return (
     <Html position={position} center zIndexRange={[20, 0]} pointerEvents="none">
       <div
         className={`label ${className}`}
-        onPointerDown={(e) => { if (onClick) { e.stopPropagation(); onClick(e); } }}
+        onPointerDown={(e) => { if (onClick && e.button === 0) { e.stopPropagation(); onClick(e); } }}
+        onContextMenu={(e) => { e.preventDefault(); if (target) { e.stopPropagation(); openMenuFor(target, e); } }}
         onWheel={(e) => gl.domElement.dispatchEvent(new WheelEvent('wheel', e.nativeEvent))}
       >
         {children}
@@ -54,6 +101,7 @@ function NodeView({ node }) {
 
   const onDown = (e) => {
     e.stopPropagation();
+    if (e.nativeEvent.button !== 0) return;
     if (!pick()) return;
     const s = useStore.getState();
     const plane = new THREE.Plane(UP, -node.position[1]);
@@ -88,6 +136,7 @@ function NodeView({ node }) {
   };
 
   const onUp = (e) => {
+    if (e.nativeEvent.button === 2) ctxTarget = { type: 'node', id: node.id };
     if (!drag.current) return;
     drag.current = null;
     e.target.releasePointerCapture?.(e.pointerId);
@@ -123,6 +172,7 @@ function NodeView({ node }) {
       <Label
         position={[0, node.shape === 'slab' ? 0.55 : 1.05, 0]}
         className={selected ? 'selected' : ''}
+        target={{ type: 'node', id: node.id }}
         onClick={pick}
       >
         <div className="title">
@@ -139,7 +189,7 @@ function ConnectorView({ connector, from, to }) {
   const selected = useStore((s) => s.selection?.type === 'connector' && s.selection.id === connector.id);
   const points = useMemo(() => routePoints(from.position, to.position, connector.route),
     [from.position, to.position, connector.route]);
-  const color = selected ? '#111827' : '#475569';
+  const color = selected ? '#111827' : connector.color || '#475569';
   const end = points[points.length - 1];
   const dir = end.clone().sub(points[points.length - 2]).normalize();
   const quat = useMemo(() => new THREE.Quaternion().setFromUnitVectors(UP, dir), [dir.x, dir.y, dir.z]);
@@ -151,6 +201,7 @@ function ConnectorView({ connector, from, to }) {
         points={points} color={color} lineWidth={selected ? 3.5 : 2.2}
         dashed={connector.line === 'dashed'} dashSize={0.25} gapSize={0.18}
         onClick={select}
+        onPointerUp={(e) => { if (e.nativeEvent.button === 2) ctxTarget = { type: 'connector', id: connector.id }; }}
       />
       {connector.arrow && (
         <mesh position={end.clone().addScaledVector(dir, -0.17)} quaternion={quat} onClick={select}>
@@ -159,7 +210,7 @@ function ConnectorView({ connector, from, to }) {
         </mesh>
       )}
       {connector.label && (
-        <Label position={polylineMidpoint(points)} className="line-label" onClick={select}>
+        <Label position={polylineMidpoint(points)} className="line-label" onClick={select} target={{ type: 'connector', id: connector.id }}>
           {connector.label}
         </Label>
       )}
@@ -180,6 +231,7 @@ function ZoneView({ zone }) {
       </mesh>
       <Label
         position={[-w / 2, h / 2, -d / 2]} className={`zone-label ${selected ? 'selected' : ''}`}
+        target={{ type: 'zone', id: zone.id }}
         onClick={() => useStore.getState().select({ type: 'zone', id: zone.id })}
       >
         <span className="dot" style={{ background: zone.color }} />{zone.label}
@@ -239,16 +291,20 @@ export function Scene() {
       <ambientLight intensity={1.05} />
       <directionalLight position={[8, 14, 6]} intensity={1.6} />
       <directionalLight position={[-6, 4, -8]} intensity={0.5} />
+      {/* Blender-style floor: fine 1-unit lines, heavier every 5, coloured X (red) and Z (green) axes. */}
       <Grid
         position={[0, -0.5, 0]} infiniteGrid cellSize={1} sectionSize={5}
-        cellColor="#d3d8e3" sectionColor="#aab2c4" cellThickness={0.6} sectionThickness={1}
-        fadeDistance={70} fadeStrength={2}
+        cellColor="#b9c0d0" sectionColor="#7d879e" cellThickness={0.9} sectionThickness={1.6}
+        fadeDistance={90} fadeStrength={1.5}
       />
+      <Line points={[[-500, -0.49, 0], [500, -0.49, 0]]} color="#e5484d" lineWidth={2.2} raycast={() => null} />
+      <Line points={[[0, -0.49, -500], [0, -0.49, 500]]} color="#2fb170" lineWidth={2.2} raycast={() => null} />
       <OrbitControls
         ref={controls} makeDefault enabled={!orbitLocked} enableDamping dampingFactor={0.2}
         zoomToCursor minZoom={8} maxZoom={300}
       />
       <CameraRig controls={controls} />
+      <ContextHandler />
       {data.zones.map((z) => <ZoneView key={z.id} zone={z} />)}
       {data.connectors.map((c) => byId[c.from] && byId[c.to] && (
         <ConnectorView key={c.id} connector={c} from={byId[c.from]} to={byId[c.to]} />

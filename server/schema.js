@@ -21,7 +21,7 @@ export function validateDiagram(d) {
   }
   for (const c of connectors) {
     if (!str(c.id, 64) || !ids.has(c.from) || !ids.has(c.to)) return 'bad connector';
-    if (!ROUTES.includes(c.route) || !str(c.label ?? '', 200)) return 'bad connector';
+    if (!ROUTES.includes(c.route) || !str(c.label ?? '', 200) || !str(c.color ?? '', 32)) return 'bad connector';
   }
   for (const z of zones) {
     if (!str(z.id, 64) || !str(z.label, 200) || !isVec(z.position) || !isVec(z.size) || !str(z.color, 32)) return 'bad zone';
