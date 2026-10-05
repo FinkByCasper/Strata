@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import { openStore } from './db.js';
 import { createApp, EMPTY } from './app.js';
 
-async function withServer(fn) {
+async function withServer(fn, opts) {
   const store = openStore(':memory:');
-  const server = createApp(store).listen(0);
+  const server = createApp(store, opts).listen(0);
   const base = `http://localhost:${server.address().port}`;
   try { await fn(base); } finally { server.closeAllConnections(); server.close(); store.close(); }
 }
@@ -40,3 +40,9 @@ test('rejects invalid diagrams', () => withServer(async (base) => {
   const svg = { ...EMPTY, nodes: [{ ...node, icon: 'data:image/svg+xml;base64,AAAA' }] };
   assert.equal((await fetch(`${base}/api/diagrams`, json('POST', { name: 'x', data: svg }))).status, 400);
 }));
+
+test('without a built UI, / explains where the web app is', () => withServer(async (base) => {
+  const r = await fetch(base + '/');
+  assert.equal(r.status, 200);
+  assert.match(await r.text(), /localhost:5173/);
+}, { dist: '/definitely/not/here' }));

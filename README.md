@@ -24,21 +24,34 @@ as JSON, and can be shared through a view-only link or an embeddable iframe.
 
 ## Run it
 
-```bash
-npm install
-npm run dev        # server on :3001, Vite on :5173 (proxies /api)
-```
+You need **Node 22.13 or newer** (the server uses the built-in `node:sqlite`). `pnpm`, `npm` or `yarn` all work.
 
-Production:
+**Development** (hot reload):
 
 ```bash
-npm run build && npm start     # http://localhost:3001
-# or
-docker build -t strata . && docker run -p 3001:3001 -v strata-data:/data strata
+pnpm install
+pnpm run dev
 ```
+
+Then open **http://localhost:5173**. That is the web app. Port 3001 is only the API behind it, so it won't show the
+app (it shows a short note pointing you to 5173 instead).
+
+**Run it as one server** (what you'd host):
+
+```bash
+pnpm install
+pnpm run build      # builds the web app into dist/
+pnpm start          # serves the app AND the API on http://localhost:3001
+```
+
+or with Docker: `docker build -t strata . && docker run -p 3001:3001 -v strata-data:/data strata`
 
 Config (env vars): `PORT` (default 3001), `STRATA_DB` (default `./data/strata.db`).
-Requires Node 22.13+ (uses the built-in `node:sqlite`).
+
+Troubleshooting:
+- *"Cannot GET /"* or a blank page: you opened 3001 in dev mode; use 5173, or run `build` then `start`.
+- *Server crashes immediately*: check `node -v` is 22.13+.
+- *Port in use*: set `PORT=3002` for the server (the dev proxy expects 3001, so for dev free that port instead).
 
 ## Access model
 

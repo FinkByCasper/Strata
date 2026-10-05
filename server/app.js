@@ -7,7 +7,7 @@ import { validateDiagram } from './schema.js';
 const here = dirname(fileURLToPath(import.meta.url));
 export const EMPTY = { nodes: [], connectors: [], zones: [] };
 
-export function createApp(store) {
+export function createApp(store, { dist = process.env.STRATA_DIST || join(here, '..', 'dist') } = {}) {
   const app = express();
   app.disable('x-powered-by');
   app.use(express.json({ limit: '4mb' }));
@@ -52,7 +52,6 @@ export function createApp(store) {
     d ? res.json({ name: d.name, data: d.data, updatedAt: d.updatedAt }) : res.status(404).json({ error: 'not found' });
   });
 
-  const dist = join(here, '..', 'dist');
   if (existsSync(dist)) {
     app.use(express.static(dist));
     // Allow embedding only on the dedicated embed route.
@@ -60,6 +59,16 @@ export function createApp(store) {
       if (!req.path.startsWith('/embed/')) res.setHeader('X-Frame-Options', 'SAMEORIGIN');
       res.sendFile(join(dist, 'index.html'));
     });
+  }
+
+  else {
+    // No built web app next to the server (normal during `dev`): explain where the UI lives instead of "Cannot GET /".
+    app.get('/', (_req, res) => res.status(200).type('html').send(`<!doctype html><meta charset="utf-8"><title>Strata API</title>
+<body style="font:16px system-ui;max-width:560px;margin:15vh auto;padding:0 16px;line-height:1.5">
+<h2>Strata API is running</h2>
+<p>This port only serves the API. In development, open the web app at
+<a href="http://localhost:5173">http://localhost:5173</a>.</p>
+<p>To run it all from this one port, build the web app first: <code>pnpm build</code> then <code>pnpm start</code>.</p></body>`));
   }
 
   app.use((err, _req, res, _next) => {
