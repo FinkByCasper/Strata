@@ -16,6 +16,7 @@ export const Icons = {
   grid: <I><path d="M4 4h16v16H4zM4 12h16M12 4v16" /></I>,
   undo: <I><path d="M9 14L4 9l5-5" /><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" /></I>,
   redo: <I><path d="M15 14l5-5-5-5" /><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13" /></I>,
+  share: <I><path d="M12 15V3" /><path d="M7.5 7.5L12 3l4.5 4.5" /><path d="M5 12v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" /></I>,
   chevron: <I size={14}><path d="M6 9l6 6 6-6" /></I>,
 };
 
@@ -39,7 +40,7 @@ export function CameraTools() {
   );
 }
 
-function Dropdown({ label, children }) {
+function Dropdown({ icon, title, primary, children }) {
   const [open, setOpen] = useState(false);
   const ref = useRef();
   useEffect(() => {
@@ -51,13 +52,13 @@ function Dropdown({ label, children }) {
   }, [open]);
   return (
     <div className="dropdown" ref={ref}>
-      <button className="pill" onClick={() => setOpen(!open)} aria-expanded={open}>{label}{Icons.chevron}</button>
-      {open && <div className="popover" onClick={() => setOpen(false)}>{children}</div>}
+      <button className={`icon-btn ${primary ? 'primary' : ''}`} onClick={() => setOpen(!open)} aria-expanded={open} aria-haspopup="menu" title={title} aria-label={title}>{icon}</button>
+      {open && <div className="popover" role="menu" onClick={() => setOpen(false)}>{children}</div>}
     </div>
   );
 }
 
-export function Topbar({ status, onShare, onExportJson, onExportPng, onImport }) {
+export function Topbar({ status, onShare, onExportJson, onExportPng, onImport, onTips }) {
   const name = useStore((s) => s.name);
   const mode = useStore((s) => s.mode);
   const snap = useStore((s) => s.snap);
@@ -87,14 +88,16 @@ export function Topbar({ status, onShare, onExportJson, onExportPng, onImport })
       <div className="tb-right">
         <CameraTools />
         <Tool icon={Icons.grid} label="Snap to grid" hint="G" on={snap} onClick={() => st.setSnap(!snap)} />
-        <Dropdown label="File">
+        <Dropdown icon={Icons.share} title="Share & file" primary>
+          <button className="menu-strong" onClick={onShare}>Share link &amp; embed…</button>
+          <hr />
           <button onClick={onExportJson}>Export JSON</button>
           <button onClick={onExportPng}>Export PNG</button>
           <button onClick={onImport}>Import JSON…</button>
           <hr />
           <Link to="/" className="menu-link">All diagrams</Link>
+          <button onClick={onTips}>Show camera tips</button>
         </Dropdown>
-        <button className="primary pill" onClick={onShare}>Share</button>
       </div>
     </header>
   );

@@ -26,6 +26,7 @@ export function validateDiagram(d) {
     if (!str(c.id, 64) || !ids.has(c.from) || !ids.has(c.to)) return 'bad connector';
     if (!ROUTES.includes(c.route) || !str(c.label ?? '', 200) || !str(c.color ?? '', 32) || !str(c.color2 ?? '', 32) || !str(c.subtitle ?? '', 200) || !str(c.description ?? '', 5000)) return 'bad connector';
     if (c.flow != null && !FLOWS.includes(c.flow)) return 'bad connector';
+    if ((c.arrow != null && typeof c.arrow !== 'boolean') || (c.arrowStart != null && typeof c.arrowStart !== 'boolean')) return 'bad connector';
   }
   for (const z of zones) {
     if (!str(z.id, 64) || !str(z.label, 200) || !isVec(z.position) || !isVec(z.size) || !str(z.color, 32)) return 'bad zone';

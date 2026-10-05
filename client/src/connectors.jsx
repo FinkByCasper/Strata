@@ -58,7 +58,11 @@ export function ConnectorsLayer() {
   useEffect(() => { lines.forEach((l) => l.material.resolution.set(size.width, size.height)); }, [lines, size]);
 
   // arrowheads
-  const arrows = useMemo(() => routes.filter((r) => r.c.arrow), [routes]);
+  // one entry per arrowhead: at the target end (`arrow`) and/or the source end (`arrowStart`)
+  const arrows = useMemo(() => routes.flatMap((r) => [
+    ...(r.c.arrow ? [{ r, tip: r.pts[r.pts.length - 1], from: r.pts[r.pts.length - 2] }] : []),
+    ...(r.c.arrowStart ? [{ r, tip: r.pts[0], from: r.pts[1] }] : []),
+  ]), [routes]);
   const coneGeo = useMemo(() => new THREE.ConeGeometry(0.13, 0.34, 14), []);
   const coneMat = useMemo(() => new THREE.MeshBasicMaterial({ toneMapped: false }), []);
   const arrowMesh = useRef();
@@ -66,10 +70,9 @@ export function ConnectorsLayer() {
     const m = arrowMesh.current;
     if (!m) return;
     const o = new THREE.Object3D(), c = new THREE.Color(), d = new THREE.Vector3();
-    arrows.forEach((r, i) => {
-      const end = r.pts[r.pts.length - 1];
-      d.copy(end).sub(r.pts[r.pts.length - 2]).normalize();
-      o.position.copy(end).addScaledVector(d, -0.17);
+    arrows.forEach(({ r, tip, from }, i) => {
+      d.copy(tip).sub(from).normalize();
+      o.position.copy(tip).addScaledVector(d, -0.17);
       o.quaternion.setFromUnitVectors(UP, d);
       o.scale.setScalar(r.c.id === selId ? 1.25 : 1);
       o.updateMatrix();
@@ -95,7 +98,7 @@ export function ConnectorsLayer() {
       {arrows.length > 0 && (
         <instancedMesh
           key={arrows.length} ref={arrowMesh} args={[coneGeo, coneMat, arrows.length]} frustumCulled={false}
-          onClick={(e) => { e.stopPropagation(); const r = arrows[e.instanceId]; if (r) selectConnector(r.c.id); }}
+          onClick={(e) => { e.stopPropagation(); const a = arrows[e.instanceId]; if (a) selectConnector(a.r.c.id); }}
         />
       )}
       {lod !== 'off' && routes.filter((r) => r.c.label || r.c.subtitle || r.c.id === selId).map((r) => {

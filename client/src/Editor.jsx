@@ -7,6 +7,7 @@ import { ICONS, LABEL_EDGES, ROUTES, ROUTE_NAMES, parseDiagram } from './model';
 import { RichText } from './richtext';
 import { ContextMenu, ShapePicker, Swatches } from './Menu';
 import { Topbar } from './Topbar';
+import { Intro, useIntro } from './Intro';
 
 const download = (name, text, type) => {
   const url = URL.createObjectURL(new Blob([text], { type }));
@@ -146,7 +147,10 @@ function Inspector({ sel }) {
           <span className="muted">{(c.flow ?? 'none') === 'none' ? 'Small dots travel along the line in the arrow\'s direction.' : (c.flow === 'both' ? 'Line colour goes forward; the return colour comes back in its own lane.' : 'Dots travel from the source to the target in the line colour.')}</span>
         </div>
         {c.flow === 'both' && <div className="field">Return colour<Swatches value={c.color2 || '#f5a524'} onPick={(color2) => s.updateConnector(c.id, { color2 })} /></div>}
-        <label className="check"><input type="checkbox" checked={c.arrow} onChange={(e) => s.updateConnector(c.id, { arrow: e.target.checked })} /> Arrow head</label>
+        <div className="field">Arrowheads
+          <label className="check"><input type="checkbox" checked={!!c.arrow} onChange={(e) => s.updateConnector(c.id, { arrow: e.target.checked })} /> At the target ({nodeName(data, c.to)})</label>
+          <label className="check"><input type="checkbox" checked={!!c.arrowStart} onChange={(e) => s.updateConnector(c.id, { arrowStart: e.target.checked })} /> At the source ({nodeName(data, c.from)})</label>
+        </div>
         <button onClick={() => s.updateConnector(c.id, { from: c.to, to: c.from })}>Reverse direction</button>
         <button className="danger" onClick={s.removeSelection}>Delete connector</button>
       </aside>
@@ -205,12 +209,30 @@ function ShareDialog({ id, viewToken, onClose, onRotate }) {
   );
 }
 
+// Shown while in Connect mode: a glowing frame round the viewport plus a banner saying what to do next.
+function ConnectOverlay() {
+  const mode = useStore((s) => s.mode);
+  const from = useStore((s) => s.connectFrom);
+  const name = useStore((s) => s.data.nodes.find((n) => n.id === s.connectFrom)?.label);
+  if (mode !== 'connect') return null;
+  return (
+    <>
+      <div className="connect-frame" />
+      <div className="connect-banner" role="status">
+        <span>{from ? `Connect mode · now click the node to link “${name || 'Untitled'}” to` : 'Connect mode · click a node to start a connection'}</span>
+        <button onClick={() => useStore.getState().setMode('select')}>Done (Esc)</button>
+      </div>
+    </>
+  );
+}
+
 export function Editor({ id }) {
   const s = useStore();
   const [meta, setMeta] = useState(null); // { viewToken }
   const [status, setStatus] = useState('loading'); // loading | saved | saving | error | missing
   const [sharing, setSharing] = useState(false);
   const importRef = useRef();
+  const intro = useIntro(status !== 'loading' && status !== 'missing');
 
   useEffect(() => {
     api.get(id)
@@ -272,20 +294,17 @@ export function Editor({ id }) {
     } catch (e) { alert(`Import failed: ${e.message}`); }
   };
 
-  const hint = s.mode === 'connect'
-    ? (s.connectFrom ? 'Now click the target node' : 'Click the source node, then the target node')
-    : 'Right-click to add · click to edit · hold a node or zone to pick it up · drag empty space to rotate around · right-drag to pan · Q/E rotate 90°';
-
   return (
     <div className="app">
       <Topbar status={status} onShare={() => setSharing(true)} onExportJson={exportJson} onExportPng={exportPng}
-        onImport={() => importRef.current.click()} />
+        onImport={() => importRef.current.click()} onTips={intro.replay} />
       <input ref={importRef} type="file" accept="application/json,.json" hidden onChange={(e) => { importJson(e.target.files[0]); e.target.value = ''; }} />
       <div className="stage">
         <Scene />
         <Details />
         <ContextMenu />
-        <div className="hint">{hint}</div>
+        <ConnectOverlay />
+        {intro.show && <Intro onDone={intro.dismiss} />}
       </div>
       {sharing && meta && (
         <ShareDialog id={id} viewToken={meta.viewToken} onClose={() => setSharing(false)}
