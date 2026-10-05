@@ -96,7 +96,8 @@ function Label({ position, children, className = '', onClick, priority = 2 }) {
 // compose with each label's own transform, and the natural rect is recovered by subtracting them.
 const LABEL_GAP = 3;
 function LabelLayout() {
-  useFrame(() => {
+  useFrame(({ gl }) => {
+    const t0 = performance.now();
     const items = [];
     for (const r of labelRegistry) {
       if (!r.el?.isConnected) continue;
@@ -126,6 +127,12 @@ function LabelLayout() {
         it.r.el.style.translate = best.dx || best.dy ? `${best.dx}px ${best.dy}px` : '';
       }
     }
+    // Cheap perf counters for stress testing (read from the console: window.__strataPerf).
+    const perf = (window.__strataPerf ??= { labelMs: 0 });
+    perf.labelMs = perf.labelMs * 0.9 + (performance.now() - t0) * 0.1;
+    perf.labels = items.length;
+    perf.calls = gl.info.render.calls;
+    perf.triangles = gl.info.render.triangles;
   });
   return null;
 }
