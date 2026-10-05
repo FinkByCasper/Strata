@@ -1,6 +1,6 @@
 // Minimal structural validation so a bad client can't store garbage or giant blobs.
-const SHAPES = ['box', 'cylinder', 'sphere', 'slab', 'user', 'server', 'router', 'accesspoint', 'pc', 'laptop', 'phone', 'database', 'cache'];
-const ROUTES = ['orthogonal', 'straight', 'curved'];
+const SHAPES = ['box', 'cylinder', 'sphere', 'slab', 'user', 'server', 'router', 'accesspoint', 'pc', 'laptop', 'phone', 'database', 'cache', 'switch', 'firewall', 'antenna', 'printer', 'cloud', 'container', 'pyramid'];
+const ROUTES = ['orthogonal', 'orthogonal-z', 'straight', 'curved'];
 const MAX_ICON = 400_000;
 
 const isVec = (v) => Array.isArray(v) && v.length === 3 && v.every((n) => Number.isFinite(n));
@@ -13,7 +13,7 @@ export function validateDiagram(d) {
   if (nodes.length > 2000 || connectors.length > 4000 || zones.length > 500) return 'diagram too large';
   const ids = new Set();
   for (const n of nodes) {
-    if (!str(n.id, 64) || !str(n.label, 200) || !str(n.description ?? '', 5000)) return 'bad node';
+    if (!str(n.id, 64) || !str(n.label, 200) || !str(n.description ?? '', 5000) || !str(n.subtitle ?? '', 200)) return 'bad node';
     if (!SHAPES.includes(n.shape) || !isVec(n.position) || !str(n.color, 32)) return 'bad node';
     if (n.icon != null && !str(n.icon, MAX_ICON)) return 'icon too large';
     if (n.icon && n.icon.startsWith('data:') && !/^data:image\/(png|jpeg|webp|gif);base64,/.test(n.icon)) return 'unsupported icon type';

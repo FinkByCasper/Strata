@@ -1,4 +1,5 @@
 import React from 'react';
+import { Edges } from '@react-three/drei';
 
 // Procedural 3D device models, built from primitives so there are no assets to host or load.
 // Each one fits roughly inside a 1x1x1 cell centred on the origin (floor at y = -0.5). The node's colour
@@ -148,11 +149,105 @@ function Cache({ color, glow }) {
   );
 }
 
-export const MODELS = { user: User, server: Server, router: Router, accesspoint: AccessPoint, pc: Pc, laptop: Laptop, phone: Phone, database: Database, cache: Cache };
+
+function Switch({ color, glow }) {
+  return (
+    <group>
+      <Box size={[1.1, 0.2, 0.72]} pos={[0, -0.4, 0]}><Main color={color} glow={glow} /></Box>
+      <Box size={[0.96, 0.09, 0.01]} pos={[0, -0.4, 0.362]}><Mat color={DARK} /></Box>
+      {Array.from({ length: 8 }, (_, i) => (
+        <Box key={i} size={[0.07, 0.05, 0.012]} pos={[-0.4 + i * 0.115, -0.4, 0.37]}><Mat color={i % 3 === 0 ? LED : LIGHT} emissive={i % 3 === 0 ? LED : undefined} /></Box>
+      ))}
+      <Box size={[0.3, 0.02, 0.2]} pos={[0.3, -0.295, 0]}><Mat color={LIGHT} /></Box>
+    </group>
+  );
+}
+
+function Firewall({ color, glow }) {
+  const rows = [0, 1, 2, 3, 4];
+  return (
+    <group>
+      {rows.map((r) => {
+        const y = -0.42 + r * 0.19;
+        const xs = r % 2 === 0 ? [-0.33, 0, 0.33] : [-0.495, -0.165, 0.165, 0.495];
+        return xs.map((x) => {
+          const w = r % 2 === 0 || Math.abs(x) < 0.4 ? 0.31 : 0.15;
+          return <Box key={`${r}${x}`} size={[w, 0.17, 0.3]} pos={[x, y, 0]}><Main color={color} glow={glow} /></Box>;
+        });
+      })}
+      <Box size={[0.22, 0.17, 0.07]} pos={[0.3, -0.3, 0.19]}><Mat color={GOLD} metal={0.6} /></Box>
+      <mesh position={[0.3, -0.2, 0.19]}><torusGeometry args={[0.07, 0.022, 8, 18, Math.PI]} /><Mat color={GOLD} metal={0.6} /></mesh>
+    </group>
+  );
+}
+
+function Cloud({ color, glow }) {
+  return (
+    <group>
+      <mesh position={[0, -0.3, 0]} scale={[1.5, 0.5, 1]}><sphereGeometry args={[0.36, 28, 18]} /><Main color={color} glow={glow} /></mesh>
+      <mesh position={[-0.28, -0.13, 0]}><sphereGeometry args={[0.28, 28, 20]} /><Main color={color} glow={glow} /></mesh>
+      <mesh position={[0.04, 0.02, 0.02]}><sphereGeometry args={[0.37, 28, 20]} /><Main color={color} glow={glow} /></mesh>
+      <mesh position={[0.32, -0.15, 0]}><sphereGeometry args={[0.26, 28, 20]} /><Main color={color} glow={glow} /></mesh>
+    </group>
+  );
+}
+
+function Antenna({ color, glow }) {
+  return (
+    <group>
+      <mesh position={[0, -0.47, 0]}><cylinderGeometry args={[0.42, 0.46, 0.06, 32]} /><Mat color={DARK} /></mesh>
+      <mesh position={[0, 0.2, 0]} rotation={[0, Math.PI / 4, 0]} userData={{ noShadow: true }}>
+        <cylinderGeometry args={[0.02, 0.3, 1.3, 4, 9, true]} />
+        <meshStandardMaterial color={color} wireframe emissive={glow ? color : '#000'} emissiveIntensity={glow ? 0.5 : 0} />
+      </mesh>
+      <mesh position={[0, 0.2, 0]}><cylinderGeometry args={[0.025, 0.04, 1.3, 8]} /><Main color={color} glow={glow} /></mesh>
+      <Box size={[0.34, 0.025, 0.025]} pos={[0, 0.5, 0]}><Mat color={DARK} /></Box>
+      <Box size={[0.22, 0.025, 0.025]} pos={[0, 0.2, 0]}><Mat color={DARK} /></Box>
+      <mesh position={[0, 0.88, 0]}><sphereGeometry args={[0.05, 12, 10]} /><Mat color="#ef4444" emissive="#ef4444" /></mesh>
+    </group>
+  );
+}
+
+function Printer({ color, glow }) {
+  return (
+    <group>
+      <Box size={[0.95, 0.3, 0.62]} pos={[0, -0.35, 0.04]}><Main color={color} glow={glow} /></Box>
+      <Box size={[0.95, 0.08, 0.58]} pos={[0, -0.16, 0.04]}><Mat color={LIGHT} /></Box>
+      <Box size={[0.5, 0.02, 0.4]} pos={[0, 0.0, -0.22]} rot={[-0.55, 0, 0]}><Mat color="#f8fafc" rough={0.9} metal={0} /></Box>
+      <Box size={[0.7, 0.04, 0.3]} pos={[0, -0.45, 0.4]}><Mat color={DARK} /></Box>
+      <Box size={[0.2, 0.05, 0.01]} pos={[0.3, -0.3, 0.353]}><Mat color={LED} emissive={LED} /></Box>
+    </group>
+  );
+}
+
+function Pyramid({ color, glow }) {
+  return (
+    <mesh position={[0, -0.08, 0]} rotation={[0, Math.PI / 4, 0]}>
+      <coneGeometry args={[0.66, 0.84, 4]} /><Main color={color} glow={glow} />
+    </mesh>
+  );
+}
+
+function Container({ color, glow }) {
+  return (
+    <group>
+      <mesh userData={{ noShadow: true }}>
+        <boxGeometry args={[0.95, 0.95, 0.95]} />
+        <meshStandardMaterial color={color} transparent opacity={0.2} depthWrite={false} roughness={0.15} />
+        <Edges color={DARK} />
+      </mesh>
+      {[-0.2, 0.06].map((y) => <Box key={y} size={[0.62, 0.18, 0.62]} pos={[0, y, 0]}><Main color={color} glow={glow} /></Box>)}
+      <Box size={[0.62, 0.05, 0.62]} pos={[0, -0.4, 0]}><Mat color={LIGHT} /></Box>
+      <Box size={[0.5, 0.05, 0.5]} pos={[0, 0.27, 0]}><Mat color={LIGHT} /></Box>
+    </group>
+  );
+}
+
+export const MODELS = { user: User, server: Server, router: Router, accesspoint: AccessPoint, pc: Pc, laptop: Laptop, phone: Phone, database: Database, cache: Cache, switch: Switch, firewall: Firewall, cloud: Cloud, antenna: Antenna, printer: Printer, pyramid: Pyramid, container: Container };
 export const isModel = (kind) => kind in MODELS;
 
 // Height (world units, above the node centre) at which the DOM label floats, per model.
-export const LABEL_Y = { user: 0.95, server: 0.85, router: 0.95, accesspoint: 0.8, pc: 0.8, laptop: 0.7, phone: 0.65, database: 0.75, cache: 0.35, slab: 0.55 };
+export const LABEL_Y = { switch: 0.5, firewall: 0.75, cloud: 0.7, antenna: 1.3, printer: 0.55, pyramid: 0.6, container: 0.95, user: 0.95, server: 0.85, router: 0.95, accesspoint: 0.8, pc: 0.8, laptop: 0.7, phone: 0.65, database: 0.75, cache: 0.35, slab: 0.55 };
 
 export function Model({ kind, color, glow }) {
   const C = MODELS[kind];

@@ -3,7 +3,7 @@ import { api } from './api';
 import { Link } from './App';
 import { Scene } from './Scene';
 import { useStore } from './store';
-import { ICONS, PALETTE, ROUTES, SHAPES, parseDiagram } from './model';
+import { ICONS, ROUTES, ROUTE_NAMES, parseDiagram } from './model';
 import { RichText } from './richtext';
 import { ContextMenu, ShapePicker, Swatches } from './Menu';
 import { Topbar } from './Topbar';
@@ -77,6 +77,8 @@ function Inspector({ sel }) {
       <aside className="panel">
         <h3>Node</h3>
         <label>Label<LabelInput id={n.id} value={n.label} onChange={(e) => s.updateNode(n.id, { label: e.target.value })} /></label>
+        <label>Subtitle <span className="muted">(second line on the label, e.g. an IP)</span>
+          <input value={n.subtitle ?? ''} onChange={(e) => s.updateNode(n.id, { subtitle: e.target.value })} /></label>
         <label>Description <span className="muted">(**bold**, *italic*, `code`, - lists)</span>
           <textarea rows={5} value={n.description} onChange={(e) => s.updateNode(n.id, { description: e.target.value })} /></label>
         <div className="field">Model<ShapePicker value={n.shape} onPick={(shape) => s.updateNode(n.id, { shape })} /></div>
@@ -111,7 +113,7 @@ function Inspector({ sel }) {
         <label>Label<input value={c.label} onChange={(e) => s.updateConnector(c.id, { label: e.target.value })} /></label>
         <label>Routing
           <select value={c.route} onChange={(e) => s.updateConnector(c.id, { route: e.target.value })}>
-            {ROUTES.map((x) => <option key={x}>{x}</option>)}
+            {ROUTES.map((x) => <option key={x} value={x}>{ROUTE_NAMES[x] ?? x}</option>)}
           </select></label>
         <label>Line
           <select value={c.line} onChange={(e) => s.updateConnector(c.id, { line: e.target.value })}>

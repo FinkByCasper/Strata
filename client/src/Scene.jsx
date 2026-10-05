@@ -107,16 +107,18 @@ function LabelLayout() {
     const placed = [];
     const clash = (x, y, w, h) => placed.some((p) =>
       x < p.x + p.w + LABEL_GAP && x + w + LABEL_GAP > p.x && y < p.y + p.h + LABEL_GAP && y + h + LABEL_GAP > p.y);
-    const steps = [0, -1, 1, -2, 2, -3, 3, -4, 4];
     for (const it of items) {
-      let best = null;
-      for (const kx of [0, 1, -1]) {
-        for (const k of steps) {
-          const dx = kx * (it.w * 0.55 + 6), dy = k * (it.h + 4);
-          if (!clash(it.x + dx, it.y + dy, it.w, it.h)) { best = { dx, dy }; break; }
+      // Try every nearby slot and take the closest free one; moving up (above the node) is preferred over
+      // moving down (which would cover the node's body).
+      const cands = [];
+      for (const kx of [0, 1, -1, 2, -2]) {
+        for (const k of [0, -1, 1, -2, 2, -3, 3, -4, 4]) {
+          const dx = kx * (it.w * 0.5 + 6), dy = k * (it.h + 3);
+          cands.push({ dx, dy, cost: Math.hypot(dx, dy) + (dy > 0 ? 8 : 0) });
         }
-        if (best) break;
       }
+      cands.sort((a, b) => a.cost - b.cost);
+      let best = cands.find((c) => !clash(it.x + c.dx, it.y + c.dy, it.w, it.h)) ?? null;
       best ??= { dx: 0, dy: 0 };
       placed.push({ x: it.x + best.dx, y: it.y + best.dy, w: it.w, h: it.h });
       if (best.dx !== it.r.dx || best.dy !== it.r.dy) {
@@ -140,6 +142,16 @@ function NodeShape({ shape }) {
   }
 }
 
+// Marks every mesh under a ref as a shadow caster/receiver (except parts flagged userData.noShadow).
+function useShadowFlags(ref) {
+  useEffect(() => {
+    ref.current?.traverse((o) => {
+      if (o.isMesh && !o.userData.noShadow) { o.castShadow = true; o.receiveShadow = true; }
+    });
+  });
+}
+
+const MODEL_SCALE = 1.5;
 const HOLD_MS = 500;   // press and hold this long to pick an object up
 const SLOP = 6;        // px of movement during the hold that cancels it (user meant to orbit/click)
 const GROUND = new THREE.Plane(UP, 0);
@@ -235,7 +247,9 @@ function NodeView({ node }) {
 
   const basic = !isModel(node.shape);
   const glow = selected || connecting;
-  const labelY = LABEL_Y[node.shape] ?? 1.05;
+  const labelY = (LABEL_Y[node.shape] ?? 1.05) * (basic ? 1 : MODEL_SCALE);
+  const body = useRef();
+  useShadowFlags(body);
 
   // Handlers sit on the group so they fire for every part of a multi-mesh device model.
   return (
@@ -254,7 +268,7 @@ function NodeView({ node }) {
       )}
       <group position={[0, hold.lifted ? 0.5 : 0, 0]}>
         <group
-          scale={hold.lifted ? 1.1 : 1}
+          ref={body} scale={(hold.lifted ? 1.1 : 1) * (basic ? 1 : MODEL_SCALE)}
           onPointerDown={onDown} onPointerMove={hold.move}
           onPointerOver={hover(true)} onPointerOut={hover(false)}
         >
@@ -273,7 +287,7 @@ function NodeView({ node }) {
         </group>
         {node.icon && basic && node.shape !== 'slab' && (
           <Html center position={[0, 0, 0]} zIndexRange={[10, 0]} className="passthrough" portal={portal}>
-            <div className="onshape"><IconGlyph icon={node.icon} /></div>
+            <div className={`onshape ${/^[\w ]{2,}$/.test(node.icon) ? 'text' : ''}`}><IconGlyph icon={node.icon} /></div>
           </Html>
         )}
         <Label
@@ -285,6 +299,7 @@ function NodeView({ node }) {
             {node.icon && (!basic || node.shape === 'slab') && <IconGlyph icon={node.icon} />}
             {node.label || <em>Untitled</em>}
           </div>
+          {node.subtitle && <div className="sub">{node.subtitle}</div>}
           {selected && node.description && <RichText text={node.description} />}
         </Label>
       </group>
@@ -471,7 +486,6 @@ function CameraRig({ controls }) {
     });
     const hasContent = !box.isEmpty();
     const center = hasContent ? box.getCenter(new THREE.Vector3()) : new THREE.Vector3();
-    const extent = hasContent ? Math.max(...box.getSize(new THREE.Vector3()).toArray(), 4) + 4 : 14;
     const name = view?.name ?? 'reset';
     const cur = Math.atan2(camera.position.x - c.target.x, camera.position.z - c.target.z);
     // Rotations snap to the quarter-turn grid around the default azimuth.
@@ -479,14 +493,65 @@ function CameraRig({ controls }) {
     const az = name === 'rotL' ? snapped - Math.PI / 2 : name === 'rotR' ? snapped + Math.PI / 2
       : name === 'fit' ? cur : RESET_AZIMUTH;
     const recentre = name === 'fit' || name === 'reset';
-    const target = recentre ? center : c.target.clone();
+    let target = recentre ? center.clone() : c.target.clone();
+    let zoom = null;
+    if (recentre) {
+      // Fit by projecting the content's bounding box onto the camera's screen axes, then centre the
+      // *projected* box (not just the 3D centre) and zoom so it fills the viewport with a margin.
+      let w = 14, h = 14;
+      if (hasContent) {
+        const fwd = dirFor(az).negate();
+        const right = new THREE.Vector3().crossVectors(fwd, UP).normalize();
+        const up = new THREE.Vector3().crossVectors(right, fwd).normalize();
+        const lo = [Infinity, Infinity], hi = [-Infinity, -Infinity];
+        // measure the real content (nodes + zone corners), not the plan's bounding rectangle, so L-shaped
+        // layouts don't leave empty margins
+        const pts = [];
+        for (const n of nodes) for (const dx of [-1, 1]) for (const dz of [-1, 1]) for (const cy of [-0.5, 1.8]) pts.push(new THREE.Vector3(n.position[0] + dx, cy, n.position[2] + dz));
+        for (const z of zones) for (const dx of [-1, 1]) for (const dz of [-1, 1]) pts.push(new THREE.Vector3(z.position[0] + (dx * z.size[0]) / 2, -0.5, z.position[2] + (dz * z.size[2]) / 2));
+        for (const p of pts) {
+          const px = p.dot(right), py = p.dot(up);
+          lo[0] = Math.min(lo[0], px); hi[0] = Math.max(hi[0], px); lo[1] = Math.min(lo[1], py); hi[1] = Math.max(hi[1], py);
+        }
+        w = Math.max(hi[0] - lo[0], 6) + 3; h = Math.max(hi[1] - lo[1], 6) + 3;
+        // shift the pivot along the floor so the projected box sits in the middle of the screen
+        const mx = (lo[0] + hi[0]) / 2 - center.dot(right);
+        const my = (lo[1] + hi[1]) / 2 - center.dot(up);
+        const ground = new THREE.Vector3(-Math.sin(az), 0, -Math.cos(az)); // away from the camera
+        target = center.clone().addScaledVector(right, mx).addScaledVector(ground, my / ground.dot(up));
+        target.y = 0;
+      }
+      zoom = Math.max(10, Math.min(size.width / w, size.height / h) * 0.94);
+    }
     c.target.copy(target);
     camera.position.copy(target).addScaledVector(dirFor(az), 60);
-    if (recentre) camera.zoom = Math.max(12, Math.min(size.width, size.height) / extent);
+    if (zoom) camera.zoom = zoom;
     camera.updateProjectionMatrix();
     c.update();
   }, [view]); // eslint-disable-line react-hooks/exhaustive-deps
   return null;
+}
+
+// Directional light with a shadow frustum that follows the orbit target.
+function Sun() {
+  const light = useRef();
+  const controls = useThree((st) => st.controls);
+  useFrame(() => {
+    const l = light.current;
+    if (!l) return;
+    const t = controls?.target ?? new THREE.Vector3();
+    l.position.set(t.x - 12, 11, t.z + 6);
+    l.target.position.copy(t);
+    l.target.updateMatrixWorld();
+  });
+  return (
+    <directionalLight
+      ref={light} intensity={1.5} castShadow
+      shadow-mapSize={[2048, 2048]} shadow-bias={-0.0004} shadow-normalBias={0.03}
+      shadow-camera-left={-38} shadow-camera-right={38} shadow-camera-top={38} shadow-camera-bottom={-38}
+      shadow-camera-near={1} shadow-camera-far={80}
+    />
+  );
 }
 
 export function Scene() {
@@ -497,7 +562,7 @@ export function Scene() {
 
   return (
     <Canvas
-      orthographic camera={{ position: [30, 24, 30], zoom: 50, near: -500, far: 500 }}
+      shadows orthographic camera={{ position: [30, 24, 30], zoom: 50, near: -500, far: 500 }}
       dpr={[1, 2]} gl={{ preserveDrawingBuffer: true, antialias: true }}
       onPointerMissed={() => {
         const s = useStore.getState();
@@ -506,8 +571,13 @@ export function Scene() {
     >
       <color attach="background" args={['#eceef4']} />
       <ambientLight intensity={1.05} />
-      <directionalLight position={[8, 14, 6]} intensity={1.6} />
-      <directionalLight position={[-6, 4, -8]} intensity={0.5} />
+      <Sun />
+      <directionalLight position={[-6, 4, -8]} intensity={0.45} />
+      {/* Invisible floor that only shows the shadows cast on it. */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.494, 0]} receiveShadow raycast={() => null}>
+        <planeGeometry args={[800, 800]} />
+        <shadowMaterial opacity={0.4} />
+      </mesh>
       {/* Floor grid: fine 1-unit lines, slightly heavier every 5. Kept low-contrast so it recedes. */}
       <Grid
         position={[0, -0.5, 0]} infiniteGrid cellSize={1} sectionSize={5}

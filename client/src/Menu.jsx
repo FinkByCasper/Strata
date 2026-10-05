@@ -17,6 +17,13 @@ export function ShapeIcon({ shape }) {
     laptop: <><rect x="5" y="5" width="14" height="10" rx="1" /><path d="M2.5 19h19" /></>,
     phone: <><rect x="8" y="3" width="8" height="18" rx="2" /><path d="M11 18h2" /></>,
     database: <><ellipse cx="12" cy="6" rx="7" ry="3" /><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6" /></>,
+    switch: <><rect x="3" y="11" width="18" height="7" rx="1.2" /><path d="M6.5 14.5h.01M9.5 14.5h.01M12.5 14.5h.01M15.5 14.5h.01M18 14.5h.01" /></>,
+    firewall: <><rect x="4" y="4" width="16" height="16" rx="1" /><path d="M4 9.3h16M4 14.6h16M10 4v5.3M15 9.3v5.3M9 14.6V20" /></>,
+    antenna: <><path d="M12 3v18M7 21l5-15 5 15M9.2 14h5.6M10.4 10h3.2" /></>,
+    printer: <><rect x="4" y="9" width="16" height="8" rx="1.5" /><path d="M7 9V4h10v5M7 14h10v6H7z" /></>,
+    cloud: <><path d="M7 18h10a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.2 9.2 4.4 4.4 0 0 0 7 18z" /></>,
+    container: <><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z" /><path d="M8 11l4 2 4-2M8 14.2l4 2 4-2" /></>,
+    pyramid: <><path d="M12 4l8 14H4z" /><path d="M12 4v14" /></>,
     cache: <><rect x="7" y="7" width="10" height="10" rx="1.5" /><path d="M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4" /></>,
   };
   return <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden><g {...p}>{glyph[shape]}</g></svg>;

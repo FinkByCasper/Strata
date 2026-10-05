@@ -4,17 +4,18 @@ export const uid = () => crypto.randomUUID().slice(0, 8);
 export const EMPTY = () => ({ nodes: [], connectors: [], zones: [] });
 
 export const BASIC_SHAPES = ['box', 'cylinder', 'sphere', 'slab'];
-export const DEVICE_SHAPES = ['user', 'server', 'router', 'accesspoint', 'pc', 'laptop', 'phone', 'database', 'cache'];
+export const DEVICE_SHAPES = ['user', 'server', 'router', 'switch', 'firewall', 'accesspoint', 'antenna', 'pc', 'laptop', 'phone', 'printer', 'database', 'cache', 'cloud', 'container', 'pyramid'];
 export const SHAPES = [...BASIC_SHAPES, ...DEVICE_SHAPES];
-export const SHAPE_NAMES = { accesspoint: 'access point', router: 'router / relay', pc: 'PC' };
+export const SHAPE_NAMES = { accesspoint: 'access point', router: 'router / relay', pc: 'PC', antenna: 'antenna tower', container: 'container', pyramid: 'hub' };
 export const shapeName = (s) => SHAPE_NAMES[s] ?? s;
-export const ROUTES = ['orthogonal', 'straight', 'curved'];
+export const ROUTES = ['orthogonal', 'orthogonal-z', 'straight', 'curved'];
+export const ROUTE_NAMES = { orthogonal: 'right angles (X first)', 'orthogonal-z': 'right angles (Z first)', straight: 'straight', curved: 'curved' };
 export const PALETTE = ['#4f8cff', '#22b8a6', '#f5a524', '#ef5b7b', '#8b6cf6', '#64748b'];
 export const ICONS = ['🖥️', '🗄️', '☁️', '👤', '🔒', '📨', '🌐', '⚙️', '📦', '📊', '🔌', '📱'];
 
 export function newNode(shape, position, index) {
   return {
-    id: uid(), label: 'New node', description: '', shape,
+    id: uid(), label: 'New node', subtitle: '', description: '', shape,
     color: PALETTE[index % PALETTE.length], position, icon: null,
   };
 }
@@ -77,6 +78,8 @@ export function routePoints(a, b, route) {
   let pts;
   if (route === 'orthogonal') {
     pts = dedupe([A, new THREE.Vector3(B.x, A.y, A.z), new THREE.Vector3(B.x, A.y, B.z), B]);
+  } else if (route === 'orthogonal-z') {
+    pts = dedupe([A, new THREE.Vector3(A.x, A.y, B.z), new THREE.Vector3(B.x, A.y, B.z), B]);
   } else if (route === 'curved') {
     const mid = A.clone().add(B).multiplyScalar(0.5);
     mid.y += Math.max(1, A.distanceTo(B) * 0.25);
