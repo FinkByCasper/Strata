@@ -90,6 +90,10 @@ function Inspector({ sel }) {
         <div className="xyz">
           {['X', 'Y', 'Z'].map((a, i) => <label key={a}>{a}{num(n.position, i, (p) => s.updateNode(n.id, { position: p }))}</label>)}
         </div>
+        <div className="row">
+          <button onClick={() => s.startConnectFrom(n.id)}>Connect from here…</button>
+          <button onClick={s.duplicateSelection}>Duplicate</button>
+        </div>
         <button className="danger" onClick={s.removeSelection}>Delete node</button>
       </aside>
     );
@@ -129,6 +133,7 @@ function Inspector({ sel }) {
       <div className="xyz">{['X', 'Y', 'Z'].map((a, i) => <label key={a}>{a}{num(z.position, i, (p) => s.updateZone(z.id, { position: p }))}</label>)}</div>
       <p className="muted">Size</p>
       <div className="xyz">{['W', 'H', 'D'].map((a, i) => <label key={a}>{a}{num(z.size, i, (p) => s.updateZone(z.id, { size: p.map((v) => Math.max(1, v)) }))}</label>)}</div>
+      <button onClick={s.duplicateSelection}>Duplicate</button>
       <button className="danger" onClick={s.removeSelection}>Delete zone</button>
     </aside>
   );
@@ -210,7 +215,7 @@ export function Editor({ id }) {
 
   const hint = s.mode === 'connect'
     ? (s.connectFrom ? 'Now click the target node' : 'Click the source node, then the target node')
-    : 'Right-click to add or edit · drag a node to move it (Shift+drag for height) · drag empty space to orbit · right-drag to pan';
+    : 'Right-click to add · click to edit · drag a node to move it (Shift+drag for height) · drag empty space to orbit · right-drag to pan';
 
   return (
     <div className="app">

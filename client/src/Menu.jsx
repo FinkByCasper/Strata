@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useStore } from './store';
-import { PALETTE, ROUTES, SHAPES, freeSpot } from './model';
+import { PALETTE, SHAPES, freeSpot } from './model';
 
 export function ShapeIcon({ shape }) {
   const p = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.6, strokeLinejoin: 'round', strokeLinecap: 'round' };
@@ -40,8 +40,7 @@ export function Swatches({ value, onPick, custom = true }) {
   );
 }
 
-// Right-click menu. Empty space adds things at the clicked grid cell; objects get quick edits.
-// Anything added/selected also opens the side panel, which has the full model/colour controls.
+// Right-click menu: always "add" (at the clicked grid cell). Editing an object is left-click + side panel.
 export function ContextMenu() {
   const menu = useStore((s) => s.menu);
   const data = useStore((s) => s.data);
@@ -74,63 +73,24 @@ export function ContextMenu() {
   if (!menu) return null;
   const st = useStore.getState();
   const done = (fn) => () => { fn(); st.closeMenu(); };
-  const t = menu.target;
-  const node = t?.type === 'node' && data.nodes.find((n) => n.id === t.id);
-  const zone = t?.type === 'zone' && data.zones.find((z) => z.id === t.id);
-  const conn = t?.type === 'connector' && data.connectors.find((c) => c.id === t.id);
   const where = menu.world ?? freeSpot(data.nodes);
-
-  let body;
-  if (node) {
-    body = (<>
-      <h4>Node · {node.label || 'Untitled'}</h4>
-      <ShapePicker value={node.shape} onPick={(shape) => st.updateNode(node.id, { shape })} />
-      <Swatches value={node.color} custom={false} onPick={(color) => st.updateNode(node.id, { color })} />
-      <hr />
-      <button className="item" onClick={done(() => st.startConnectFrom(node.id))}>Connect from here…</button>
-      <button className="item" onClick={done(st.duplicateSelection)}>Duplicate</button>
-      <button className="item danger" onClick={done(st.removeSelection)}>Delete</button>
-    </>);
-  } else if (zone) {
-    body = (<>
-      <h4>Zone · {zone.label}</h4>
-      <Swatches value={zone.color} custom={false} onPick={(color) => st.updateZone(zone.id, { color })} />
-      <hr />
-      <button className="item" onClick={done(st.duplicateSelection)}>Duplicate</button>
-      <button className="item danger" onClick={done(st.removeSelection)}>Delete</button>
-    </>);
-  } else if (conn) {
-    body = (<>
-      <h4>Connector</h4>
-      <div className="seg">{ROUTES.map((r) => (
-        <button key={r} className={conn.route === r ? 'on' : ''} onClick={() => st.updateConnector(conn.id, { route: r })}>{r}</button>
-      ))}</div>
-      <button className="item" onClick={() => st.updateConnector(conn.id, { line: conn.line === 'dashed' ? 'solid' : 'dashed' })}>
-        {conn.line === 'dashed' ? 'Make solid' : 'Make dashed'}</button>
-      <button className="item" onClick={() => st.updateConnector(conn.id, { arrow: !conn.arrow })}>{conn.arrow ? 'Hide arrow' : 'Show arrow'}</button>
-      <button className="item" onClick={done(() => st.updateConnector(conn.id, { from: conn.to, to: conn.from }))}>Reverse direction</button>
-      <hr />
-      <button className="item danger" onClick={done(st.removeSelection)}>Delete</button>
-    </>);
-  } else {
-    body = (<>
-      <h4>Add here</h4>
-      <div className="shapes">
-        {SHAPES.map((sh) => (
-          <button key={sh} onClick={done(() => st.addNodeAt(sh, where))} title={`Add ${sh}`}><ShapeIcon shape={sh} /><span>{sh}</span></button>
-        ))}
-      </div>
-      <button className="item" onClick={done(() => st.addZoneAt(where))}>Add zone</button>
-      <hr />
-      <button className="item" onClick={done(() => st.setMode(st.mode === 'connect' ? 'select' : 'connect'))}>
-        {st.mode === 'connect' ? 'Leave connect mode' : 'Connect mode'}</button>
-      <div className="seg">
-        {[['iso', 'Free'], ['front', 'Front'], ['top', 'Top'], ['right', 'Side'], ['fit', 'Fit']].map(([k, l]) => (
-          <button key={k} onClick={done(() => st.setView(k))}>{l}</button>
-        ))}
-      </div>
-    </>);
-  }
+  const body = (<>
+    <h4>Add here</h4>
+    <div className="shapes">
+      {SHAPES.map((sh) => (
+        <button key={sh} onClick={done(() => st.addNodeAt(sh, where))} title={`Add ${sh}`}><ShapeIcon shape={sh} /><span>{sh}</span></button>
+      ))}
+    </div>
+    <button className="item" onClick={done(() => st.addZoneAt(where))}>Add zone</button>
+    <hr />
+    <button className="item" onClick={done(() => st.setMode(st.mode === 'connect' ? 'select' : 'connect'))}>
+      {st.mode === 'connect' ? 'Leave connect mode' : 'Connect mode'}</button>
+    <div className="seg">
+      {[['iso', 'Free'], ['front', 'Front'], ['top', 'Top'], ['right', 'Side'], ['fit', 'Fit']].map(([k, l]) => (
+        <button key={k} onClick={done(() => st.setView(k))}>{l}</button>
+      ))}
+    </div>
+  </>);
 
   return (
     <div ref={ref} className="ctx" style={{ left: (pos ?? menu).x, top: (pos ?? menu).y, visibility: pos ? 'visible' : 'hidden' }}

@@ -8,14 +8,10 @@ import { RichText } from './richtext';
 
 const UP = new THREE.Vector3(0, 1, 0);
 
-// Right-click plumbing. Objects record themselves as the target on right pointer-up; the canvas
-// listener (which fires in the same tick) then opens the menu for that target, or the "empty" menu.
-let ctxTarget = null;
-const openMenuFor = (target, e, world = null) => {
+// Right-click always opens the "Add" menu (objects are edited via left-click + side panel).
+const openAddMenu = (e, world = null) => {
   const st = useStore.getState();
-  if (st.readOnly) return;
-  st.select(target);
-  st.openMenu({ x: e.clientX, y: e.clientY, target, world });
+  if (!st.readOnly) st.openMenu({ x: e.clientX, y: e.clientY, world });
 };
 
 function ContextHandler() {
@@ -30,10 +26,9 @@ function ContextHandler() {
       if (e.button !== 2 || !down) return;
       const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y) > 5; // right-drag = pan, not a click
       down = null;
-      if (moved) { ctxTarget = null; return; }
+      if (moved) return;
       const { clientX, clientY } = e;
       setTimeout(() => {
-        const target = ctxTarget; ctxTarget = null;
         const rect = el.getBoundingClientRect();
         raycaster.setFromCamera(new THREE.Vector2(((clientX - rect.left) / rect.width) * 2 - 1, -((clientY - rect.top) / rect.height) * 2 + 1), camera);
         const hit = new THREE.Vector3();
@@ -42,7 +37,7 @@ function ContextHandler() {
           const q = useStore.getState().snap ? Math.round : (v) => Math.round(v * 20) / 20;
           world = [q(hit.x), 0, q(hit.z)];
         }
-        openMenuFor(target, { clientX, clientY }, world);
+        openAddMenu({ clientX, clientY }, world);
       }, 0);
     };
     const noMenu = (e) => e.preventDefault();
@@ -56,14 +51,14 @@ function ContextHandler() {
 
 // Labels are plain DOM (crisp, selectable, always screen-aligned) positioned from 3D space.
 // Wheel events are forwarded so zooming still works while the cursor is over a label.
-function Label({ position, children, className = '', onClick, target }) {
+function Label({ position, children, className = '', onClick }) {
   const gl = useThree((s) => s.gl);
   return (
     <Html position={position} center zIndexRange={[20, 0]} pointerEvents="none">
       <div
         className={`label ${className}`}
         onPointerDown={(e) => { if (onClick && e.button === 0) { e.stopPropagation(); onClick(e); } }}
-        onContextMenu={(e) => { e.preventDefault(); if (target) { e.stopPropagation(); openMenuFor(target, e); } }}
+        onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); openAddMenu(e); }}
         onWheel={(e) => gl.domElement.dispatchEvent(new WheelEvent('wheel', e.nativeEvent))}
       >
         {children}
@@ -136,7 +131,6 @@ function NodeView({ node }) {
   };
 
   const onUp = (e) => {
-    if (e.nativeEvent.button === 2) ctxTarget = { type: 'node', id: node.id };
     if (!drag.current) return;
     drag.current = null;
     e.target.releasePointerCapture?.(e.pointerId);
@@ -172,7 +166,6 @@ function NodeView({ node }) {
       <Label
         position={[0, node.shape === 'slab' ? 0.55 : 1.05, 0]}
         className={selected ? 'selected' : ''}
-        target={{ type: 'node', id: node.id }}
         onClick={pick}
       >
         <div className="title">
@@ -201,7 +194,6 @@ function ConnectorView({ connector, from, to }) {
         points={points} color={color} lineWidth={selected ? 3.5 : 2.2}
         dashed={connector.line === 'dashed'} dashSize={0.25} gapSize={0.18}
         onClick={select}
-        onPointerUp={(e) => { if (e.nativeEvent.button === 2) ctxTarget = { type: 'connector', id: connector.id }; }}
       />
       {connector.arrow && (
         <mesh position={end.clone().addScaledVector(dir, -0.17)} quaternion={quat} onClick={select}>
@@ -210,7 +202,7 @@ function ConnectorView({ connector, from, to }) {
         </mesh>
       )}
       {connector.label && (
-        <Label position={polylineMidpoint(points)} className="line-label" onClick={select} target={{ type: 'connector', id: connector.id }}>
+        <Label position={polylineMidpoint(points)} className="line-label" onClick={select}>
           {connector.label}
         </Label>
       )}
@@ -231,7 +223,6 @@ function ZoneView({ zone }) {
       </mesh>
       <Label
         position={[-w / 2, h / 2, -d / 2]} className={`zone-label ${selected ? 'selected' : ''}`}
-        target={{ type: 'zone', id: zone.id }}
         onClick={() => useStore.getState().select({ type: 'zone', id: zone.id })}
       >
         <span className="dot" style={{ background: zone.color }} />{zone.label}
