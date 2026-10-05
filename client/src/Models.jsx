@@ -66,7 +66,7 @@ function AccessPoint({ color, glow }) {
       <mesh position={[0, -0.4, 0]}><sphereGeometry args={[0.3, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2]} /><Main color={color} glow={glow} /></mesh>
       <mesh position={[0, -0.18, 0.2]}><sphereGeometry args={[0.03, 10, 8]} /><Mat color={LED} emissive={LED} /></mesh>
       {[[0.1, 0.34], [0.34, 0.2]].map(([y, r]) => (
-        <mesh key={y} position={[0, y, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <mesh key={y} position={[0, y, 0]} rotation={[Math.PI / 2, 0, 0]} userData={{ noShadow: true }}>
           <torusGeometry args={[r, 0.02, 8, 40]} />
           <meshStandardMaterial color={color} transparent opacity={0.65} roughness={0.4} />
         </mesh>
@@ -201,6 +201,11 @@ function Antenna({ color, glow }) {
         <meshStandardMaterial color={color} wireframe emissive={glow ? color : '#000'} emissiveIntensity={glow ? 0.5 : 0} />
       </mesh>
       <mesh position={[0, 0.2, 0]}><cylinderGeometry args={[0.025, 0.04, 1.3, 8]} /><Main color={color} glow={glow} /></mesh>
+      {/* shadow-only solid: the wireframe lattice itself casts nothing, so a slim invisible mast stands in for it */}
+      <mesh position={[0, 0.2, 0]} rotation={[0, Math.PI / 4, 0]} castShadow>
+        <cylinderGeometry args={[0.03, 0.2, 1.3, 4]} />
+        <meshBasicMaterial colorWrite={false} depthWrite={false} />
+      </mesh>
       <Box size={[0.34, 0.025, 0.025]} pos={[0, 0.5, 0]}><Mat color={DARK} /></Box>
       <Box size={[0.22, 0.025, 0.025]} pos={[0, 0.2, 0]}><Mat color={DARK} /></Box>
       <mesh position={[0, 0.88, 0]}><sphereGeometry args={[0.05, 12, 10]} /><Mat color="#ef4444" emissive="#ef4444" /></mesh>

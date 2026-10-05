@@ -152,6 +152,34 @@ function useShadowFlags(ref) {
 }
 
 const MODEL_SCALE = 1.5;
+
+// Soft radial blob drawn on the floor under a node. Real cast shadows are directional and vanish for low
+// objects (a chip, a switch); this keeps everything grounded, like a drop shadow.
+let blobTexture;
+function getBlobTexture() {
+  if (!blobTexture) {
+    const c = document.createElement('canvas');
+    c.width = c.height = 128;
+    const g = c.getContext('2d');
+    const grad = g.createRadialGradient(64, 64, 4, 64, 64, 62);
+    grad.addColorStop(0, 'rgba(0,0,0,0.55)');
+    grad.addColorStop(0.55, 'rgba(0,0,0,0.25)');
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = grad;
+    g.fillRect(0, 0, 128, 128);
+    blobTexture = new THREE.CanvasTexture(c);
+  }
+  return blobTexture;
+}
+function ContactShadow({ size, opacity = 0.5 }) {
+  const map = useMemo(getBlobTexture, []);
+  return (
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0.12, -0.492, 0.1]} raycast={() => null} renderOrder={-1}>
+      <planeGeometry args={[size, size]} />
+      <meshBasicMaterial map={map} transparent opacity={opacity} depthWrite={false} />
+    </mesh>
+  );
+}
 const HOLD_MS = 500;   // press and hold this long to pick an object up
 const SLOP = 6;        // px of movement during the hold that cancels it (user meant to orbit/click)
 const GROUND = new THREE.Plane(UP, 0);
@@ -247,7 +275,9 @@ function NodeView({ node }) {
 
   const basic = !isModel(node.shape);
   const glow = selected || connecting;
-  const labelY = (LABEL_Y[node.shape] ?? 1.05) * (basic ? 1 : MODEL_SCALE);
+  // Models are scaled about their base (floor at y = -0.5), so they keep standing on the floor.
+  const baseLift = basic ? 0 : 0.5 * (MODEL_SCALE - 1);
+  const labelY = basic ? (LABEL_Y[node.shape] ?? 1.05) : baseLift + (LABEL_Y[node.shape] ?? 1.05) * MODEL_SCALE;
   const body = useRef();
   useShadowFlags(body);
 
@@ -260,6 +290,7 @@ function NodeView({ node }) {
           <meshBasicMaterial color={node.color} transparent opacity={0.4} depthWrite={false} />
         </mesh>
       )}
+      {!hold.lifted && <ContactShadow size={basic ? (node.shape === 'slab' ? 2.6 : 1.9) : 2.3} />}
       {glow && !hold.lifted && (
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.47, 0]} raycast={() => null}>
           <ringGeometry args={[0.62, 0.72, 40]} />
@@ -268,7 +299,7 @@ function NodeView({ node }) {
       )}
       <group position={[0, hold.lifted ? 0.5 : 0, 0]}>
         <group
-          ref={body} scale={(hold.lifted ? 1.1 : 1) * (basic ? 1 : MODEL_SCALE)}
+          ref={body} position={[0, baseLift, 0]} scale={(hold.lifted ? 1.1 : 1) * (basic ? 1 : MODEL_SCALE)}
           onPointerDown={onDown} onPointerMove={hold.move}
           onPointerOver={hover(true)} onPointerOut={hover(false)}
         >
@@ -547,7 +578,7 @@ function Sun() {
   return (
     <directionalLight
       ref={light} intensity={1.5} castShadow
-      shadow-mapSize={[2048, 2048]} shadow-bias={-0.0004} shadow-normalBias={0.03}
+      shadow-mapSize={[2048, 2048]} shadow-bias={-0.0003} shadow-normalBias={0.015}
       shadow-camera-left={-38} shadow-camera-right={38} shadow-camera-top={38} shadow-camera-bottom={-38}
       shadow-camera-near={1} shadow-camera-far={80}
     />
