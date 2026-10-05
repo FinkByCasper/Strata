@@ -105,7 +105,7 @@ export function ConnectorsLayer() {
         const selected = r.c.id === selId, full = lod === 'full' || selected;
         return (
           <Label key={r.c.id} position={polylineMidpoint(r.pts)} className={`line-label ${selected ? 'selected' : ''} ${full ? '' : 'small'}`}
-            onClick={() => selectConnector(r.c.id)} priority={selected ? 3 : 1.5}>
+            onClick={() => selectConnector(r.c.id)} priority={selected ? 3 : 1.2}>
             <div className="title">{r.c.label || <em>Connection</em>}</div>
             {full && r.c.subtitle && <div className="sub">{r.c.subtitle}</div>}
             {selected && r.c.description && <RichText text={r.c.description} />}
@@ -121,7 +121,7 @@ export function ConnectorsLayer() {
 // Data-flow blobs: small spheres travelling along a connector in the arrow's direction, in the line's colour.
 // "Both ways" (multiplex) adds a second stream in the return colour going the other way, in its own lane.
 // ---------------------------------------------------------------------------------------------
-const SPACING = 2.3, SPEED = 1.7, RADIUS = 0.11, LANE = 0.1, MAX_BLOBS = 4000;
+const SPACING = 2.3, SPEED = 1.7, RADIUS = 0.11, LANE = 0.1, MAX_BLOBS = 2000;
 const blobGeo = new THREE.SphereGeometry(RADIUS, 14, 10);
 
 function FlowBlobs({ routes }) {

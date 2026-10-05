@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import { useStore } from './store';
@@ -33,15 +34,26 @@ const labelRegistry = new Set();
 export function Label({ position, children, className = '', onClick, priority = 2 }) {
   const gl = useThree((s) => s.gl);
   const portal = usePortal();
-  const rec = useRef({ el: null, priority, dx: 0, dy: 0 });
+  const rec = useRef({ el: null, priority, dx: 0, dy: 0, w: 0, h: 0, pos: new THREE.Vector3(), ro: null });
   rec.current.priority = priority;
+  rec.current.pos.set(position[0], position[1], position[2]);
   // drei's Html mounts its children in a separate React root *after* this effect runs, so the element
   // is attached through a callback ref rather than read in the effect.
-  const attach = useCallback((node) => { rec.current.el = node; }, []);
+  // Its size is cached by a ResizeObserver so the layout pass never has to read the DOM (which forces a reflow).
+  const attach = useCallback((node) => {
+    const r = rec.current;
+    r.ro?.disconnect(); r.ro = null;
+    r.el = node;
+    if (node) {
+      r.ro = new ResizeObserver(() => { r.w = node.offsetWidth; r.h = node.offsetHeight; });
+      r.ro.observe(node);
+      r.w = node.offsetWidth; r.h = node.offsetHeight;
+    }
+  }, []);
   useEffect(() => {
     const r = rec.current;
     labelRegistry.add(r);
-    return () => labelRegistry.delete(r);
+    return () => { labelRegistry.delete(r); r.ro?.disconnect(); };
   }, []);
   return (
     <Html position={position} center zIndexRange={[20, 0]} pointerEvents="none" portal={portal}>
@@ -64,17 +76,18 @@ export function Label({ position, children, className = '', onClick, priority = 
 const GAP = 3, CELL = 80;
 let lastSig = '';
 export function LabelLayout() {
-  useFrame(({ gl }) => {
+  const v = useMemo(() => new THREE.Vector3(), []);
+  useFrame(({ gl, camera, size }) => {
     const t0 = performance.now();
     const items = [];
     let sig = '';
     for (const r of labelRegistry) {
-      if (!r.el?.isConnected) continue;
-      const b = r.el.getBoundingClientRect();
-      if (b.width > 0) {
-        items.push({ r, x: b.left - r.dx, y: b.top - r.dy, w: b.width, h: b.height });
-        sig += `${Math.round(b.left - r.dx)},${Math.round(b.top - r.dy)},${Math.round(b.width)};`;
-      }
+      if (!r.el?.isConnected || r.w <= 0) continue;
+      v.copy(r.pos).project(camera);   // where the label's anchor sits on screen, without touching the DOM
+      const x = (v.x * 0.5 + 0.5) * size.width - r.w / 2, y = (-v.y * 0.5 + 0.5) * size.height - r.h / 2;
+      if (x > size.width || y > size.height || x + r.w < 0 || y + r.h < 0) continue;
+      items.push({ r, x, y, w: r.w, h: r.h });
+      sig += `${Math.round(x)},${Math.round(y)},${r.w};`;
     }
     if (sig !== lastSig) {
       lastSig = sig;
@@ -84,12 +97,18 @@ export function LabelLayout() {
       const clash = (x, y, w, h) => keys(x - GAP, y - GAP, w + 2 * GAP, h + 2 * GAP).some((k) => hash.get(k)?.some((p) => x < p.x + p.w + GAP && x + w + GAP > p.x && y < p.y + p.h + GAP && y + h + GAP > p.y));
       for (const it of items) {
         const cands = [];
-        for (const kx of [0, 1, -1, 2, -2]) for (const k of [0, -1, 1, -2, 2, -3, 3, -4, 4]) {
+        for (const kx of [0, 1, -1]) for (const k of [0, -1, 1, -2, 2]) {
           const dx = kx * (it.w * 0.5 + 6), dy = k * (it.h + 3);
           cands.push({ dx, dy, cost: Math.hypot(dx, dy) + (dy > 0 ? 8 : 0) });
         }
         cands.sort((a, b) => a.cost - b.cost);
-        const best = cands.find((c) => !clash(it.x + c.dx, it.y + c.dy, it.w, it.h)) ?? { dx: 0, dy: 0 };
+        // No free spot nearby: a lower-priority label gives way (hidden, like map labels) instead of floating off
+        // far from its object. Selected things always stay.
+        const free = cands.find((c) => !clash(it.x + c.dx, it.y + c.dy, it.w, it.h));
+        const hide = !free && it.r.priority < 3;
+        if (hide !== !!it.r.hidden) { it.r.hidden = hide; it.r.el.style.visibility = hide ? 'hidden' : ''; }
+        if (hide) continue;
+        const best = free ?? { dx: 0, dy: 0 };
         const rect = { x: it.x + best.dx, y: it.y + best.dy, w: it.w, h: it.h };
         for (const k of keys(rect.x, rect.y, rect.w, rect.h)) (hash.get(k) ?? hash.set(k, []).get(k)).push(rect);
         if (best.dx !== it.r.dx || best.dy !== it.r.dy) {

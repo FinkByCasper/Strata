@@ -203,7 +203,8 @@ export function FloorTiles() {
 // Labels: DOM, so only those near the screen are created (and capped), and the amount of text shrinks
 // as you zoom out: full (title + subtitle) -> title only -> none.
 // ---------------------------------------------------------------------------------------------
-const MAX_LABELS = 150;
+const MAX_LABELS = 100;
+const MINOR = new Set(['container', 'slab', 'box', 'cache', 'cylinder', 'sphere']);   // shown last when labels compete for space
 export function NodeLabels() {
   const nodes = useStore((s) => s.data.nodes);
   const selId = useStore((s) => (s.selection?.type === 'node' ? s.selection.id : null));
@@ -221,6 +222,7 @@ export function NodeLabels() {
     const v = new THREE.Vector3(), near = [];
     if (lod !== 'off') {
       for (const n of nodes) {
+        if (lod === 'title' && MINOR.has(n.shape) && n.id !== selId) continue;   // zoomed out: only the important ones are named
         v.set(n.position[0], 0.3, n.position[2]).project(camera);
         const x = (v.x * 0.5 + 0.5) * size.width, y = (-v.y * 0.5 + 0.5) * size.height;
         if (x < -100 || x > size.width + 100 || y < -100 || y > size.height + 100) continue;
@@ -250,7 +252,7 @@ export function NodeLabels() {
             )}
             <Label
               position={[n.position[0], lift + labelY(n.shape), n.position[2]]}
-              className={`${selected ? 'selected' : ''} ${full ? '' : 'small'}`} priority={selected ? 3 : 2}
+              className={`${selected ? 'selected' : ''} ${full ? '' : 'small'}`} priority={selected ? 3 : MINOR.has(n.shape) ? 1.8 : 2}
               onClick={() => pickNode(n.id)}
             >
               <div className="title">

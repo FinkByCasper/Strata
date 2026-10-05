@@ -334,17 +334,31 @@ function FloorGrid({ y = -0.5, cell = 1, section = 5 }) {
   );
 }
 
-// Directional light with a shadow frustum that follows the orbit target.
+// Directional light with a shadow frustum that follows the orbit target. The shadow map is the most expensive
+// thing on screen, so it is only re-rendered when something that affects it changed: the diagram, a node being
+// moved, or the (grid-snapped) area it covers; not on every camera frame.
+const SHADOW_STEP = 6;
 function Sun() {
   const light = useRef();
   const controls = useThree((st) => st.controls);
+  const gl = useThree((st) => st.gl);
+  const last = useRef('');
+  useEffect(() => { gl.shadowMap.autoUpdate = false; return () => { gl.shadowMap.autoUpdate = true; }; }, [gl]);
   useFrame(() => {
     const l = light.current;
     if (!l) return;
     const t = controls?.target ?? new THREE.Vector3();
-    l.position.set(t.x - 12, 11, t.z + 6);
-    l.target.position.copy(t);
+    const tx = Math.round(t.x / SHADOW_STEP) * SHADOW_STEP, tz = Math.round(t.z / SHADOW_STEP) * SHADOW_STEP;
+    l.position.set(tx - 12, 11, tz + 6);
+    l.target.position.set(tx, 0, tz);
     l.target.updateMatrixWorld();
+    const st = useStore.getState();
+    const key = `${tx},${tz}`;
+    if (key !== last.current || st.data !== lastData || st.liftedId !== lastLift) {
+      last.current = key; lastData = st.data; lastLift = st.liftedId;
+      burst = 12;   // instances and models mount a few frames after the data changes
+    }
+    if (burst > 0 || st.dragging) { burst--; gl.shadowMap.needsUpdate = true; }
   });
   return (
     <directionalLight
@@ -355,6 +369,7 @@ function Sun() {
     />
   );
 }
+let lastData = null, lastLift = null, burst = 0;
 
 export function Scene() {
   const data = useStore((s) => s.data);
@@ -364,7 +379,7 @@ export function Scene() {
   return (
     <Canvas
       shadows orthographic camera={{ position: [30, 24, 30], zoom: 50, near: -500, far: 500 }}
-      dpr={[1, 2]} gl={{ preserveDrawingBuffer: true, antialias: true }}
+      dpr={[1, 1.5]} gl={{ preserveDrawingBuffer: true, antialias: true }}
       onPointerMissed={() => {
         const s = useStore.getState();
         if (s.mode === 'select') s.select(null);
