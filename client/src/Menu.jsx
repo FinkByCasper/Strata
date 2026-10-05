@@ -1,17 +1,25 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useStore } from './store';
-import { PALETTE, SHAPES, freeSpot } from './model';
+import { BASIC_SHAPES, DEVICE_SHAPES, PALETTE, freeSpot, shapeName } from './model';
 
 export function ShapeIcon({ shape }) {
   const p = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.6, strokeLinejoin: 'round', strokeLinecap: 'round' };
-  return (
-    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden>
-      {shape === 'box' && <g {...p}><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z" /><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5" /></g>}
-      {shape === 'cylinder' && <g {...p}><ellipse cx="12" cy="6" rx="7" ry="3" /><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6" /></g>}
-      {shape === 'sphere' && <g {...p}><circle cx="12" cy="12" r="8.5" /><ellipse cx="12" cy="12" rx="8.5" ry="3" /></g>}
-      {shape === 'slab' && <g {...p}><path d="M12 8l9 4-9 4-9-4z" /><path d="M3 12v3l9 4 9-4v-3" /></g>}
-    </svg>
-  );
+  const glyph = {
+    box: <><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z" /><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5" /></>,
+    cylinder: <><ellipse cx="12" cy="6" rx="7" ry="3" /><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6" /></>,
+    sphere: <><circle cx="12" cy="12" r="8.5" /><ellipse cx="12" cy="12" rx="8.5" ry="3" /></>,
+    slab: <><path d="M12 8l9 4-9 4-9-4z" /><path d="M3 12v3l9 4 9-4v-3" /></>,
+    user: <><circle cx="12" cy="8" r="3.6" /><path d="M5 20c0-4 3.2-6.2 7-6.2s7 2.2 7 6.2" /></>,
+    server: <><rect x="4" y="3" width="16" height="5" rx="1" /><rect x="4" y="9.5" width="16" height="5" rx="1" /><rect x="4" y="16" width="16" height="5" rx="1" /><path d="M7.5 5.5h.01M7.5 12h.01M7.5 18.5h.01" /></>,
+    router: <><rect x="3" y="13" width="18" height="6" rx="1.5" /><path d="M7 13V6M17 13V6M7.5 16h.01M11 16h.01" /></>,
+    accesspoint: <><path d="M4.5 10a10 10 0 0 1 15 0M7.5 13a6 6 0 0 1 9 0" /><circle cx="12" cy="17" r="1.4" /></>,
+    pc: <><rect x="3" y="4" width="12" height="9" rx="1" /><path d="M6.5 20h5M9 13v7" /><rect x="17.5" y="6" width="3.5" height="14" rx="1" /></>,
+    laptop: <><rect x="5" y="5" width="14" height="10" rx="1" /><path d="M2.5 19h19" /></>,
+    phone: <><rect x="8" y="3" width="8" height="18" rx="2" /><path d="M11 18h2" /></>,
+    database: <><ellipse cx="12" cy="6" rx="7" ry="3" /><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6" /></>,
+    cache: <><rect x="7" y="7" width="10" height="10" rx="1.5" /><path d="M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4" /></>,
+  };
+  return <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden><g {...p}>{glyph[shape]}</g></svg>;
 }
 
 export const ZoneIcon = () => (
@@ -21,15 +29,19 @@ export const ZoneIcon = () => (
 );
 
 export function ShapePicker({ value, onPick }) {
-  return (
-    <div className="shapes">
-      {SHAPES.map((sh) => (
-        <button key={sh} className={value === sh ? 'on' : ''} onClick={() => onPick(sh)} title={sh}>
-          <ShapeIcon shape={sh} /><span>{sh}</span>
-        </button>
-      ))}
-    </div>
+  const group = (title, list) => (
+    <>
+      <div className="shapes-title">{title}</div>
+      <div className="shapes">
+        {list.map((sh) => (
+          <button key={sh} className={value === sh ? 'on' : ''} onClick={() => onPick(sh)} title={shapeName(sh)}>
+            <ShapeIcon shape={sh} /><span>{shapeName(sh)}</span>
+          </button>
+        ))}
+      </div>
+    </>
   );
+  return <div className="picker">{group('Devices', DEVICE_SHAPES)}{group('Basic shapes', BASIC_SHAPES)}</div>;
 }
 
 export function Swatches({ value, onPick, custom = true }) {

@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { useStore } from './store';
 import { polylineMidpoint, routePoints } from './model';
 import { RichText } from './richtext';
+import { LABEL_Y, Model, isModel } from './Models';
 
 const UP = new THREE.Vector3(0, 1, 0);
 
@@ -232,6 +233,11 @@ function NodeView({ node }) {
     document.body.style.cursor = on ? (s.mode === 'connect' ? 'crosshair' : s.readOnly ? 'pointer' : 'pointer') : '';
   };
 
+  const basic = !isModel(node.shape);
+  const glow = selected || connecting;
+  const labelY = LABEL_Y[node.shape] ?? 1.05;
+
+  // Handlers sit on the group so they fire for every part of a multi-mesh device model.
   return (
     <group position={node.position}>
       {hold.lifted && (
@@ -240,35 +246,47 @@ function NodeView({ node }) {
           <meshBasicMaterial color={node.color} transparent opacity={0.4} depthWrite={false} />
         </mesh>
       )}
-      <group position={[0, hold.lifted ? 0.5 : 0, 0]}>
-      <mesh
-        position={[0, yOffset, 0]} scale={hold.lifted ? 1.1 : selected ? 1.05 : 1}
-        onPointerDown={onDown} onPointerMove={hold.move}
-        onPointerOver={hover(true)} onPointerOut={hover(false)}
-      >
-        <NodeShape shape={node.shape} />
-        <meshStandardMaterial
-          color={node.color} roughness={0.55} metalness={0.05}
-          emissive={selected || connecting ? node.color : '#000'} emissiveIntensity={connecting ? 0.7 : 0.3}
-        />
-        {(selected || connecting) && <Edges color="#111827" />}
-      </mesh>
-      {node.icon && node.shape !== 'slab' && (
-        <Html center position={[0, 0, 0]} zIndexRange={[10, 0]} className="passthrough" portal={portal}>
-          <div className="onshape"><IconGlyph icon={node.icon} /></div>
-        </Html>
+      {glow && !hold.lifted && (
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.47, 0]} raycast={() => null}>
+          <ringGeometry args={[0.62, 0.72, 40]} />
+          <meshBasicMaterial color={connecting ? '#f5a524' : '#4f8cff'} transparent opacity={0.9} depthWrite={false} />
+        </mesh>
       )}
-      <Label
-        position={[0, node.shape === 'slab' ? 0.55 : 1.05, 0]}
-        className={selected ? 'selected' : ''} priority={selected ? 3 : 2}
-        onClick={pick}
-      >
-        <div className="title">
-          {(node.shape === 'slab' || !node.icon) && <IconGlyph icon={node.icon} />}
-          {node.label || <em>Untitled</em>}
-        </div>
-        {selected && node.description && <RichText text={node.description} />}
-      </Label>
+      <group position={[0, hold.lifted ? 0.5 : 0, 0]}>
+        <group
+          scale={hold.lifted ? 1.1 : 1}
+          onPointerDown={onDown} onPointerMove={hold.move}
+          onPointerOver={hover(true)} onPointerOut={hover(false)}
+        >
+          {basic ? (
+            <mesh position={[0, yOffset, 0]} scale={selected ? 1.05 : 1}>
+              <NodeShape shape={node.shape} />
+              <meshStandardMaterial
+                color={node.color} roughness={0.55} metalness={0.05}
+                emissive={glow ? node.color : '#000'} emissiveIntensity={connecting ? 0.7 : 0.3}
+              />
+              {glow && <Edges color="#111827" />}
+            </mesh>
+          ) : (
+            <Model kind={node.shape} color={node.color} glow={glow} />
+          )}
+        </group>
+        {node.icon && basic && node.shape !== 'slab' && (
+          <Html center position={[0, 0, 0]} zIndexRange={[10, 0]} className="passthrough" portal={portal}>
+            <div className="onshape"><IconGlyph icon={node.icon} /></div>
+          </Html>
+        )}
+        <Label
+          position={[0, labelY, 0]}
+          className={selected ? 'selected' : ''} priority={selected ? 3 : 2}
+          onClick={pick}
+        >
+          <div className="title">
+            {node.icon && (!basic || node.shape === 'slab') && <IconGlyph icon={node.icon} />}
+            {node.label || <em>Untitled</em>}
+          </div>
+          {selected && node.description && <RichText text={node.description} />}
+        </Label>
       </group>
     </group>
   );
@@ -278,7 +296,7 @@ function ConnectorView({ connector, from, to }) {
   const selected = useStore((s) => s.selection?.type === 'connector' && s.selection.id === connector.id);
   const points = useMemo(() => routePoints(from.position, to.position, connector.route),
     [from.position, to.position, connector.route]);
-  const color = selected ? '#111827' : connector.color || '#475569';
+  const color = connector.color || '#475569';
   const end = points[points.length - 1];
   const dir = end.clone().sub(points[points.length - 2]).normalize();
   const quat = useMemo(() => new THREE.Quaternion().setFromUnitVectors(UP, dir), [dir.x, dir.y, dir.z]);
@@ -286,14 +304,15 @@ function ConnectorView({ connector, from, to }) {
 
   return (
     <group>
+      {selected && <Line points={points} color="#4f8cff" lineWidth={7} transparent opacity={0.35} raycast={() => null} />}
       <Line
-        points={points} color={color} lineWidth={selected ? 3.5 : 2.2}
+        points={points} color={color} lineWidth={selected ? 3.6 : 2.4}
         dashed={connector.line === 'dashed'} dashSize={0.25} gapSize={0.18}
         onClick={select}
       />
       {connector.arrow && (
         <mesh position={end.clone().addScaledVector(dir, -0.17)} quaternion={quat} onClick={select}>
-          <coneGeometry args={[0.13, 0.34, 14]} />
+          <coneGeometry args={[selected ? 0.16 : 0.13, selected ? 0.4 : 0.34, 14]} />
           <meshBasicMaterial color={color} />
         </mesh>
       )}

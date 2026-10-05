@@ -1,5 +1,5 @@
 // Minimal structural validation so a bad client can't store garbage or giant blobs.
-const SHAPES = ['box', 'cylinder', 'sphere', 'slab'];
+const SHAPES = ['box', 'cylinder', 'sphere', 'slab', 'user', 'server', 'router', 'accesspoint', 'pc', 'laptop', 'phone', 'database', 'cache'];
 const ROUTES = ['orthogonal', 'straight', 'curved'];
 const MAX_ICON = 400_000;
 

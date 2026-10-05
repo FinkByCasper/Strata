@@ -3,7 +3,11 @@ import * as THREE from 'three';
 export const uid = () => crypto.randomUUID().slice(0, 8);
 export const EMPTY = () => ({ nodes: [], connectors: [], zones: [] });
 
-export const SHAPES = ['box', 'cylinder', 'sphere', 'slab'];
+export const BASIC_SHAPES = ['box', 'cylinder', 'sphere', 'slab'];
+export const DEVICE_SHAPES = ['user', 'server', 'router', 'accesspoint', 'pc', 'laptop', 'phone', 'database', 'cache'];
+export const SHAPES = [...BASIC_SHAPES, ...DEVICE_SHAPES];
+export const SHAPE_NAMES = { accesspoint: 'access point', router: 'router / relay', pc: 'PC' };
+export const shapeName = (s) => SHAPE_NAMES[s] ?? s;
 export const ROUTES = ['orthogonal', 'straight', 'curved'];
 export const PALETTE = ['#4f8cff', '#22b8a6', '#f5a524', '#ef5b7b', '#8b6cf6', '#64748b'];
 export const ICONS = ['🖥️', '🗄️', '☁️', '👤', '🔒', '📨', '🌐', '⚙️', '📦', '📊', '🔌', '📱'];
