@@ -245,6 +245,22 @@ function ConnectorView({ connector, from, to }) {
   );
 }
 
+// Zones are rounded rectangles lying on the floor.
+const cornerRadius = (w, d) => Math.min(0.8, w / 2, d / 2);
+function roundedRect(w, d, r) {
+  const x = -w / 2, y = -d / 2, s = new THREE.Shape();
+  s.moveTo(x + r, y);
+  s.lineTo(x + w - r, y);
+  s.absarc(x + w - r, y + r, r, -Math.PI / 2, 0, false);
+  s.lineTo(x + w, y + d - r);
+  s.absarc(x + w - r, y + d - r, r, 0, Math.PI / 2, false);
+  s.lineTo(x + r, y + d);
+  s.absarc(x + r, y + d - r, r, Math.PI / 2, Math.PI, false);
+  s.lineTo(x, y + r);
+  s.absarc(x + r, y + r, r, Math.PI, Math.PI * 1.5, false);
+  return s;
+}
+
 // Corner handle: drag to resize a zone with the opposite corner pinned. Corners snap to cell borders.
 function ZoneHandle({ zone, corner: [sx, sz], onHover }) {
   const drag = useRef(null);
@@ -280,15 +296,19 @@ function ZoneHandle({ zone, corner: [sx, sz], onHover }) {
   };
   const over = (on) => () => { useStore.getState().setHovering(on); onHover(on); document.body.style.cursor = on ? 'move' : ''; };
 
+  // A quarter-ring that sits on the zone's rounded corner (floor-flat, inside the outline).
+  const r = cornerRadius(w, d);
+  const dirAngle = Math.atan2(-sz, sx); // shape-space y is -z once the group is laid flat
   return (
-    <mesh
-      position={[(sx * w) / 2, 0.02, (sz * d) / 2]} onPointerDown={down} onPointerMove={move} onPointerUp={up}
-      onLostPointerCapture={up} onPointerOver={over(true)} onPointerOut={over(false)}
-    >
-      <boxGeometry args={[0.5, 0.16, 0.5]} />
-      <meshBasicMaterial color="#ffffff" />
-      <Edges color={zone.color} lineWidth={2} />
-    </mesh>
+    <group rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.03, 0]}>
+      <mesh
+        position={[sx * (w / 2 - r), -sz * (d / 2 - r), 0]} onPointerDown={down} onPointerMove={move} onPointerUp={up}
+        onLostPointerCapture={up} onPointerOver={over(true)} onPointerOut={over(false)}
+      >
+        <ringGeometry args={[r - 0.36, r, 20, 1, dirAngle - Math.PI / 4, Math.PI / 2]} />
+        <meshBasicMaterial color={zone.color} side={THREE.DoubleSide} />
+      </mesh>
+    </group>
   );
 }
 
@@ -310,7 +330,11 @@ function ZoneView({ zone }) {
     (x, z) => useStore.getState().updateZone(zone.id, { position: [x, 0, z] }),
     snapAxis,
   );
-  const outline = useMemo(() => [[-w / 2, 0, -d / 2], [w / 2, 0, -d / 2], [w / 2, 0, d / 2], [-w / 2, 0, d / 2], [-w / 2, 0, -d / 2]], [w, d]);
+  const shape = useMemo(() => roundedRect(w, d, cornerRadius(w, d)), [w, d]);
+  const outline = useMemo(() => {
+    const pts = shape.getPoints(10).map((p) => [p.x, 0, p.y]);
+    return [...pts, pts[0]];
+  }, [shape]);
 
   const onDown = (e) => {
     const s = useStore.getState();
@@ -327,12 +351,12 @@ function ZoneView({ zone }) {
         rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.48, 0]} onPointerDown={onDown} onPointerMove={hold.move}
         onPointerOver={() => setHovered(true)} onPointerOut={() => setHovered(false)}
       >
-        <planeGeometry args={[w, d]} />
+        <shapeGeometry args={[shape, 10]} />
         <meshBasicMaterial color={zone.color} transparent opacity={selected || hovered || hold.lifted ? 0.24 : 0.14} depthWrite={false} side={THREE.DoubleSide} />
       </mesh>
       <group position={[0, -0.47, 0]}>
         <Line points={outline} color={zone.color} lineWidth={selected ? 2.4 : 1.5} raycast={() => null} />
-        {editable && !hold.lifted && (hovered || selected) &&
+        {editable && !hold.lifted && selected &&
           CORNERS.map((c) => <ZoneHandle key={c.join()} zone={zone} corner={c} onHover={setHovered} />)}
       </group>
       <Label

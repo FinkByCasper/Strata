@@ -11,7 +11,7 @@ as JSON, and can be shared through a view-only link or an embeddable iframe.
 
 - Free orthographic orbit / pan / zoom, plus one-click **Front / Top / Side / Free / Fit** views
 - Nodes: box, cylinder, sphere, slab; built-in emoji icons or your own uploaded PNG/JPEG/WebP/GIF
-- Zones: flat translucent floor areas that nodes sit on (VPCs, clusters, teams)
+- Zones: flat, rounded translucent floor areas that nodes sit on (VPCs, clusters, teams); select one to get curved corner grips for resizing
 - Connectors: orthogonal, straight or curved; arrows, dashed lines, mid-line labels; they follow nodes as you move them
 - Everything lives on a flat grid (no height axis). **Press and hold ~0.5 s** on a node or zone to pick it up, move it, and release to drop it on that grid cell; a quick click just selects. Snap can be toggled
 - Labels are real DOM text (crisp, upright, constant size) with a small safe-markdown description (`**bold**`, `*italic*`, `` `code` ``, `- lists`) shown when a node is selected
