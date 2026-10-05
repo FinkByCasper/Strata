@@ -14,6 +14,12 @@ export function ShapeIcon({ shape }) {
   );
 }
 
+export const ZoneIcon = () => (
+  <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round">
+    <path d="M12 5c4 0 9 2 9 4.5S16 14 12 14 3 12 3 9.5 8 5 12 5z" strokeDasharray="3 2.5" /><path d="M3 9.5V12c0 2.5 5 4.5 9 4.5s9-2 9-4.5V9.5" opacity=".5" />
+  </svg>
+);
+
 export function ShapePicker({ value, onPick }) {
   return (
     <div className="shapes">
@@ -76,12 +82,8 @@ export function ContextMenu() {
   const where = menu.world ?? freeSpot(data.nodes);
   const body = (<>
     <h4>Add here</h4>
-    <div className="shapes">
-      {SHAPES.map((sh) => (
-        <button key={sh} onClick={done(() => st.addNodeAt(sh, where))} title={`Add ${sh}`}><ShapeIcon shape={sh} /><span>{sh}</span></button>
-      ))}
-    </div>
-    <button className="item" onClick={done(() => st.addZoneAt(where))}>Add zone</button>
+    <button className="item add" onClick={done(() => st.addNodeAt('box', where))}><ShapeIcon shape="box" /> Node</button>
+    <button className="item add" onClick={done(() => st.addZoneAt(where))}><ZoneIcon /> Zone</button>
     <hr />
     <div className="seg">
       {[['rotL', '⟲ 90°'], ['rotR', '⟳ 90°'], ['fit', 'Fit'], ['reset', 'Reset']].map(([k, l]) => (

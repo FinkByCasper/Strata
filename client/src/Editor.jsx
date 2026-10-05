@@ -36,6 +36,17 @@ export function Details({ readOnly }) {
   return <Inspector sel={sel} />;
 }
 
+// A freshly created node/zone focuses (and selects) its label so you can just start typing the name.
+function LabelInput({ id, value, onChange }) {
+  const ref = useRef();
+  useEffect(() => {
+    if (useStore.getState().fresh !== id) return;
+    ref.current?.focus(); ref.current?.select();
+    useStore.setState({ fresh: null });
+  }, [id]);
+  return <input ref={ref} value={value} onChange={onChange} />;
+}
+
 function Inspector({ sel }) {
   const s = useStore();
   const { data } = s;
@@ -65,7 +76,7 @@ function Inspector({ sel }) {
     return (
       <aside className="panel">
         <h3>Node</h3>
-        <label>Label<input value={n.label} onChange={(e) => s.updateNode(n.id, { label: e.target.value })} /></label>
+        <label>Label<LabelInput id={n.id} value={n.label} onChange={(e) => s.updateNode(n.id, { label: e.target.value })} /></label>
         <label>Description <span className="muted">(**bold**, *italic*, `code`, - lists)</span>
           <textarea rows={5} value={n.description} onChange={(e) => s.updateNode(n.id, { description: e.target.value })} /></label>
         <div className="field">Model<ShapePicker value={n.shape} onPick={(shape) => s.updateNode(n.id, { shape })} /></div>
@@ -119,7 +130,7 @@ function Inspector({ sel }) {
   return (
     <aside className="panel">
       <h3>Zone</h3>
-      <label>Label<input value={z.label} onChange={(e) => s.updateZone(z.id, { label: e.target.value })} /></label>
+      <label>Label<LabelInput id={z.id} value={z.label} onChange={(e) => s.updateZone(z.id, { label: e.target.value })} /></label>
       <div className="field">Colour<Swatches value={z.color} onPick={(color) => s.updateZone(z.id, { color })} /></div>
       <p className="muted">Centre</p>
       <div className="xz">{[['X', 0], ['Z', 2]].map(([a, i]) => <label key={a}>{a}{num(z.position, i, (p) => s.updateZone(z.id, { position: p }))}</label>)}</div>

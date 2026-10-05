@@ -11,7 +11,7 @@ export const useStore = create((set, get) => {
   return {
     name: '', data: EMPTY(), readOnly: false, rev: 0,
     selection: null, mode: 'select', connectFrom: null,
-    snap: true, dragging: false, hovering: false, view: null, menu: null,
+    snap: true, dragging: false, hovering: false, view: null, menu: null, fresh: null,
 
     load: (name, data, readOnly = false) =>
       set({ name, data: flatten(data), readOnly, rev: 0, selection: null, mode: 'select', connectFrom: null, view: null }),
@@ -29,11 +29,11 @@ export const useStore = create((set, get) => {
     // Place a node/zone at an explicit grid position (right-click "Add here").
     addNodeAt: (shape, position) => {
       const node = newNode(shape, position, get().data.nodes.length);
-      edit((s) => ({ data: { ...s.data, nodes: [...s.data.nodes, node] }, selection: { type: 'node', id: node.id } }));
+      edit((s) => ({ data: { ...s.data, nodes: [...s.data.nodes, node] }, selection: { type: 'node', id: node.id }, fresh: node.id }));
     },
     addZoneAt: (position) => {
       const zone = newZone(position);
-      edit((s) => ({ data: { ...s.data, zones: [...s.data.zones, zone] }, selection: { type: 'zone', id: zone.id } }));
+      edit((s) => ({ data: { ...s.data, zones: [...s.data.zones, zone] }, selection: { type: 'zone', id: zone.id }, fresh: zone.id }));
     },
     duplicateSelection: () => {
       const { selection: sel, data } = get();
