@@ -84,7 +84,7 @@ const SLOP = 6;        // px of movement during the hold that cancels it (user m
 const GROUND = new THREE.Plane(UP, 0);
 
 // Hold to lift, drag across the floor, release to drop on that grid cell. A quick click only selects.
-function useHoldMove(getPos, setPos) {
+function useHoldMove(getPos, setPos, snapAxis) {
   const [lifted, setLifted] = useState(false);
   const st = useRef(null);
 
@@ -131,8 +131,9 @@ function useHoldMove(getPos, setPos) {
     }
     const hit = new THREE.Vector3();
     if (!e.ray.intersectPlane(GROUND, hit)) return;
-    const q = useStore.getState().snap ? Math.round : (v) => Math.round(v * 20) / 20;
-    const x = q(hit.x - s.dx), z = q(hit.z - s.dz);
+    const snap = useStore.getState().snap;
+    const q = (v, axis) => (snapAxis ? snapAxis(v, axis, snap) : snap ? Math.round(v) : Math.round(v * 20) / 20);
+    const x = q(hit.x - s.dx, 0), z = q(hit.z - s.dz, 2);
     const [cx, , cz] = getPos();
     if (x !== cx || z !== cz) setPos(x, z);
   };
@@ -244,12 +245,70 @@ function ConnectorView({ connector, from, to }) {
   );
 }
 
+// Corner handle: drag to resize a zone with the opposite corner pinned. Corners snap to cell borders.
+function ZoneHandle({ zone, corner: [sx, sz], onHover }) {
+  const drag = useRef(null);
+  const [w, , d] = zone.size;
+
+  const down = (e) => {
+    if (e.nativeEvent.button !== 0) return;
+    e.stopPropagation();
+    const st = useStore.getState();
+    st.select({ type: 'zone', id: zone.id });
+    drag.current = { ax: zone.position[0] - (sx * w) / 2, az: zone.position[2] - (sz * d) / 2 };
+    st.setDragging(true);
+    try { e.target.setPointerCapture(e.pointerId); } catch { /* pointer already gone */ }
+  };
+  const move = (e) => {
+    const a = drag.current;
+    if (!a) return;
+    const hit = new THREE.Vector3();
+    if (!e.ray.intersectPlane(GROUND, hit)) return;
+    const snap = useStore.getState().snap;
+    const edge = (v) => (snap ? Math.round(v - 0.5) + 0.5 : Math.round(v * 20) / 20);
+    const nx = a.ax + sx * Math.max(1, sx * (edge(hit.x) - a.ax));
+    const nz = a.az + sz * Math.max(1, sz * (edge(hit.z) - a.az));
+    useStore.getState().updateZone(zone.id, {
+      position: [(nx + a.ax) / 2, 0, (nz + a.az) / 2], size: [Math.abs(nx - a.ax), 0, Math.abs(nz - a.az)],
+    });
+  };
+  const up = (e) => {
+    if (!drag.current) return;
+    drag.current = null;
+    try { e.target.releasePointerCapture?.(e.pointerId); } catch { /* released */ }
+    useStore.getState().setDragging(false);
+  };
+  const over = (on) => () => { useStore.getState().setHovering(on); onHover(on); document.body.style.cursor = on ? 'move' : ''; };
+
+  return (
+    <mesh
+      position={[(sx * w) / 2, 0.02, (sz * d) / 2]} onPointerDown={down} onPointerMove={move} onPointerUp={up}
+      onLostPointerCapture={up} onPointerOver={over(true)} onPointerOut={over(false)}
+    >
+      <boxGeometry args={[0.5, 0.16, 0.5]} />
+      <meshBasicMaterial color="#ffffff" />
+      <Edges color={zone.color} lineWidth={2} />
+    </mesh>
+  );
+}
+
+const CORNERS = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
+
 function ZoneView({ zone }) {
   const selected = useStore((s) => s.selection?.type === 'zone' && s.selection.id === zone.id);
+  const editable = useStore((s) => !s.readOnly && s.mode === 'select');
+  const [hovered, setHovered] = useState(false);
   const [w, , d] = zone.size;
+  // Even-sized zones centre on a cell border, odd-sized ones on a cell centre, so edges stay on borders.
+  const snapAxis = (v, axis, snap) => {
+    if (!snap) return Math.round(v * 20) / 20;
+    const off = zone.size[axis] % 2 === 0 ? 0.5 : 0;
+    return Math.round(v - off) + off;
+  };
   const hold = useHoldMove(
     () => zone.position,
     (x, z) => useStore.getState().updateZone(zone.id, { position: [x, 0, z] }),
+    snapAxis,
   );
   const outline = useMemo(() => [[-w / 2, 0, -d / 2], [w / 2, 0, -d / 2], [w / 2, 0, d / 2], [-w / 2, 0, d / 2], [-w / 2, 0, -d / 2]], [w, d]);
 
@@ -264,12 +323,17 @@ function ZoneView({ zone }) {
   // A flat translucent floor area. Nodes sit on top of it and win clicks (they stop propagation).
   return (
     <group position={[zone.position[0], hold.lifted ? 0.35 : 0, zone.position[2]]}>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.48, 0]} onPointerDown={onDown} onPointerMove={hold.move}>
+      <mesh
+        rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.48, 0]} onPointerDown={onDown} onPointerMove={hold.move}
+        onPointerOver={() => setHovered(true)} onPointerOut={() => setHovered(false)}
+      >
         <planeGeometry args={[w, d]} />
-        <meshBasicMaterial color={zone.color} transparent opacity={selected || hold.lifted ? 0.24 : 0.14} depthWrite={false} side={THREE.DoubleSide} />
+        <meshBasicMaterial color={zone.color} transparent opacity={selected || hovered || hold.lifted ? 0.24 : 0.14} depthWrite={false} side={THREE.DoubleSide} />
       </mesh>
       <group position={[0, -0.47, 0]}>
         <Line points={outline} color={zone.color} lineWidth={selected ? 2.4 : 1.5} raycast={() => null} />
+        {editable && !hold.lifted && (hovered || selected) &&
+          CORNERS.map((c) => <ZoneHandle key={c.join()} zone={zone} corner={c} onHover={setHovered} />)}
       </group>
       <Label
         position={[-w / 2, -0.4, -d / 2]} className={`zone-label ${selected ? 'selected' : ''}`}

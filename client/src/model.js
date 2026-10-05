@@ -17,7 +17,7 @@ export function newNode(shape, position, index) {
 
 // Zones are flat floor areas: only width (size[0]) and depth (size[2]) matter; the middle entry stays 0.
 export const newZone = (position) => ({
-  id: uid(), label: 'New zone', color: '#4f8cff', position: [position[0], 0, position[2]], size: [6, 0, 6],
+  id: uid(), label: 'New zone', color: '#4f8cff', position: [position[0] + 0.5, 0, position[2] + 0.5], size: [6, 0, 6], // edges land on cell borders
 });
 
 // Everything lives on the ground plane. Older diagrams that had heights are flattened on load.
