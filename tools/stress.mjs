@@ -68,7 +68,8 @@ for (const N of sizes) {
     const t0 = Date.now();
     await page.goto(`${base}/d/${created.id}`, { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('canvas', { timeout: 60000 });
-    if (N > 0) await page.waitForFunction((n) => document.querySelectorAll('.label').length >= n * 0.95, N, { timeout: 150000, polling: 500 });
+    // labels are virtualised (capped, hidden when zoomed out), so wait for the first real draw instead
+    if (N > 0) await page.waitForFunction(() => (window.__strataPerf?.calls ?? 0) > 5, null, { timeout: 150000, polling: 250 });
     row.loadMs = Date.now() - t0;
     await page.waitForTimeout(1500);
     row.idle = await fpsProbe(page, 3000);
@@ -80,6 +81,8 @@ for (const N of sizes) {
     // click-to-select latency (label click -> side panel visible)
     if (N > 0) {
       await page.click('button[aria-label="Fit to content"]'); await page.waitForTimeout(1200);
+      await page.mouse.move(700, 450); for (let i = 0; i < 9; i++) { await page.mouse.wheel(0, -240); await page.waitForTimeout(100); }   // zoom in so labels exist
+      await page.waitForSelector('.label', { timeout: 60000 }).catch(() => null);
       const t1 = Date.now();
       await page.evaluate(() => document.querySelector('.label')?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0 })));
       try { await page.waitForSelector('.panel', { timeout: 20000 }); row.selectMs = Date.now() - t1; } catch { row.selectMs = '>20000'; }
