@@ -242,6 +242,24 @@ function useHoldMove(getPos, setPos, snapAxis) {
   return { lifted, start, move };
 }
 
+// The floor tile every node stands on: fills its whole grid square (cell borders at +-0.5) in a pale tint of
+// the node's colour, with a thin outline on the cell border.
+function FloorTile({ color }) {
+  const tint = useMemo(() => '#' + new THREE.Color(color).lerp(new THREE.Color('#ffffff'), 0.55).getHexString(), [color]);
+  const edge = useMemo(() => [[-0.5, 0, -0.5], [0.5, 0, -0.5], [0.5, 0, 0.5], [-0.5, 0, 0.5], [-0.5, 0, -0.5]], []);
+  return (
+    <group position={[0, -0.497, 0]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} raycast={() => null} renderOrder={-1}>
+        <planeGeometry args={[1, 1]} />
+        <meshBasicMaterial color={tint} transparent opacity={1} depthWrite={false} toneMapped={false} />
+      </mesh>
+      <group position={[0, 0.001, 0]}>
+        <Line points={edge} color={color} lineWidth={1.6} transparent opacity={0.85} raycast={() => null} />
+      </group>
+    </group>
+  );
+}
+
 // A flat square exactly covering the node's grid cell(s) (cells are centred on whole numbers).
 function CellMarker({ size, color, fill, outline }) {
   const h = size / 2;
@@ -301,6 +319,7 @@ function NodeView({ node }) {
   return (
     <group position={node.position}>
       {hold.lifted && <CellMarker size={cell} color={node.color} fill={0.45} />}
+      {node.shape !== 'slab' && !hold.lifted && <FloorTile color={node.color} />}
       {!hold.lifted && <ContactShadow size={node.shape === 'slab' ? 4.2 : 1.7} />}
       {glow && !hold.lifted && <CellMarker size={cell} color={connecting ? '#f5a524' : '#4f8cff'} fill={0.22} outline />}
       <group position={[0, hold.lifted ? 0.5 : 0, 0]}>
