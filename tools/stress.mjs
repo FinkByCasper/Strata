@@ -18,7 +18,7 @@ function gen(N, linkRatio = 1.5) {
   for (let i = 0; i < N; i++) nodes.push({ id: `n${i}`, label: `Node ${i}`, subtitle: `10.0.${i >> 8}.${i & 255}`, description: '', shape: SHAPES[i % SHAPES.length], color: COLORS[i % COLORS.length], position: [(i % cols) * 3, 0, Math.floor(i / cols) * 3], icon: null });
   const want = Math.round(N * linkRatio);
   for (let i = 0; i < N && connectors.length < want; i++) {
-    if ((i % cols) < cols - 1 && i + 1 < N) connectors.push({ id: `c${connectors.length}`, from: `n${i}`, to: `n${i + 1}`, route: 'orthogonal', line: 'solid', arrow: true, label: '', color: COLORS[i % COLORS.length] });
+    if ((i % cols) < cols - 1 && i + 1 < N) connectors.push({ id: `c${connectors.length}`, from: `n${i}`, to: `n${i + 1}`, route: 'orthogonal', line: 'solid', arrow: true, label: '', color: COLORS[i % COLORS.length], flow: i % 3 === 0 ? 'forward' : i % 10 === 1 ? 'both' : 'none', color2: '#f5a524' });
     if (i + cols < N && connectors.length < want && i % 2 === 0) connectors.push({ id: `c${connectors.length}`, from: `n${i}`, to: `n${i + cols}`, route: 'orthogonal-z', line: 'dashed', arrow: false, label: '', color: '#64748b' });
   }
   for (let z = 0; z < Math.floor(N / 50); z++) zones.push({ id: `z${z}`, label: `Zone ${z}`, color: COLORS[z % COLORS.length], position: [((z * 4) % cols) * 3 + 4.5, 0, Math.floor((z * 4) / cols) * 3 + 0.5], size: [10, 0, 8], labelMode: 'edge', labelEdge: 'back' });

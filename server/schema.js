@@ -2,6 +2,7 @@
 const SHAPES = ['box', 'cylinder', 'sphere', 'slab', 'user', 'server', 'router', 'accesspoint', 'pc', 'laptop', 'phone', 'database', 'cache', 'switch', 'firewall', 'antenna', 'printer', 'cloud', 'container', 'pyramid'];
 const ROUTES = ['orthogonal', 'orthogonal-z', 'straight', 'curved'];
 const MAX_ICON = 400_000;
+const FLOWS = ['none', 'forward', 'both'];
 const LABEL_MODES = ['edge', 'center', 'none'];
 const LABEL_EDGES = ['back', 'front', 'left', 'right'];
 
@@ -23,7 +24,8 @@ export function validateDiagram(d) {
   }
   for (const c of connectors) {
     if (!str(c.id, 64) || !ids.has(c.from) || !ids.has(c.to)) return 'bad connector';
-    if (!ROUTES.includes(c.route) || !str(c.label ?? '', 200) || !str(c.color ?? '', 32)) return 'bad connector';
+    if (!ROUTES.includes(c.route) || !str(c.label ?? '', 200) || !str(c.color ?? '', 32) || !str(c.color2 ?? '', 32)) return 'bad connector';
+    if (c.flow != null && !FLOWS.includes(c.flow)) return 'bad connector';
   }
   for (const z of zones) {
     if (!str(z.id, 64) || !str(z.label, 200) || !isVec(z.position) || !isVec(z.size) || !str(z.color, 32)) return 'bad zone';

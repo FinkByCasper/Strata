@@ -120,6 +120,15 @@ function Inspector({ sel }) {
             <option>solid</option><option>dashed</option>
           </select></label>
         <div className="field">Colour<Swatches value={c.color || '#475569'} onPick={(color) => s.updateConnector(c.id, { color })} /></div>
+        <div className="field">Data flow
+          <div className="seg">
+            {[['none', 'Off'], ['forward', 'One way'], ['both', 'Both ways']].map(([m, l]) => (
+              <button key={m} className={(c.flow ?? 'none') === m ? 'on' : ''} onClick={() => s.updateConnector(c.id, { flow: m })}>{l}</button>
+            ))}
+          </div>
+          <span className="muted">{(c.flow ?? 'none') === 'none' ? 'Small dots travel along the line in the arrow\'s direction.' : (c.flow === 'both' ? 'Line colour goes forward; the return colour comes back in its own lane.' : 'Dots travel from the source to the target in the line colour.')}</span>
+        </div>
+        {c.flow === 'both' && <div className="field">Return colour<Swatches value={c.color2 || '#f5a524'} onPick={(color2) => s.updateConnector(c.id, { color2 })} /></div>}
         <label className="check"><input type="checkbox" checked={c.arrow} onChange={(e) => s.updateConnector(c.id, { arrow: e.target.checked })} /> Arrow head</label>
         <button onClick={() => s.updateConnector(c.id, { from: c.to, to: c.from })}>Reverse direction</button>
         <button className="danger" onClick={s.removeSelection}>Delete connector</button>

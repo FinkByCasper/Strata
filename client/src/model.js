@@ -36,7 +36,7 @@ export function flatten(data) {
 }
 
 export function newConnector(from, to) {
-  return { id: uid(), from, to, route: 'orthogonal', line: 'solid', arrow: true, label: '' };
+  return { id: uid(), from, to, route: 'orthogonal', line: 'solid', arrow: true, label: '', flow: 'forward', color2: '#f5a524' };
 }
 
 // Nearest free integer grid cell on the ground plane, spiralling out from the origin.

@@ -30,7 +30,7 @@ export const useStore = create((set, get) => {
   return {
     name: '', data: EMPTY(), readOnly: false, rev: 0,
     selection: null, mode: 'select', connectFrom: null,
-    snap: true, dragging: false, hovering: false, view: null, menu: null, fresh: null,
+    snap: true, dragging: false, hovering: false, view: null, menu: null, fresh: null, liftedId: null,
     past: [], future: [],
 
     load: (name, data, readOnly = false) => { lastKey = null; set({ name, data: flatten(data), readOnly, rev: 0, selection: null, mode: 'select', connectFrom: null, view: null, past: [], future: [] }); },
