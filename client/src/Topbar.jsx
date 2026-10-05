@@ -1,8 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from './App';
 import { useStore } from './store';
-import { SHAPES } from './model';
-import { ShapeIcon } from './Menu';
 
 const I = ({ children, size = 18 }) => (
   <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>{children}</svg>
@@ -10,7 +8,6 @@ const I = ({ children, size = 18 }) => (
 export const Icons = {
   select: <I><path d="M5 3l14 8-6 2-3 6z" /></I>,
   connect: <I><circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="5.5" r="2.5" /><path d="M8 17l8-9" /></I>,
-  zone: <I><path d="M4 4h16v16H4z" strokeDasharray="3 3" /></I>,
   rotL: <I><path d="M4 12a8 8 0 1 0 3-6.2" /><path d="M4 4v4h4" /></I>,
   rotR: <I><path d="M20 12a8 8 0 1 1-3-6.2" /><path d="M20 4v4h-4" /></I>,
   fit: <I><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" /></I>,
@@ -76,11 +73,6 @@ export function Topbar({ status, onShare, onExportJson, onExportPng, onImport })
           <Tool icon={Icons.select} label="Select" hint="V" on={mode === 'select'} onClick={() => st.setMode('select')} />
           <Tool icon={Icons.connect} label="Connect" hint="C" on={mode === 'connect'} onClick={() => st.setMode('connect')} />
         </div>
-        <div className="tb-group" role="group" aria-label="Add">
-          {SHAPES.map((sh) => <Tool key={sh} icon={<ShapeIcon shape={sh} />} label={`Add ${sh}`} onClick={() => st.addNode(sh)} />)}
-          <Tool icon={Icons.zone} label="Add zone" onClick={() => st.addZone()} />
-        </div>
-        <span className="tb-hint">or right-click the canvas</span>
       </div>
 
       <div className="tb-right">
