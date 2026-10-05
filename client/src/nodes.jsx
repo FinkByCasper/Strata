@@ -124,8 +124,8 @@ export function NodesLayer() {
         <React.Fragment key={n.id}>
           <FocusNode node={n} lifted={n.id === liftedId} glow={n.id === selId || n.id === connectFrom} h={h} />
           {n.id === liftedId
-            ? <CellMarker position={n.position} size={n.shape === 'slab' ? 3 : 1} color={n.color} fill={0.45} />
-            : <CellMarker position={n.position} size={n.shape === 'slab' ? 3 : 1} color={n.id === connectFrom ? '#f5a524' : '#4f8cff'} fill={0.22} outline />}
+            ? <CellMarker position={n.position} size={1} color={n.color} fill={0.45} />
+            : <CellMarker position={n.position} size={1} color={n.id === connectFrom ? '#f5a524' : '#4f8cff'} fill={0.22} outline />}
         </React.Fragment>
       ))}
     </>

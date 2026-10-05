@@ -15,13 +15,16 @@ const link = (a, b, o = {}) => {
 };
 const zone = (label, color, cx, cz, w, d, edge = 'back') => zones.push({ id: id('z'), label, color, position: [cx, 0, cz], size: [w, 0, d], labelMode: 'edge', labelEdge: edge });
 
-// A zone sized to hold `items` laid out `cols` per row; returns the placed nodes.
+// A zone sized to hold `items` laid out `cols` per row, 3 cells apart so nothing touches; returns the placed nodes.
+const GAP = 3;
 function group(label, color, cx, cz, cols, items) {
   const rows = Math.ceil(items.length / cols);
-  const w = cols * 2 + 1, d = rows * 2 + 3;
+  const w = cols * GAP + 2, d = rows * GAP + 3;
+  if (w % 2 === 0) cx += 0.5;           // zone edges must land on cell borders
+  if (d % 2 === 0) cz += 0.5;
   zone(label, color, cx, cz, w, d);
-  const x0 = cx - (cols - 1), z0 = cz - (rows - 1) + 1;
-  return items.map(([name, shape, col, sub], i) => node(name, shape, x0 + (i % cols) * 2, z0 + Math.floor(i / cols) * 2, col ?? color, sub ?? ''));
+  const x0 = Math.round(cx - (GAP * (cols - 1)) / 2), z0 = Math.round(cz - (GAP * (rows - 1)) / 2) + 1;
+  return items.map(([name, shape, col, sub], i) => node(name, shape, x0 + (i % cols) * GAP, z0 + Math.floor(i / cols) * GAP, col ?? color, sub ?? ''));
 }
 
 const BLUE = '#4f7be0', TEAL = '#22b8a6', PURPLE = '#8b6cf6', ORANGE = '#f5a524', RED = '#ef5b7b', GREY = '#64748b', GREEN = '#3fb27f';
@@ -33,19 +36,20 @@ const domains = [
   ['Shipping', '#22b8a6'], ['Notifications', '#8b6cf6'], ['Reviews', '#f5a524'], ['Recommendations', '#3fb27f'],
   ['Billing', '#ef5b7b'], ['Loyalty', '#4f8cff'], ['Returns', '#22b8a6'], ['Support', '#8b6cf6'],
 ];
-const DX = 10, DZ = 12, X0 = 12, Z0 = -18;
+const DX = 14, DZ = 18, X0 = 12, Z0 = -27;
 const D = {};
 domains.forEach(([name, color], i) => {
   const cx = X0 + (i % 4) * DX, cz = Z0 + Math.floor(i / 4) * DZ;
-  zone(`${name} service`, color, cx, cz, 7, 9);
+  zone(`${name} service`, color, cx, cz, 11, 14);
   const s = name.toLowerCase();
-  const api = node(`${name} API`, 'server', cx, cz - 3, color, `${s}-api · REST + gRPC`);
-  const cache = node(`${name} cache`, 'cache', cx - 3, cz - 3, ORANGE, 'Redis');
-  const worker = node(`${name} worker`, 'box', cx + 3, cz - 3, GREY, 'async jobs');
-  const pods = [-3, -1, 1, 3].map((dx, k) => node(`${s}-pod-${k + 1}`, 'container', cx + dx, cz, color, 'k8s pod'));
-  const db = node(`${name} DB`, 'database', cx - 2, cz + 3, TEAL, 'Postgres primary');
-  const replica = node(`${name} replica`, 'database', cx, cz + 3, '#8fd6cc', 'read replica');
-  const flags = node(`${name} flags`, 'slab', cx + 2, cz + 3, GREY, 'feature flags');
+  const api = node(`${name} API`, 'server', cx, cz - 5, color, `${s}-api · REST + gRPC`);
+  const cache = node(`${name} cache`, 'cache', cx - 3, cz - 5, ORANGE, 'Redis');
+  const worker = node(`${name} worker`, 'box', cx + 3, cz - 5, GREY, 'async jobs');
+  const podAt = [[-3, -2], [0, -2], [3, -2], [-3, 1]];
+  const pods = podAt.map(([dx, dz], k) => node(`${s}-pod-${k + 1}`, 'container', cx + dx, cz + dz, color, 'k8s pod'));
+  const db = node(`${name} DB`, 'database', cx, cz + 1, TEAL, 'Postgres primary');
+  const replica = node(`${name} replica`, 'database', cx + 3, cz + 1, '#8fd6cc', 'read replica');
+  const flags = node(`${name} flags`, 'slab', cx, cz + 4, GREY, 'feature flags');
   link(api, cache, { label: '', color: ORANGE });
   link(api, db, { route: 'orthogonal-z', flow: 'both', color: TEAL, color2: BLUE });
   link(db, replica, { color: TEAL, line: 'dashed' });
@@ -56,42 +60,42 @@ domains.forEach(([name, color], i) => {
 });
 
 // ---- the rest of the platform ----
-const clients = group('Clients', GREY, -34, -16, 2, [
+const clients = group('Clients', GREY, -42, -20, 2, [
   ['Web shop', 'laptop', BLUE, 'React SPA'], ['iOS app', 'phone', BLUE], ['Android app', 'phone', BLUE], ['Partner API', 'cloud', '#f8fafc', 'B2B'],
   ['Admin console', 'pc', PURPLE], ['Kiosk', 'pc', GREY, 'in-store'], ['Call centre', 'user', GREY], ['Marketplace feed', 'cloud', '#f8fafc', 'CSV / API'],
 ]);
-const edge = group('Edge', PURPLE, -22, -10, 2, [
+const edge = group('Edge', PURPLE, -28, -20, 2, [
   ['DNS', 'cloud', '#f8fafc', 'Route 53'], ['CDN', 'cloud', '#f8fafc', 'static + images'], ['WAF', 'firewall', RED], ['DDoS shield', 'firewall', RED],
   ['Load balancer A', 'router', PURPLE, 'eu-west'], ['Load balancer B', 'router', PURPLE, 'us-east'], ['API gateway', 'switch', BLUE, 'rate limits · auth'], ['GraphQL BFF', 'server', BLUE, 'for the apps'],
   ['Edge cache', 'cache', ORANGE], ['Bot filter', 'firewall', RED], ['TLS terminator', 'router', PURPLE],
 ]);
-const security = group('Security', RED, -22, 8, 2, [
+const security = group('Security', RED, -28, 4, 2, [
   ['Identity provider', 'server', RED, 'OIDC'], ['Vault', 'database', RED, 'secrets'], ['Key service', 'server', RED, 'KMS'], ['Audit log', 'database', GREY], ['SIEM', 'pc', RED], ['Scanner', 'laptop', RED, 'SAST / DAST'],
 ]);
-const mq = group('Messaging', ORANGE, 12 + 4 * DX + 2, Z0 + 2, 4, [
+const mq = group('Messaging', ORANGE, X0 + 3 * DX + 17, -27, 4, [
   ['Kafka 1', 'cylinder', ORANGE], ['Kafka 2', 'cylinder', ORANGE], ['Kafka 3', 'cylinder', ORANGE], ['Kafka 4', 'cylinder', ORANGE],
   ['Kafka 5', 'cylinder', ORANGE], ['Schema registry', 'server', GREY], ['Kafka Connect', 'server', GREY], ['Dead letters', 'slab', RED],
   ['orders.created', 'slab', ORANGE], ['payments.settled', 'slab', ORANGE], ['stock.changed', 'slab', ORANGE], ['emails.queue', 'slab', ORANGE],
   ['shipments.update', 'slab', ORANGE], ['reviews.posted', 'slab', ORANGE],
 ]);
-const platform = group('Kubernetes platform', BLUE, 12 + 4 * DX + 2, Z0 + 18, 4, [
+const platform = group('Kubernetes platform', BLUE, X0 + 3 * DX + 17, -6, 4, [
   ['Control plane 1', 'server', BLUE], ['Control plane 2', 'server', BLUE], ['Control plane 3', 'server', BLUE], ['etcd', 'database', BLUE],
   ['Ingress A', 'router', PURPLE], ['Ingress B', 'router', PURPLE], ['Service mesh', 'switch', PURPLE, 'mTLS'], ['Autoscaler', 'pyramid', GREEN],
   ['Node pool A', 'server', GREY, '32 nodes'], ['Node pool B', 'server', GREY, '24 nodes'], ['Config store', 'database', GREY],
 ]);
-const obs = group('Observability', GREEN, 12 + 4 * DX + 2, Z0 + 33, 3, [
+const obs = group('Observability', GREEN, X0 + 3 * DX + 17, 12, 3, [
   ['Prometheus A', 'database', GREEN], ['Prometheus B', 'database', GREEN], ['Grafana', 'pc', GREEN], ['Loki', 'database', GREEN, 'logs'], ['Tempo', 'database', GREEN, 'traces'],
   ['Alertmanager', 'antenna', RED], ['On-call pager', 'phone', RED, 'PagerDuty'], ['Sentry', 'cloud', '#f8fafc', 'errors'], ['Status page', 'cloud', '#f8fafc'],
 ]);
-const cicd = group('CI / CD', PURPLE, 12 + 4 * DX + 14, Z0 + 2, 3, [
+const cicd = group('CI / CD', PURPLE, X0 + 3 * DX + 37, -27, 3, [
   ['Git repos', 'database', PURPLE], ['CI runner 1', 'server', PURPLE], ['CI runner 2', 'server', PURPLE], ['CI runner 3', 'server', PURPLE], ['CI runner 4', 'server', PURPLE],
   ['Image registry', 'database', PURPLE], ['Artifact store', 'database', GREY], ['Argo CD', 'pyramid', GREEN, 'GitOps'], ['Staging cluster', 'cloud', '#f8fafc'], ['Image scanner', 'firewall', RED],
 ]);
-const data = group('Data platform', TEAL, 12 + 4 * DX + 14, Z0 + 16, 3, [
+const data = group('Data platform', TEAL, X0 + 3 * DX + 37, -6, 3, [
   ['Data lake', 'database', TEAL, 'S3'], ['Warehouse', 'database', TEAL, 'Snowflake'], ['ETL 1', 'server', GREY], ['ETL 2', 'server', GREY], ['ETL 3', 'server', GREY],
   ['BI dashboards', 'laptop', BLUE], ['ML training', 'server', PURPLE, 'GPU'], ['Feature store', 'database', PURPLE], ['Model registry', 'database', PURPLE], ['Reverse ETL', 'server', GREY],
 ]);
-const ext = group('Third parties', GREY, 12 + 4 * DX + 14, Z0 + 33, 3, [
+const ext = group('Third parties', GREY, X0 + 3 * DX + 37, 15, 3, [
   ['Stripe', 'cloud', '#f8fafc', 'cards'], ['PayPal', 'cloud', '#f8fafc'], ['SendGrid', 'cloud', '#f8fafc', 'email'], ['Twilio', 'cloud', '#f8fafc', 'SMS'],
   ['DHL', 'cloud', '#f8fafc'], ['UPS', 'cloud', '#f8fafc'], ['Maps API', 'cloud', '#f8fafc'], ['Tax service', 'cloud', '#f8fafc'], ['Slack', 'cloud', '#f8fafc', 'alerts'], ['Zendesk', 'cloud', '#f8fafc'], ['Intercom', 'cloud', '#f8fafc'],
 ]);
@@ -125,7 +129,7 @@ const ext2 = (d, e, o = {}) => link(D[d].api, by(ext, e), { color: GREY, route: 
 ext2('Payments', 'Stripe', { label: 'cards', color: RED }); ext2('Payments', 'PayPal'); ext2('Notifications', 'SendGrid'); ext2('Notifications', 'Twilio'); ext2('Shipping', 'DHL'); ext2('Shipping', 'UPS'); ext2('Shipping', 'Maps API'); ext2('Pricing', 'Tax service'); ext2('Support', 'Zendesk'); ext2('Support', 'Intercom'); link(by(obs, 'Alertmanager'), by(ext, 'Slack'), { color: GREY, route: 'curved', flow: 'forward' });
 
 const prom = by(obs, 'Prometheus A');
-Object.values(D).forEach((d) => link(d.api, prom, { color: GREEN, line: 'dashed', route: 'curved' }));
+['Identity', 'Catalog', 'Orders', 'Payments'].forEach((n) => link(D[n].api, prom, { color: GREEN, line: 'dashed', route: 'curved' }));   // the busiest four; scraping all 16 would just be a hairball
 link(prom, by(obs, 'Grafana'), { color: GREEN }); link(prom, by(obs, 'Alertmanager'), { color: GREEN }); link(by(obs, 'Alertmanager'), by(obs, 'On-call pager'), { color: RED, flow: 'forward', label: 'page' });
 link(by(obs, 'Prometheus B'), prom, { color: GREEN, line: 'dashed' }); link(by(obs, 'Loki'), by(obs, 'Grafana'), { color: GREEN }); link(by(obs, 'Tempo'), by(obs, 'Grafana'), { color: GREEN });
 

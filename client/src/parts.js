@@ -32,7 +32,7 @@ const BUILDERS = {
   box: ({ B }) => B('main', [1, 1, 1]),
   cylinder: ({ C }) => C('main', [0.5, 0.5, 1, 32]),
   sphere: ({ S }) => S('main', [0.5, 24, 16]),
-  slab: ({ B }) => B('main', [3, 0.25, 3], [0, -0.375, 0]),   // a 3x3-cell platform, edges stay on cell borders
+  slab: ({ B }) => B('main', [1, 0.25, 1], [0, -0.375, 0]),   // fills exactly one cell, like the floor tiles
 
   // ---- device models ----
   user: ({ P, S }) => { P('main', [0.27, 0.16, 4, 14], [0, -0.15, 0]); S('skin', [0.22, 18, 12], [0, 0.4, 0]); },
