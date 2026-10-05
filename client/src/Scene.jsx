@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Canvas, useThree } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Edges, Grid, Html, Line, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { useStore } from './store';
@@ -51,11 +51,34 @@ function ContextHandler() {
 
 // Labels are plain DOM (crisp, selectable, always screen-aligned) positioned from 3D space.
 // Wheel events are forwarded so zooming still works while the cursor is over a label.
-function Label({ position, children, className = '', onClick }) {
+// Every label registers itself so LabelLayout can nudge overlapping ones apart each frame.
+const labelRegistry = new Set();
+
+// drei's Html mounts into `events.connected || canvas.parentNode`. R3F fills in `events.connected` right
+// after the first render, so labels that mount first change target, get their React root rebuilt, and are
+// never re-rendered (they silently vanish). Passing an explicit, stable portal avoids that.
+function usePortal() {
   const gl = useThree((s) => s.gl);
+  return useRef(gl.domElement.parentNode);
+}
+
+function Label({ position, children, className = '', onClick, priority = 2 }) {
+  const gl = useThree((s) => s.gl);
+  const portal = usePortal();
+  const rec = useRef({ el: null, priority, dx: 0, dy: 0 });
+  rec.current.priority = priority;
+  // drei's Html mounts its children in a separate React root *after* this effect runs, so the element
+  // is attached through a callback ref rather than read in the effect.
+  const attach = useCallback((node) => { rec.current.el = node; }, []);
+  useEffect(() => {
+    const r = rec.current;
+    labelRegistry.add(r);
+    return () => labelRegistry.delete(r);
+  }, []);
   return (
-    <Html position={position} center zIndexRange={[20, 0]} pointerEvents="none">
+    <Html position={position} center zIndexRange={[20, 0]} pointerEvents="none" portal={portal}>
       <div
+        ref={attach}
         className={`label ${className}`}
         onPointerDown={(e) => { if (onClick && e.button === 0) { e.stopPropagation(); onClick(e); } }}
         onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); openAddMenu(e); }}
@@ -65,6 +88,43 @@ function Label({ position, children, className = '', onClick }) {
       </div>
     </Html>
   );
+}
+
+// Greedy screen-space de-overlap. Highest priority keeps its natural spot; the rest move to the
+// nearest free slot (up/down first, then sideways). Offsets are applied with CSS `translate`, so they
+// compose with each label's own transform, and the natural rect is recovered by subtracting them.
+const LABEL_GAP = 3;
+function LabelLayout() {
+  useFrame(() => {
+    const items = [];
+    for (const r of labelRegistry) {
+      if (!r.el?.isConnected) continue;
+      const b = r.el.getBoundingClientRect();
+      if (b.width > 0) items.push({ r, x: b.left - r.dx, y: b.top - r.dy, w: b.width, h: b.height });
+    }
+    items.sort((a, b) => b.r.priority - a.r.priority);
+    const placed = [];
+    const clash = (x, y, w, h) => placed.some((p) =>
+      x < p.x + p.w + LABEL_GAP && x + w + LABEL_GAP > p.x && y < p.y + p.h + LABEL_GAP && y + h + LABEL_GAP > p.y);
+    const steps = [0, -1, 1, -2, 2, -3, 3, -4, 4];
+    for (const it of items) {
+      let best = null;
+      for (const kx of [0, 1, -1]) {
+        for (const k of steps) {
+          const dx = kx * (it.w * 0.55 + 6), dy = k * (it.h + 4);
+          if (!clash(it.x + dx, it.y + dy, it.w, it.h)) { best = { dx, dy }; break; }
+        }
+        if (best) break;
+      }
+      best ??= { dx: 0, dy: 0 };
+      placed.push({ x: it.x + best.dx, y: it.y + best.dy, w: it.w, h: it.h });
+      if (best.dx !== it.r.dx || best.dy !== it.r.dy) {
+        it.r.dx = best.dx; it.r.dy = best.dy;
+        it.r.el.style.translate = best.dx || best.dy ? `${best.dx}px ${best.dy}px` : '';
+      }
+    }
+  });
+  return null;
 }
 
 const IconGlyph = ({ icon }) =>
@@ -142,6 +202,7 @@ function useHoldMove(getPos, setPos, snapAxis) {
 }
 
 function NodeView({ node }) {
+  const portal = usePortal();
   const selected = useStore((s) => s.selection?.type === 'node' && s.selection.id === node.id);
   const connecting = useStore((s) => s.connectFrom === node.id);
   const yOffset = node.shape === 'slab' ? -0.375 : 0;
@@ -193,13 +254,13 @@ function NodeView({ node }) {
         {(selected || connecting) && <Edges color="#111827" />}
       </mesh>
       {node.icon && node.shape !== 'slab' && (
-        <Html center position={[0, 0, 0]} zIndexRange={[10, 0]} className="passthrough">
+        <Html center position={[0, 0, 0]} zIndexRange={[10, 0]} className="passthrough" portal={portal}>
           <div className="onshape"><IconGlyph icon={node.icon} /></div>
         </Html>
       )}
       <Label
         position={[0, node.shape === 'slab' ? 0.55 : 1.05, 0]}
-        className={selected ? 'selected' : ''}
+        className={selected ? 'selected' : ''} priority={selected ? 3 : 2}
         onClick={pick}
       >
         <div className="title">
@@ -237,7 +298,7 @@ function ConnectorView({ connector, from, to }) {
         </mesh>
       )}
       {connector.label && (
-        <Label position={polylineMidpoint(points)} className="line-label" onClick={select}>
+        <Label position={polylineMidpoint(points)} className="line-label" onClick={select} priority={1.5}>
           {connector.label}
         </Label>
       )}
@@ -360,7 +421,7 @@ function ZoneView({ zone }) {
           CORNERS.map((c) => <ZoneHandle key={c.join()} zone={zone} corner={c} onHover={setHovered} />)}
       </group>
       <Label
-        position={[-w / 2, -0.4, -d / 2]} className={`zone-label ${selected ? 'selected' : ''}`}
+        position={[-w / 2, -0.4, -d / 2]} className={`zone-label ${selected ? 'selected' : ''}`} priority={selected ? 2.5 : 1}
         onClick={() => useStore.getState().select({ type: 'zone', id: zone.id })}
       >
         <span className="dot" style={{ background: zone.color }} />{zone.label}
@@ -424,18 +485,16 @@ export function Scene() {
         if (s.mode === 'select') s.select(null);
       }}
     >
-      <color attach="background" args={['#f4f5f8']} />
+      <color attach="background" args={['#eceef4']} />
       <ambientLight intensity={1.05} />
       <directionalLight position={[8, 14, 6]} intensity={1.6} />
       <directionalLight position={[-6, 4, -8]} intensity={0.5} />
-      {/* Blender-style floor: fine 1-unit lines, heavier every 5, coloured X (red) and Z (green) axes. */}
+      {/* Floor grid: fine 1-unit lines, slightly heavier every 5. Kept low-contrast so it recedes. */}
       <Grid
         position={[0, -0.5, 0]} infiniteGrid cellSize={1} sectionSize={5}
-        cellColor="#b9c0d0" sectionColor="#7d879e" cellThickness={0.9} sectionThickness={1.6}
+        cellColor="#d2d6e0" sectionColor="#b9bfce" cellThickness={0.8} sectionThickness={1.2}
         fadeDistance={90} fadeStrength={1.5}
       />
-      <Line points={[[-500, -0.49, 0], [500, -0.49, 0]]} color="#e5484d" lineWidth={2.2} raycast={() => null} />
-      <Line points={[[0, -0.49, -500], [0, -0.49, 500]]} color="#2fb170" lineWidth={2.2} raycast={() => null} />
       <OrbitControls
         ref={controls} makeDefault enabled={!orbitLocked} enableDamping dampingFactor={0.2}
         minPolarAngle={Math.PI / 2 - ELEVATION} maxPolarAngle={Math.PI / 2 - ELEVATION} screenSpacePanning={false}
@@ -443,6 +502,7 @@ export function Scene() {
       />
       <CameraRig controls={controls} />
       <ContextHandler />
+      <LabelLayout />
       {data.zones.map((z) => <ZoneView key={z.id} zone={z} />)}
       {data.connectors.map((c) => byId[c.from] && byId[c.to] && (
         <ConnectorView key={c.id} connector={c} from={byId[c.from]} to={byId[c.to]} />

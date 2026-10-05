@@ -1,5 +1,5 @@
 :root {
-  --bg: #f4f5f8; --surface: #fff; --text: #111827; --muted: #6b7280; --border: #d9dde6;
+  --bg: #eceef4; --surface: #fff; --text: #111827; --muted: #6b7280; --border: #d9dde6;
   --accent: #4f8cff; --accent-text: #fff; --danger: #d9304f;
   font-family: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; color: var(--text);
 }
