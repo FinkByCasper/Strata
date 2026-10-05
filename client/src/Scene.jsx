@@ -387,6 +387,33 @@ function roundedRect(w, d, r) {
   return s;
 }
 
+// Text drawn onto a flat plane lying on the floor (no font files needed: it is painted on a canvas).
+// Reads along +x with its top toward -z, like the zone titles in isometric network diagrams.
+function FloorText({ text, color, maxWidth, maxHeight = 0.85, opacity = 1 }) {
+  const { tex, aspect } = useMemo(() => {
+    const px = 96, pad = 20;
+    const font = `italic 800 ${px}px system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif`;
+    const c = document.createElement('canvas');
+    const g = c.getContext('2d');
+    g.font = font;
+    c.width = Math.min(4096, Math.ceil(g.measureText(text).width) + pad * 2);
+    c.height = Math.round(px * 1.4);
+    g.font = font; g.textBaseline = 'middle'; g.fillStyle = new THREE.Color(color).multiplyScalar(0.45).getStyle();
+    g.fillText(text, pad, c.height / 2 + 2, c.width - pad * 2);
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
+    return { tex: t, aspect: c.width / c.height };
+  }, [text, color]);
+  useEffect(() => () => tex.dispose(), [tex]);
+  const height = Math.min(maxHeight, maxWidth / aspect); // shrink to fit if the space is short
+  return (
+    <mesh rotation={[-Math.PI / 2, 0, 0]} raycast={() => null}>
+      <planeGeometry args={[height * aspect, height]} />
+      <meshBasicMaterial map={tex} transparent opacity={opacity} depthWrite={false} toneMapped={false} />
+    </mesh>
+  );
+}
+
 // Corner handle: drag to resize a zone with the opposite corner pinned. Corners snap to cell borders.
 function ZoneHandle({ zone, corner: [sx, sz], onHover }) {
   const drag = useRef(null);
@@ -445,6 +472,11 @@ function ZoneView({ zone }) {
   const editable = useStore((s) => !s.readOnly && s.mode === 'select');
   const [hovered, setHovered] = useState(false);
   const [w, , d] = zone.size;
+  // The zone's name is drawn flat on the floor, just outside one edge (or hidden).
+  const labelMode = zone.labelMode ?? 'edge';
+  const edge = zone.labelEdge ?? 'back';
+  const gap = 0.75;
+  const textPos = { back: [0, -0.46, -d / 2 - gap], front: [0, -0.46, d / 2 + gap], left: [-w / 2 - gap, -0.46, 0], right: [w / 2 + gap, -0.46, 0] }[edge];
   // Even-sized zones centre on a cell border, odd-sized ones on a cell centre, so edges stay on borders.
   const snapAxis = (v, axis, snap) => {
     if (!snap) return Math.round(v * 20) / 20;
@@ -485,12 +517,18 @@ function ZoneView({ zone }) {
         {editable && !hold.lifted && selected &&
           CORNERS.map((c) => <ZoneHandle key={c.join()} zone={zone} corner={c} onHover={setHovered} />)}
       </group>
-      <Label
-        position={[-w / 2, -0.4, -d / 2]} className={`zone-label ${selected ? 'selected' : ''}`} priority={selected ? 2.5 : 1}
-        onClick={() => useStore.getState().select({ type: 'zone', id: zone.id })}
-      >
-        <span className="dot" style={{ background: zone.color }} />{zone.label}
-      </Label>
+      {labelMode === 'edge' && zone.label && (
+        <group position={textPos} rotation={[0, edge === 'left' || edge === 'right' ? Math.PI / 2 : 0, 0]}>
+          <FloorText text={zone.label} color={zone.color} maxWidth={edge === 'left' || edge === 'right' ? d : w} />
+        </group>
+      )}
+      {/* "Centre": a big darker-tinted watermark that fills the zone, running along its longer side. */}
+      {labelMode === 'center' && zone.label && (
+        <group position={[0, -0.465, 0]} rotation={[0, d > w ? Math.PI / 2 : 0, 0]}>
+          <FloorText text={zone.label} color={zone.color} opacity={0.6}
+            maxWidth={Math.max(w, d) * 0.9} maxHeight={Math.min(w, d) * 0.6} />
+        </group>
+      )}
     </group>
   );
 }

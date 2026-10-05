@@ -2,6 +2,8 @@
 const SHAPES = ['box', 'cylinder', 'sphere', 'slab', 'user', 'server', 'router', 'accesspoint', 'pc', 'laptop', 'phone', 'database', 'cache', 'switch', 'firewall', 'antenna', 'printer', 'cloud', 'container', 'pyramid'];
 const ROUTES = ['orthogonal', 'orthogonal-z', 'straight', 'curved'];
 const MAX_ICON = 400_000;
+const LABEL_MODES = ['edge', 'center', 'none'];
+const LABEL_EDGES = ['back', 'front', 'left', 'right'];
 
 const isVec = (v) => Array.isArray(v) && v.length === 3 && v.every((n) => Number.isFinite(n));
 const str = (s, max) => typeof s === 'string' && s.length <= max;
@@ -25,6 +27,7 @@ export function validateDiagram(d) {
   }
   for (const z of zones) {
     if (!str(z.id, 64) || !str(z.label, 200) || !isVec(z.position) || !isVec(z.size) || !str(z.color, 32)) return 'bad zone';
+    if ((z.labelMode != null && !LABEL_MODES.includes(z.labelMode)) || (z.labelEdge != null && !LABEL_EDGES.includes(z.labelEdge))) return 'bad zone label';
   }
   return null;
 }

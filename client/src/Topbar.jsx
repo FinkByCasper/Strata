@@ -13,12 +13,14 @@ export const Icons = {
   fit: <I><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" /></I>,
   reset: <I><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z" /><path d="M12 12l8-4.5" /></I>,
   grid: <I><path d="M4 4h16v16H4zM4 12h16M12 4v16" /></I>,
+  undo: <I><path d="M9 14L4 9l5-5" /><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" /></I>,
+  redo: <I><path d="M15 14l5-5-5-5" /><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13" /></I>,
   chevron: <I size={14}><path d="M6 9l6 6 6-6" /></I>,
 };
 
-function Tool({ icon, label, on, onClick, hint }) {
+function Tool({ icon, label, on, onClick, hint, disabled }) {
   return (
-    <button className={`tool ${on ? 'on' : ''}`} onClick={onClick} title={hint ? `${label} (${hint})` : label} aria-label={label} aria-pressed={on}>
+    <button className={`tool ${on ? 'on' : ''}`} onClick={onClick} title={hint ? `${label} (${hint})` : label} aria-label={label} aria-pressed={on} disabled={disabled}>
       {icon}
     </button>
   );
@@ -58,6 +60,8 @@ export function Topbar({ status, onShare, onExportJson, onExportPng, onImport })
   const name = useStore((s) => s.name);
   const mode = useStore((s) => s.mode);
   const snap = useStore((s) => s.snap);
+  const canUndo = useStore((s) => s.past.length > 0);
+  const canRedo = useStore((s) => s.future.length > 0);
   const st = useStore.getState();
 
   return (
@@ -72,6 +76,10 @@ export function Topbar({ status, onShare, onExportJson, onExportPng, onImport })
         <div className="tb-group" role="group" aria-label="Tool">
           <Tool icon={Icons.select} label="Select" hint="V" on={mode === 'select'} onClick={() => st.setMode('select')} />
           <Tool icon={Icons.connect} label="Connect" hint="C" on={mode === 'connect'} onClick={() => st.setMode('connect')} />
+        </div>
+        <div className="tb-group" role="group" aria-label="History">
+          <Tool icon={Icons.undo} label="Undo" hint="Ctrl+Z" disabled={!canUndo} onClick={() => st.undo()} />
+          <Tool icon={Icons.redo} label="Redo" hint="Ctrl+Shift+Z" disabled={!canRedo} onClick={() => st.redo()} />
         </div>
       </div>
 

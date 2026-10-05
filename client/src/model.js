@@ -8,6 +8,7 @@ export const DEVICE_SHAPES = ['user', 'server', 'router', 'switch', 'firewall', 
 export const SHAPES = [...BASIC_SHAPES, ...DEVICE_SHAPES];
 export const SHAPE_NAMES = { accesspoint: 'access point', router: 'router / relay', pc: 'PC', antenna: 'antenna tower', container: 'container', pyramid: 'hub' };
 export const shapeName = (s) => SHAPE_NAMES[s] ?? s;
+export const LABEL_EDGES = ['back', 'front', 'left', 'right'];
 export const ROUTES = ['orthogonal', 'orthogonal-z', 'straight', 'curved'];
 export const ROUTE_NAMES = { orthogonal: 'right angles (X first)', 'orthogonal-z': 'right angles (Z first)', straight: 'straight', curved: 'curved' };
 export const PALETTE = ['#4f8cff', '#22b8a6', '#f5a524', '#ef5b7b', '#8b6cf6', '#64748b'];
@@ -22,7 +23,7 @@ export function newNode(shape, position, index) {
 
 // Zones are flat floor areas: only width (size[0]) and depth (size[2]) matter; the middle entry stays 0.
 export const newZone = (position) => ({
-  id: uid(), label: 'New zone', color: '#4f8cff', position: [position[0] + 0.5, 0, position[2] + 0.5], size: [6, 0, 6], // edges land on cell borders
+  id: uid(), label: 'New zone', color: '#4f8cff', position: [position[0] + 0.5, 0, position[2] + 0.5], size: [6, 0, 6], labelMode: 'edge', labelEdge: 'back', // edges land on cell borders
 });
 
 // Everything lives on the ground plane. Older diagrams that had heights are flattened on load.

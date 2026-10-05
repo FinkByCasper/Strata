@@ -3,7 +3,7 @@ import { api } from './api';
 import { Link } from './App';
 import { Scene } from './Scene';
 import { useStore } from './store';
-import { ICONS, ROUTES, ROUTE_NAMES, parseDiagram } from './model';
+import { ICONS, LABEL_EDGES, ROUTES, ROUTE_NAMES, parseDiagram } from './model';
 import { RichText } from './richtext';
 import { ContextMenu, ShapePicker, Swatches } from './Menu';
 import { Topbar } from './Topbar';
@@ -134,6 +134,20 @@ function Inspector({ sel }) {
       <h3>Zone</h3>
       <label>Label<LabelInput id={z.id} value={z.label} onChange={(e) => s.updateZone(z.id, { label: e.target.value })} /></label>
       <div className="field">Colour<Swatches value={z.color} onPick={(color) => s.updateZone(z.id, { color })} /></div>
+      <div className="field">Name on the floor
+        <div className="seg">
+          {[['edge', 'On an edge'], ['center', 'Centre'], ['none', 'None']].map(([m, l]) => (
+            <button key={m} className={(z.labelMode ?? 'edge') === m ? 'on' : ''} onClick={() => s.updateZone(z.id, { labelMode: m })}>{l}</button>
+          ))}
+        </div>
+        {(z.labelMode ?? 'edge') === 'edge' && (
+          <div className="edges">
+            {LABEL_EDGES.map((ed) => (
+              <button key={ed} className={(z.labelEdge ?? 'back') === ed ? 'on' : ''} onClick={() => s.updateZone(z.id, { labelEdge: ed })}>{ed}</button>
+            ))}
+          </div>
+        )}
+      </div>
       <p className="muted">Centre</p>
       <div className="xz">{[['X', 0], ['Z', 2]].map(([a, i]) => <label key={a}>{a}{num(z.position, i, (p) => s.updateZone(z.id, { position: p }))}</label>)}</div>
       <p className="muted">Size</p>
@@ -192,7 +206,12 @@ export function Editor({ id }) {
   useEffect(() => {
     const warn = (e) => { if (useStore.getState().rev && status !== 'saved') e.preventDefault(); };
     const key = (e) => {
-      if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+      if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return; // let text fields keep their own undo
+      if ((e.ctrlKey || e.metaKey) && !e.altKey) {
+        const key = e.key.toLowerCase();
+        if (key === 'z') { e.preventDefault(); e.shiftKey ? useStore.getState().redo() : useStore.getState().undo(); return; }
+        if (key === 'y') { e.preventDefault(); useStore.getState().redo(); return; }
+      }
       if (e.key === 'Delete' || e.key === 'Backspace') useStore.getState().removeSelection();
       if (e.key === 'Escape') { useStore.getState().setMode('select'); useStore.getState().select(null); }
       if (e.ctrlKey || e.metaKey || e.altKey) return;

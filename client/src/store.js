@@ -3,20 +3,52 @@ import { EMPTY, flatten, freeSpot, newConnector, newNode, newZone, uid } from '.
 
 // `rev` bumps on every user edit; the editor watches it to drive autosave.
 export const useStore = create((set, get) => {
-  const edit = (fn) => set((s) => ({ ...fn(s), rev: s.rev + 1 }));
+  // Undo history is a stack of {data, name} snapshots taken *before* each edit. Rapid edits of the same
+  // thing (typing a label, dragging, resizing) share a `key` and collapse into one undo step.
+  const MAX_HISTORY = 100, COALESCE_MS = 800;
+  let lastKey = null, lastAt = 0;
+  const edit = (fn, key) => set((s) => {
+    const now = Date.now();
+    const merge = key != null && key === lastKey && now - lastAt < COALESCE_MS;
+    lastKey = key ?? null; lastAt = now;
+    return {
+      ...fn(s), rev: s.rev + 1,
+      past: merge ? s.past : [...s.past, { data: s.data, name: s.name }].slice(-MAX_HISTORY),
+      future: merge ? s.future : [],
+    };
+  });
   const patchList = (key, id, patch) => edit((s) => ({
     data: { ...s.data, [key]: s.data[key].map((x) => (x.id === id ? { ...x, ...patch } : x)) },
-  }));
+  }), `${key}:${id}:${Object.keys(patch).join(',')}`);
+  // After restoring a snapshot, drop a selection that points at something that no longer exists.
+  const restore = (snap, s) => {
+    const sel = s.selection;
+    const list = sel && { node: snap.data.nodes, zone: snap.data.zones, connector: snap.data.connectors }[sel.type];
+    return { data: snap.data, name: snap.name, selection: list?.some((x) => x.id === sel.id) ? sel : null, connectFrom: null, rev: s.rev + 1 };
+  };
 
   return {
     name: '', data: EMPTY(), readOnly: false, rev: 0,
     selection: null, mode: 'select', connectFrom: null,
     snap: true, dragging: false, hovering: false, view: null, menu: null, fresh: null,
+    past: [], future: [],
 
-    load: (name, data, readOnly = false) =>
-      set({ name, data: flatten(data), readOnly, rev: 0, selection: null, mode: 'select', connectFrom: null, view: null }),
+    load: (name, data, readOnly = false) => { lastKey = null; set({ name, data: flatten(data), readOnly, rev: 0, selection: null, mode: 'select', connectFrom: null, view: null, past: [], future: [] }); },
     replaceData: (name, data) => edit(() => ({ data: flatten(data), name: name ?? get().name, selection: null })),
-    setName: (name) => edit(() => ({ name })),
+    setName: (name) => edit(() => ({ name }), 'name'),
+
+    undo: () => {
+      const { past, future, data, name } = get();
+      if (!past.length || get().readOnly) return;
+      lastKey = null;
+      set((s) => ({ ...restore(past[past.length - 1], s), past: past.slice(0, -1), future: [...future, { data, name }] }));
+    },
+    redo: () => {
+      const { past, future, data, name } = get();
+      if (!future.length || get().readOnly) return;
+      lastKey = null;
+      set((s) => ({ ...restore(future[future.length - 1], s), future: future.slice(0, -1), past: [...past, { data, name }] }));
+    },
 
     select: (selection) => set({ selection }),
     setMode: (mode) => set({ mode, connectFrom: null }),

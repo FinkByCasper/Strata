@@ -12,7 +12,8 @@ as JSON, and can be shared through a view-only link or an embeddable iframe.
 - Free orthographic orbit / pan / zoom, plus one-click **Front / Top / Side / Free / Fit** views
 - Soft cast shadows from a sun that follows the camera, so objects sit on the floor
 - Nodes: 3D device models (user, server, router/relay, switch, firewall, access point, antenna tower, PC, laptop, phone, printer, database, cache, cloud, container, hub) plus basic shapes (box, cylinder, sphere, slab). All are recolourable; basic shapes can also carry an emoji icon or your own uploaded PNG/JPEG/WebP/GIF
-- Zones: flat, rounded translucent floor areas that nodes sit on (VPCs, clusters, teams); select one to get curved corner grips for resizing
+- Undo / redo (Ctrl+Z, Ctrl+Shift+Z or Ctrl+Y; also buttons in the top bar). Quick edits of the same thing merge into one step
+- Zones: flat, rounded translucent floor areas that nodes sit on (VPCs, clusters, teams); select one to get curved corner grips for resizing. A zone's name is painted on the floor in a darker tint of its colour: along an edge (any of four), centred and scaled to fill the zone, or hidden
 - Connectors: orthogonal, straight or curved; arrows, dashed lines, per-connector colours, mid-line labels, right-angle routing in either X-first or Z-first order; they follow nodes as you move them
 - Everything lives on a flat grid (no height axis). **Press and hold ~0.5 s** on a node or zone to pick it up, move it, and release to drop it on that grid cell; a quick click just selects. Snap can be toggled
 - Node labels can carry a second "subtitle" line (IP, port...). Labels are real DOM text (crisp, upright, constant size) with a small safe-markdown description (`**bold**`, `*italic*`, `` `code` ``, `- lists`) shown when a node is selected
