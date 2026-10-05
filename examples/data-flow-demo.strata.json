@@ -1,0 +1,187 @@
+{
+  "name": "Data flow demo",
+  "data": {
+    "nodes": [
+      {
+        "id": "n1",
+        "label": "Users",
+        "subtitle": "",
+        "description": "",
+        "shape": "user",
+        "color": "#64748b",
+        "position": [
+          -9,
+          0,
+          0
+        ],
+        "icon": null
+      },
+      {
+        "id": "n2",
+        "label": "Load balancer",
+        "subtitle": "one way",
+        "description": "",
+        "shape": "router",
+        "color": "#8b6cf6",
+        "position": [
+          -3,
+          0,
+          0
+        ],
+        "icon": null
+      },
+      {
+        "id": "n3",
+        "label": "App server",
+        "subtitle": "",
+        "description": "",
+        "shape": "server",
+        "color": "#6f93d6",
+        "position": [
+          3,
+          0,
+          0
+        ],
+        "icon": null
+      },
+      {
+        "id": "n4",
+        "label": "Database",
+        "subtitle": "",
+        "description": "",
+        "shape": "database",
+        "color": "#22b8a6",
+        "position": [
+          9,
+          0,
+          -4
+        ],
+        "icon": null
+      },
+      {
+        "id": "n5",
+        "label": "Cache",
+        "subtitle": "",
+        "description": "",
+        "shape": "cache",
+        "color": "#f5a524",
+        "position": [
+          9,
+          0,
+          4
+        ],
+        "icon": null
+      },
+      {
+        "id": "n6",
+        "label": "Monitoring",
+        "subtitle": "",
+        "description": "",
+        "shape": "pc",
+        "color": "#64748b",
+        "position": [
+          -3,
+          0,
+          6
+        ],
+        "icon": null
+      },
+      {
+        "id": "n7",
+        "label": "Legacy API",
+        "subtitle": "",
+        "description": "",
+        "shape": "cloud",
+        "color": "#f8fafc",
+        "position": [
+          3,
+          0,
+          -7
+        ],
+        "icon": null
+      }
+    ],
+    "connectors": [
+      {
+        "id": "c8",
+        "from": "n1",
+        "to": "n2",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": true,
+        "label": "HTTPS",
+        "color": "#4f7be0",
+        "flow": "forward",
+        "color2": "#f5a524",
+        "subtitle": "TCP 443 · TLS 1.3",
+        "description": "Public traffic from browsers and mobile apps.\n- terminated at the **load balancer**\n- WAF rules applied first"
+      },
+      {
+        "id": "c9",
+        "from": "n2",
+        "to": "n3",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": true,
+        "label": "Internal HTTP",
+        "color": "#22b8a6",
+        "flow": "both",
+        "color2": "#f5a524",
+        "subtitle": "TCP 8080",
+        "description": "Requests go **forward** (teal); responses and health checks come back (orange)."
+      },
+      {
+        "id": "c10",
+        "from": "n3",
+        "to": "n4",
+        "route": "orthogonal-z",
+        "line": "solid",
+        "arrow": true,
+        "label": "SQL",
+        "color": "#ef5b7b",
+        "flow": "both",
+        "color2": "#4f8cff",
+        "subtitle": "TCP 5432 · TLS",
+        "description": "App to primary database.\n- connection pool of `20`\n- replicas are read-only"
+      },
+      {
+        "id": "c11",
+        "from": "n3",
+        "to": "n5",
+        "route": "curved",
+        "line": "solid",
+        "arrow": true,
+        "label": "Cache",
+        "color": "#8b6cf6",
+        "flow": "forward",
+        "color2": "#f5a524",
+        "subtitle": "TCP 6379"
+      },
+      {
+        "id": "c12",
+        "from": "n6",
+        "to": "n2",
+        "route": "orthogonal",
+        "line": "dashed",
+        "arrow": true,
+        "label": "",
+        "color": "#64748b",
+        "flow": "forward",
+        "color2": "#f5a524"
+      },
+      {
+        "id": "c13",
+        "from": "n3",
+        "to": "n7",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": true,
+        "label": "flow off",
+        "color": "#64748b",
+        "flow": "none",
+        "color2": "#f5a524"
+      }
+    ],
+    "zones": []
+  }
+}
