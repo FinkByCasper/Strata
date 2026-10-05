@@ -231,7 +231,11 @@ function ZoneView({ zone }) {
   );
 }
 
-const VIEWS = { iso: [1, 0.8, 1], front: [0, 0, 1], right: [1, 0, 0], top: [0.0001, 1, 0.0001] };
+// The camera tilt is locked; you can only swing around the scene (azimuth), pan on the floor and zoom.
+export const ELEVATION = THREE.MathUtils.degToRad(30);
+const RESET_AZIMUTH = Math.PI / 4;
+const dirFor = (az) => new THREE.Vector3(
+  Math.sin(az) * Math.cos(ELEVATION), Math.sin(ELEVATION), Math.cos(az) * Math.cos(ELEVATION));
 
 function CameraRig({ controls }) {
   const view = useStore((s) => s.view);
@@ -250,13 +254,17 @@ function CameraRig({ controls }) {
     const hasContent = !box.isEmpty();
     const center = hasContent ? box.getCenter(new THREE.Vector3()) : new THREE.Vector3();
     const extent = hasContent ? Math.max(...box.getSize(new THREE.Vector3()).toArray(), 4) + 4 : 14;
-    const name = view?.name ?? 'iso';
-    // Keep the current direction on "fit"; otherwise snap to the named view.
-    const dir = name === 'fit' ? camera.position.clone().sub(c.target).normalize()
-      : new THREE.Vector3(...(VIEWS[name] ?? VIEWS.iso)).normalize();
-    c.target.copy(center);
-    camera.position.copy(center).addScaledVector(dir, 60);
-    camera.zoom = Math.max(12, Math.min(size.width, size.height) / extent);
+    const name = view?.name ?? 'reset';
+    const cur = Math.atan2(camera.position.x - c.target.x, camera.position.z - c.target.z);
+    // Rotations snap to the quarter-turn grid around the default azimuth.
+    const snapped = Math.round((cur - RESET_AZIMUTH) / (Math.PI / 2)) * (Math.PI / 2) + RESET_AZIMUTH;
+    const az = name === 'rotL' ? snapped - Math.PI / 2 : name === 'rotR' ? snapped + Math.PI / 2
+      : name === 'fit' ? cur : RESET_AZIMUTH;
+    const recentre = name === 'fit' || name === 'reset';
+    const target = recentre ? center : c.target.clone();
+    c.target.copy(target);
+    camera.position.copy(target).addScaledVector(dirFor(az), 60);
+    if (recentre) camera.zoom = Math.max(12, Math.min(size.width, size.height) / extent);
     camera.updateProjectionMatrix();
     c.update();
   }, [view]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -292,6 +300,7 @@ export function Scene() {
       <Line points={[[0, -0.49, -500], [0, -0.49, 500]]} color="#2fb170" lineWidth={2.2} raycast={() => null} />
       <OrbitControls
         ref={controls} makeDefault enabled={!orbitLocked} enableDamping dampingFactor={0.2}
+        minPolarAngle={Math.PI / 2 - ELEVATION} maxPolarAngle={Math.PI / 2 - ELEVATION} screenSpacePanning={false}
         zoomToCursor minZoom={8} maxZoom={300}
       />
       <CameraRig controls={controls} />

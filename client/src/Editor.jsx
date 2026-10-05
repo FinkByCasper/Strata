@@ -6,6 +6,7 @@ import { useStore } from './store';
 import { ICONS, PALETTE, ROUTES, SHAPES, parseDiagram } from './model';
 import { RichText } from './richtext';
 import { ContextMenu, ShapePicker, Swatches } from './Menu';
+import { Topbar } from './Topbar';
 
 const download = (name, text, type) => {
   const url = URL.createObjectURL(new Blob([text], { type }));
@@ -15,16 +16,7 @@ const download = (name, text, type) => {
 };
 const slug = (s) => (s || 'diagram').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'diagram';
 
-export function ViewButtons() {
-  const setView = useStore((s) => s.setView);
-  return (
-    <div className="group" title="Camera">
-      {[['iso', 'Free'], ['front', 'Front'], ['top', 'Top'], ['right', 'Side'], ['fit', 'Fit']].map(([k, l]) => (
-        <button key={k} onClick={() => setView(k)}>{l}</button>
-      ))}
-    </div>
-  );
-}
+export { CameraTools as ViewButtons } from './Topbar';
 
 // Field editors that edit the current selection. `readOnly` shows just the rich-text details.
 export function Details({ readOnly }) {
@@ -190,6 +182,15 @@ export function Editor({ id }) {
       if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
       if (e.key === 'Delete' || e.key === 'Backspace') useStore.getState().removeSelection();
       if (e.key === 'Escape') { useStore.getState().setMode('select'); useStore.getState().select(null); }
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const st = useStore.getState();
+      const k = e.key.toLowerCase();
+      if (k === 'v') st.setMode('select');
+      else if (k === 'c') st.setMode('connect');
+      else if (k === 'g') st.setSnap(!st.snap);
+      else if (k === 'q') st.setView('rotL');
+      else if (k === 'e') st.setView('rotR');
+      else if (k === 'f') st.setView('fit');
     };
     window.addEventListener('beforeunload', warn);
     window.addEventListener('keydown', key);
@@ -215,33 +216,13 @@ export function Editor({ id }) {
 
   const hint = s.mode === 'connect'
     ? (s.connectFrom ? 'Now click the target node' : 'Click the source node, then the target node')
-    : 'Right-click to add · click to edit · drag a node to move it (Shift+drag for height) · drag empty space to orbit · right-drag to pan';
+    : 'Right-click to add · click to edit · drag a node to move it (Shift+drag for height) · drag empty space to rotate around · right-drag to pan · Q/E rotate 90°';
 
   return (
     <div className="app">
-      <header className="topbar">
-        <Link to="/" className="logo-link" title="All diagrams"><span className="logo" /></Link>
-        <input className="title" value={s.name} onChange={(e) => s.setName(e.target.value)} aria-label="Diagram name" />
-        <span className={`status ${status}`}>{{ saved: 'Saved', saving: 'Saving…', error: 'Save failed' }[status]}</span>
-        <span className="spacer" />
-        <div className="group">
-          <button className={s.mode === 'select' ? 'on' : ''} onClick={() => s.setMode('select')}>Select</button>
-          <button className={s.mode === 'connect' ? 'on' : ''} onClick={() => s.setMode('connect')}>Connect</button>
-        </div>
-        <div className="group" title="Add">
-          {SHAPES.map((sh) => <button key={sh} onClick={() => s.addNode(sh)}>+ {sh}</button>)}
-          <button onClick={s.addZone}>+ zone</button>
-        </div>
-        <label className="check snap"><input type="checkbox" checked={s.snap} onChange={(e) => s.setSnap(e.target.checked)} /> Snap</label>
-        <ViewButtons />
-        <div className="group">
-          <button onClick={exportJson}>JSON</button>
-          <button onClick={exportPng}>PNG</button>
-          <button onClick={() => importRef.current.click()}>Import</button>
-          <input ref={importRef} type="file" accept="application/json,.json" hidden onChange={(e) => { importJson(e.target.files[0]); e.target.value = ''; }} />
-        </div>
-        <button className="primary" onClick={() => setSharing(true)}>Share</button>
-      </header>
+      <Topbar status={status} onShare={() => setSharing(true)} onExportJson={exportJson} onExportPng={exportPng}
+        onImport={() => importRef.current.click()} />
+      <input ref={importRef} type="file" accept="application/json,.json" hidden onChange={(e) => { importJson(e.target.files[0]); e.target.value = ''; }} />
       <div className="stage">
         <Scene />
         <Details />

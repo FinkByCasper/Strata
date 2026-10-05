@@ -86,7 +86,7 @@ export function ContextMenu() {
     <button className="item" onClick={done(() => st.setMode(st.mode === 'connect' ? 'select' : 'connect'))}>
       {st.mode === 'connect' ? 'Leave connect mode' : 'Connect mode'}</button>
     <div className="seg">
-      {[['iso', 'Free'], ['front', 'Front'], ['top', 'Top'], ['right', 'Side'], ['fit', 'Fit']].map(([k, l]) => (
+      {[['rotL', '⟲ 90°'], ['rotR', '⟳ 90°'], ['fit', 'Fit'], ['reset', 'Reset']].map(([k, l]) => (
         <button key={k} onClick={done(() => st.setView(k))}>{l}</button>
       ))}
     </div>
