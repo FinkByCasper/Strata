@@ -8,7 +8,7 @@ import { RichText } from './richtext';
 import { ContextMenu, ShapePicker, Swatches } from './Menu';
 import { Topbar } from './Topbar';
 import { Intro, useIntro } from './Intro';
-import { ArrowLeftRight, Ban, Check, Copy, ImagePlus, RefreshCw, Trash2 } from 'lucide-react';
+import { ArrowLeft, ArrowLeftRight, ArrowRight, Ban, Check, Copy, ImagePlus, RefreshCw, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -74,17 +74,45 @@ export function Details({ readOnly }) {
   const node = sel.type === 'node' && data.nodes.find((n) => n.id === sel.id);
   const conn = sel.type === 'connector' && data.connectors.find((c) => c.id === sel.id);
   if (readOnly) {
+    const go = (type, id) => useStore.getState().select({ type, id });
     if (conn) {
       return (
-        <Panel title={conn.label || 'Connection'} subtitle={`${nodeName(data, conn.from)} → ${nodeName(data, conn.to)}${conn.subtitle ? ` · ${conn.subtitle}` : ''}`}>
+        <Panel title={conn.label || 'Connection'} subtitle={conn.subtitle}>
+          <div className="flex flex-wrap items-center gap-1.5 text-xs">
+            <Button variant="outline" size="xs" onClick={() => go('node', conn.from)}>{nodeName(data, conn.from)}</Button>
+            {conn.arrow && conn.arrowStart ? <ArrowLeftRight className="size-3.5 text-muted-foreground" /> : <ArrowRight className="size-3.5 text-muted-foreground" />}
+            <Button variant="outline" size="xs" onClick={() => go('node', conn.to)}>{nodeName(data, conn.to)}</Button>
+          </div>
           {conn.description ? <RichText text={conn.description} /> : <p className="text-muted-foreground">No description.</p>}
         </Panel>
       );
     }
     if (!node) return null;
+    const links = data.connectors.filter((c) => c.from === node.id || c.to === node.id);
     return (
       <Panel title={node.label || 'Untitled'} subtitle={node.subtitle}>
         {node.description ? <RichText text={node.description} /> : <p className="text-muted-foreground">No description.</p>}
+        {links.length > 0 && (
+          <div className="grid gap-1.5">
+            <Label>Connections ({links.length})</Label>
+            <ul className="grid gap-1">
+              {links.map((c) => {
+                const out = c.from === node.id;
+                const both = c.arrow && c.arrowStart;
+                return (
+                  <li key={c.id}>
+                    <button onClick={() => go('connector', c.id)} className="flex w-full items-center gap-2 rounded-md border bg-card px-2.5 py-1.5 text-left text-xs outline-none transition-colors hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/40">
+                      <i className="size-2 shrink-0 rounded-full" style={{ background: c.color || '#64748b' }} />
+                      {both ? <ArrowLeftRight className="size-3.5 shrink-0 text-muted-foreground" /> : out ? <ArrowRight className="size-3.5 shrink-0 text-muted-foreground" /> : <ArrowLeft className="size-3.5 shrink-0 text-muted-foreground" />}
+                      <span className="truncate font-medium">{nodeName(data, out ? c.to : c.from)}</span>
+                      {(c.label || c.subtitle) && <span className="truncate text-muted-foreground">· {c.label || c.subtitle}</span>}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
       </Panel>
     );
   }
