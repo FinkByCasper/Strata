@@ -106,7 +106,6 @@ The interface uses Tailwind CSS v4, [shadcn/ui](https://ui.shadcn.com) component
 the browser) is in the sun/moon menu; the 3D scene (background, floor grid, shadows, labels) follows it. To add another component, copy it
 into `client/src/components/ui/` and import it with `@/components/ui/<name>`.
 
-## Not done yet
+## Roadmap
 
-Undo/redo, glTF model upload, collision-aware connector routing, labelled PNG export,
-touch-friendly node dragging, multi-select, and auto-layout.
+Strata is a beta. What works, what is next and the known limits are in [ROADMAP.md](ROADMAP.md).
