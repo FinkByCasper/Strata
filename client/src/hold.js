@@ -67,3 +67,4 @@ export function useHoldMove(getPos, setPos, snapAxis) {
 
   return { lifted, start, move };
 }
+if (typeof window !== 'undefined') window.__strataCam = () => ({ az: +camState.azimuth.toFixed(4), zoom: +camState.zoom.toFixed(2) });

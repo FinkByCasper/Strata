@@ -247,9 +247,29 @@ function CameraRig({ controls }) {
       }
       last.copy(c.target);
     };
+    // OrbitControls only leaves "rotating"/"panning" when it sees the matching pointer-up. If that is ever lost (the
+    // window loses focus mid-drag, a menu opens, the button is released over something that swallows it) it stays
+    // stuck and every later mouse move or scroll turns the camera with no button pressed. Notice that (a move with
+    // no buttons while we think one is down) and send the missing release.
+    let held = false;
+    const pressed = () => { held = true; };
+    const released = () => { held = false; };
+    const unstick = (e) => {
+      if (!held || e.pointerType === 'touch' || e.buttons !== 0) return;
+      held = false;
+      const doc = c.domElement?.ownerDocument ?? document;
+      doc.dispatchEvent(new PointerEvent('pointerup', { pointerId: e.pointerId, pointerType: e.pointerType, bubbles: true }));
+    };
     window.addEventListener('pointerdown', down, true); window.addEventListener('pointerup', up, true);
+    window.addEventListener('pointerdown', pressed, true); window.addEventListener('pointerup', released, true); window.addEventListener('pointercancel', released, true);
+    window.addEventListener('pointermove', unstick, true); window.addEventListener('blur', unstick);
     c.addEventListener('change', onChange);
-    return () => { window.removeEventListener('pointerdown', down, true); window.removeEventListener('pointerup', up, true); c.removeEventListener('change', onChange); };
+    return () => {
+      window.removeEventListener('pointerdown', down, true); window.removeEventListener('pointerup', up, true);
+      window.removeEventListener('pointerdown', pressed, true); window.removeEventListener('pointerup', released, true); window.removeEventListener('pointercancel', released, true);
+      window.removeEventListener('pointermove', unstick, true); window.removeEventListener('blur', unstick);
+      c.removeEventListener('change', onChange);
+    };
   }, [controls, camera]);
 
   useEffect(() => {
