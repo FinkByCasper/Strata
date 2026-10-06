@@ -168,17 +168,25 @@ function ZoneView({ zone }) {
 
   const onDown = (e) => {
     const s = useStore.getState();
-    if (s.readOnly || s.mode !== 'select' || e.nativeEvent.button !== 0) return;
+    if (s.readOnly || s.mode !== 'select' || e.nativeEvent.button !== 0) return;   // view-only selects on click instead (below)
     e.stopPropagation();
     s.select({ type: 'zone', id: zone.id });
     hold.start(e);
+  };
+
+  // View-only: a click (not a drag, which rotates) just selects the zone, which spotlights what is inside it. No panel opens.
+  const onClick = (e) => {
+    const s = useStore.getState();
+    if (!s.readOnly) return;
+    e.stopPropagation();
+    s.select({ type: 'zone', id: zone.id });
   };
 
   // A flat translucent floor area. Nodes sit on top of it and win clicks (they stop propagation).
   return (
     <group position={[zone.position[0], hold.lifted ? 0.35 : 0, zone.position[2]]}>
       <mesh
-        rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.48, 0]} onPointerDown={onDown} onPointerMove={hold.move}
+        rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.48, 0]} onPointerDown={onDown} onClick={onClick} onPointerMove={hold.move}
         onPointerOver={() => setHovered(true)} onPointerOut={() => setHovered(false)}
       >
         <shapeGeometry args={[shape, 10]} />
