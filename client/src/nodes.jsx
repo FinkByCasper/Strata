@@ -3,7 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { Html, Line } from '@react-three/drei';
 import * as THREE from 'three';
 import { useStore } from './store';
-import { useHoldMove } from './hold';
+import { press, useHoldMove } from './hold';
 import { BASIC_KINDS, NO_SHADOW, SELECTED_ONLY, TINT_ROLES, labelY, materialFor, partsFor } from './parts';
 import { IconGlyph, Label, lodFor, usePortal } from './labels';
 import { RichText } from './richtext';
@@ -13,6 +13,7 @@ import { useTheme } from './theme';
 // Connect-mode click, or plain selection. Returns whether a press-and-hold pick-up may start.
 export function pickNode(id) {
   const s = useStore.getState();
+  press.hitNode = true;   // so the click that follows this press does not also select the zone under the node
   if (s.mode === 'connect' && !s.readOnly) { s.connectClick(id); return false; }
   s.select({ type: 'node', id });
   return !s.readOnly;

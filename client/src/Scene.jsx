@@ -4,7 +4,7 @@ import { Line, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { useStore } from './store';
 import { useTheme } from './theme';
-import { GROUND, UP, camState, placed, pointerCell, useHoldMove } from './hold';
+import { GROUND, UP, camState, placed, pointerCell, press, useHoldMove } from './hold';
 import { materialFor, partsFor } from './parts';
 import { snapAnchor } from './clipboard';
 import { zoneContents } from './highlight';
@@ -281,7 +281,7 @@ function ZoneView({ zone }) {
   // View-only: a click (not a drag, which rotates) just selects the zone, which spotlights what is inside it. No panel opens.
   const onClick = (e) => {
     const s = useStore.getState();
-    if (!s.readOnly) return;
+    if (!s.readOnly || press.hitNode) return;   // (a press on a node in front of the zone selected that node)
     e.stopPropagation();
     s.select({ type: 'zone', id: zone.id });
   };

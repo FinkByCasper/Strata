@@ -9,6 +9,10 @@ export const camState = { azimuth: 0, zoom: 1 };
 export const pointerCell = { x: 0, z: 0, over: false };
 // When something was last placed from the clipboard (the click that did it must not also clear the selection).
 export const placed = { at: -1e9 };
+// Did the current mouse press land on a node? (A press on a node selects it, which swaps the node's drawing for another object, so the
+// click that follows would fall through to the zone behind it; the zone checks this and ignores that click.)
+export const press = { hitNode: false };
+if (typeof window !== 'undefined') window.addEventListener('pointerdown', () => { press.hitNode = false; }, true);
 
 export const UP = new THREE.Vector3(0, 1, 0);
 export const GROUND = new THREE.Plane(UP, 0);
