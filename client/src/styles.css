@@ -85,7 +85,7 @@ button.pill:not(.primary) { background: rgb(127 135 160 / 0.12); border-color: t
 
 /* side panel */
 .panel {
-  position: absolute; right: 12px; top: 12px; width: 270px; max-height: calc(100% - 24px); overflow: auto;
+  position: absolute; z-index: 35; right: 12px; top: 12px; width: 270px; max-height: calc(100% - 24px); overflow: auto;   /* above the labels (up to 20) */
   background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px;
   display: flex; flex-direction: column; gap: 10px; box-shadow: 0 6px 24px rgb(0 0 0 / 0.12);
 }
