@@ -125,11 +125,14 @@ export function LabelLayout() {
           const cx = it.x + it.w / 2 + best.dx, cy = it.y + it.h / 2 + best.dy - it.h / 2;   // the label's centre on screen
           const vx = (it.tx ?? it.x + it.w / 2) - cx, vy = (it.ty ?? it.y + it.h / 2) - cy;
           const len = Math.hypot(vx, vy);
-          const css = len < 10 ? 'none' : `${len.toFixed(1)}|${Math.atan2(vy, vx).toFixed(3)}`;
+          // the line starts where it leaves the label's box (it is drawn on top, so it must not cross the text)
+          const t = len ? Math.min(it.w / 2 / (Math.abs(vx) || 1e-6), it.h / 2 / (Math.abs(vy) || 1e-6), 1) : 0;
+          const sx = vx * t, sy = vy * t, rest = len * (1 - t), ang = Math.atan2(vy, vx);
+          const css = rest < 6 ? 'none' : `${rest.toFixed(1)}|${ang.toFixed(3)}|${sx.toFixed(1)}|${sy.toFixed(1)}`;
           if (css !== it.r.leaderCss) {
             it.r.leaderCss = css;
             if (css === 'none') lead.style.display = 'none';
-            else { lead.style.display = 'block'; lead.style.width = `${len}px`; lead.style.transform = `rotate(${Math.atan2(vy, vx)}rad)`; }
+            else { lead.style.display = 'block'; lead.style.width = `${rest}px`; lead.style.transform = `translate(${sx}px, ${sy}px) rotate(${ang}rad)`; }
           }
         }
       }
