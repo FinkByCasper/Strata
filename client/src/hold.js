@@ -10,7 +10,7 @@ export const pointerCell = { x: 0, z: 0, over: false };
 
 export const UP = new THREE.Vector3(0, 1, 0);
 export const GROUND = new THREE.Plane(UP, 0);
-const HOLD_MS = 500;   // press and hold this long to pick an object up
+const HOLD_MS = 250;   // press and hold this long to pick an object up (a quick click, under this, only selects)
 const SLOP = 6;        // px of movement during the hold that cancels it (user meant to orbit/click)
 
 // Hold to lift, drag across the floor, release to drop on that grid cell. A quick click only selects.

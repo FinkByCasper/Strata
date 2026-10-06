@@ -32,7 +32,7 @@ const STEPS = {
   add: { mouse: 'right', title: 'Right-click to add', text: 'Right-click on the floor and choose Node or Zone.', watch: 'add' },
   select: { mouse: 'click', title: 'Click to select', text: 'Left-click a node, zone or line to see and edit it in the side panel.', watch: 'select' },
   details: { mouse: 'click', title: 'Click to read more', text: 'Left-click a node or line to see its details.', watch: 'select' },
-  move: { mouse: 'hold', title: 'Hold to move', text: 'Press and hold a node for half a second, drag it to another square and let go.', watch: 'lift' },
+  move: { mouse: 'hold', title: 'Hold to move', text: 'Press and hold a node for a moment, drag it to another square and let go.', watch: 'lift' },
 };
 export const EDITOR_TOUR = ['zoom', 'rotate', 'add', 'select', 'move'];
 export const VIEWER_TOUR = ['zoom', 'rotate', 'details'];
