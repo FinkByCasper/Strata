@@ -2,9 +2,6 @@
 #   docker compose -f docker-compose.yaml -f docker-compose.caddy.yaml up -d --build
 # Needs DOMAIN in .env pointing at this server, and ports 80/443 reachable. Caddy fetches the certificate.
 services:
-  strata:
-    environment:
-      STRATA_PASSWORD: ${STRATA_PASSWORD:-}
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped

@@ -1,9 +1,8 @@
 # Strata. This file is written for Coolify (Docker Compose build pack): Coolify assigns the domain, terminates
-# HTTPS and generates the password, so nothing is published on the host here.
+# HTTPS, so nothing is published on the host here.
 #
 #   Coolify:  New resource -> Docker Compose -> this repo. Put your domain on the "strata" service (port 3001).
-#             The editor is open by default. To protect it, add an environment variable STRATA_PASSWORD (login name
-#             strata, or set STRATA_USER); share links (/v/...) and embeds stay public either way.
+#             There is no login: anyone who can open the URL can edit. Share links (/v/...) and embeds are read-only.
 #   Plain Docker (no Coolify):  see README ("Hosting it online"); docker-compose.override.yaml publishes the port.
 services:
   strata:
@@ -12,9 +11,6 @@ services:
     environment:
       # Coolify: gives the service its domain (routed to port 3001) and exposes it in the UI.
       SERVICE_FQDN_STRATA_3001: ""
-      # Optional: set STRATA_PASSWORD to put a login in front of the editor (empty = open).
-      STRATA_PASSWORD: ${STRATA_PASSWORD:-}
-      STRATA_USER: ${STRATA_USER:-strata}
     expose:
       - "3001"
     volumes:

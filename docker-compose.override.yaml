@@ -1,8 +1,5 @@
-# Picked up automatically by a plain `docker compose up` (Coolify only reads docker-compose.yaml).
-# Publishes the port; STRATA_PASSWORD from .env is optional (empty = open editor).
+# Picked up automatically by a plain `docker compose up` (Coolify only reads docker-compose.yaml): publishes the port.
 services:
   strata:
-    environment:
-      STRATA_PASSWORD: ${STRATA_PASSWORD:-}
     ports:
       - "${STRATA_PORT:-3001}:3001"
