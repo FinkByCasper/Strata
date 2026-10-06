@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { EMPTY, flatten, freeSpot, newConnector, newNode, newZone, uid } from './model';
 
 // `rev` bumps on every user edit; the editor watches it to drive autosave.
+let clip = null;   // the copy/paste buffer
 export const useStore = create((set, get) => {
   // Undo history is a stack of {data, name} snapshots taken *before* each edit. Rapid edits of the same
   // thing (typing a label, dragging, resizing) share a `key` and collapse into one undo step.
@@ -67,20 +68,24 @@ export const useStore = create((set, get) => {
       const zone = newZone(position);
       edit((s) => ({ data: { ...s.data, zones: [...s.data.zones, zone] }, selection: { type: 'zone', id: zone.id }, fresh: zone.id }));
     },
-    duplicateSelection: () => {
+    // Copy / paste / duplicate for nodes and zones (Ctrl/Cmd+C, Ctrl/Cmd+V, D). A paste lands one square down-right
+    // of where the last copy or paste was, so repeated pastes fan out instead of stacking.
+    copySelection: () => {
       const { selection: sel, data } = get();
-      const shift = (p) => [p[0] + 1, p[1], p[2] + 1];
-      if (sel?.type === 'node') {
-        const n = data.nodes.find((x) => x.id === sel.id);
-        if (!n) return;
-        const copy = { ...n, id: uid(), position: shift(n.position) };
-        edit((s) => ({ data: { ...s.data, nodes: [...s.data.nodes, copy] }, selection: { type: 'node', id: copy.id } }));
-      } else if (sel?.type === 'zone') {
-        const z = data.zones.find((x) => x.id === sel.id);
-        if (!z) return;
-        const copy = { ...z, id: uid(), position: shift(z.position) };
-        edit((s) => ({ data: { ...s.data, zones: [...s.data.zones, copy] }, selection: { type: 'zone', id: copy.id } }));
-      }
+      const item = sel?.type === 'node' ? data.nodes.find((x) => x.id === sel.id) : sel?.type === 'zone' ? data.zones.find((x) => x.id === sel.id) : null;
+      clip = item ? { type: sel.type, item: structuredClone(item), pasted: 0 } : clip;
+    },
+    pasteClipboard: () => {
+      if (!clip || get().readOnly) return;
+      clip.pasted += 1;
+      const copy = { ...structuredClone(clip.item), id: uid(), position: [clip.item.position[0] + clip.pasted, clip.item.position[1], clip.item.position[2] + clip.pasted] };
+      if (clip.type === 'node') edit((s) => ({ data: { ...s.data, nodes: [...s.data.nodes, copy] }, selection: { type: 'node', id: copy.id } }));
+      else edit((s) => ({ data: { ...s.data, zones: [...s.data.zones, copy] }, selection: { type: 'zone', id: copy.id } }));
+    },
+    duplicateSelection: () => {
+      if (get().readOnly) return;
+      get().copySelection();
+      if (clip && get().selection) get().pasteClipboard();
     },
     startConnectFrom: (id) => set({ mode: 'connect', connectFrom: id }),
     setView: (name) => set({ view: { name, nonce: Math.random() } }),

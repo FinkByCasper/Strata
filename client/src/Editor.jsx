@@ -109,10 +109,6 @@ function Inspector({ sel }) {
         <div className="xz">
           {[['X', 0], ['Z', 2]].map(([a, i]) => <label key={a}>{a}{num(n.position, i, (p) => s.updateNode(n.id, { position: p }))}</label>)}
         </div>
-        <div className="row">
-          <button onClick={() => s.startConnectFrom(n.id)}>Connect from here…</button>
-          <button onClick={s.duplicateSelection}>Duplicate</button>
-        </div>
         <button className="danger" onClick={s.removeSelection}>Delete node</button>
       </aside>
     );
@@ -183,7 +179,6 @@ function Inspector({ sel }) {
       <div className="xz">{[['X', 0], ['Z', 2]].map(([a, i]) => <label key={a}>{a}{num(z.position, i, (p) => s.updateZone(z.id, { position: p }))}</label>)}</div>
       <p className="muted">Size</p>
       <div className="xz">{[['Width', 0], ['Depth', 2]].map(([a, i]) => <label key={a}>{a}{num(z.size, i, (p) => s.updateZone(z.id, { size: [Math.max(1, p[0]), 0, Math.max(1, p[2])] }))}</label>)}</div>
-      <button onClick={s.duplicateSelection}>Duplicate</button>
       <p className="muted">{zoneSummary(z, data)}</p>
       <button className="danger" onClick={s.removeSelection}>Delete zone</button>
     </aside>
@@ -267,13 +262,17 @@ export function Editor({ id }) {
         const key = e.key.toLowerCase();
         if (key === 'z') { e.preventDefault(); e.shiftKey ? useStore.getState().redo() : useStore.getState().undo(); return; }
         if (key === 'y') { e.preventDefault(); useStore.getState().redo(); return; }
+        if (key === 'c' && useStore.getState().selection) { e.preventDefault(); useStore.getState().copySelection(); return; }
+        if (key === 'v') { e.preventDefault(); useStore.getState().pasteClipboard(); return; }
+        if (key === 'd') { e.preventDefault(); useStore.getState().duplicateSelection(); return; }   // Ctrl/Cmd+D would bookmark the page
       }
       if (e.key === 'Delete' || e.key === 'Backspace') useStore.getState().removeSelection();
       if (e.key === 'Escape') { useStore.getState().setMode('select'); useStore.getState().select(null); }
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       const st = useStore.getState();
       const k = e.key.toLowerCase();
-      if (k === 'v') st.setMode('select');
+      if (k === 'd') st.duplicateSelection();
+      else if (k === 'v') st.setMode('select');
       else if (k === 'c') st.setMode('connect');
       else if (k === 'g') st.setSnap(!st.snap);
       else if (k === 'q') st.setView('rotL');
