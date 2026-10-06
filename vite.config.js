@@ -14,6 +14,7 @@ const strataBanner = () => ({
 });
 
 export default defineConfig({
+  define: { __BUILD__: JSON.stringify(new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC') },
   plugins: [react(), strataBanner()],
   server: { port: 5173, proxy: { '/api': 'http://localhost:3001' } },
   build: { outDir: 'dist', chunkSizeWarningLimit: 1500 },

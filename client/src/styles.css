@@ -274,3 +274,5 @@ button.pill:not(.primary) { background: rgb(127 135 160 / 0.12); border-color: t
 .label .leader { display: none; position: absolute; left: 50%; top: 50%; height: 0; border-top: 1.5px solid #94a3b8; transform-origin: 0 0; z-index: 1; pointer-events: none; }
 .label .leader::after { content: ''; position: absolute; right: -3px; top: -4px; width: 6px; height: 6px; border-radius: 50%; background: #64748b; }
 .label.dim { opacity: 0.22; }
+
+.popover .build { padding: 4px 10px 2px; font-size: 11px; color: var(--muted); }

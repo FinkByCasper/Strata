@@ -97,6 +97,8 @@ export function Topbar({ status, onShare, onExportJson, onExportPng, onImport, o
           <hr />
           <Link to="/" className="menu-link">All diagrams</Link>
           <button onClick={onTips}>Show camera tips</button>
+          <hr />
+          <div className="build">Build {typeof __BUILD__ === 'string' ? __BUILD__ : 'dev'}</div>
         </Dropdown>
       </div>
     </header>

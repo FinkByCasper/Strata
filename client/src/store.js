@@ -1,7 +1,20 @@
+import { pointerCell } from './hold';
 import { create } from 'zustand';
 import { EMPTY, flatten, freeSpot, newConnector, newNode, newZone, uid } from './model';
 
 // `rev` bumps on every user edit; the editor watches it to drive autosave.
+// The nearest grid square to (x, z) that has no node on it.
+function nearestFree(nodes, x, z) {
+  const taken = new Set(nodes.map((n) => `${n.position[0]},${n.position[2]}`));
+  for (let r = 0; r < 30; r++) {
+    const ring = [];
+    for (let dx = -r; dx <= r; dx++) for (let dz = -r; dz <= r; dz++) if (Math.max(Math.abs(dx), Math.abs(dz)) === r) ring.push([x + dx, z + dz]);
+    ring.sort((a, b) => Math.hypot(a[0] - x, a[1] - z) - Math.hypot(b[0] - x, b[1] - z) || a[1] - b[1]);
+    const free = ring.find(([cx, cz]) => !taken.has(`${cx},${cz}`));
+    if (free) return free;
+  }
+  return [x, z];
+}
 let clip = null;   // the copy/paste buffer
 export const useStore = create((set, get) => {
   // Undo history is a stack of {data, name} snapshots taken *before* each edit. Rapid edits of the same
@@ -75,17 +88,34 @@ export const useStore = create((set, get) => {
       const item = sel?.type === 'node' ? data.nodes.find((x) => x.id === sel.id) : sel?.type === 'zone' ? data.zones.find((x) => x.id === sel.id) : null;
       clip = item ? { type: sel.type, item: structuredClone(item), pasted: 0 } : clip;
     },
-    pasteClipboard: () => {
+    // Paste lands on the square under the mouse (or one square down-right of the original when the mouse is not over
+    // the diagram); duplicate puts the copy right beside the original. A node never lands on an occupied square.
+    pasteClipboard: (beside = false) => {
       if (!clip || get().readOnly) return;
-      clip.pasted += 1;
-      const copy = { ...structuredClone(clip.item), id: uid(), position: [clip.item.position[0] + clip.pasted, clip.item.position[1], clip.item.position[2] + clip.pasted] };
-      if (clip.type === 'node') edit((s) => ({ data: { ...s.data, nodes: [...s.data.nodes, copy] }, selection: { type: 'node', id: copy.id } }));
+      const { type, item } = clip;
+      const { nodes, zones } = get().data;
+      let x, z;
+      if (beside) {
+        if (type === 'zone') { x = item.position[0] + item.size[0] + 1; z = item.position[2]; }
+        else [x, z] = nearestFree(nodes, item.position[0] + 1, item.position[2]);
+      } else if (pointerCell.over) {
+        x = pointerCell.x; z = pointerCell.z;
+        if (type === 'zone') { const off = (n) => (item.size[n] % 2 === 0 ? 0.5 : 0); x = Math.round(x - off(0)) + off(0); z = Math.round(z - off(2)) + off(2); }
+        else [x, z] = nearestFree(nodes, x, z);
+      } else {
+        clip.pasted += 1;
+        x = item.position[0] + clip.pasted; z = item.position[2] + clip.pasted;
+        if (type === 'node') [x, z] = nearestFree(nodes, x, z);
+      }
+      const copy = { ...structuredClone(item), id: uid(), position: [x, item.position[1], z] };
+      if (type === 'node') edit((s) => ({ data: { ...s.data, nodes: [...s.data.nodes, copy] }, selection: { type: 'node', id: copy.id } }));
       else edit((s) => ({ data: { ...s.data, zones: [...s.data.zones, copy] }, selection: { type: 'zone', id: copy.id } }));
+      void zones;
     },
     duplicateSelection: () => {
-      if (get().readOnly) return;
+      if (get().readOnly || !get().selection) return;
       get().copySelection();
-      if (clip && get().selection) get().pasteClipboard();
+      get().pasteClipboard(true);
     },
     startConnectFrom: (id) => set({ mode: 'connect', connectFrom: id }),
     setView: (name) => set({ view: { name, nonce: Math.random() } }),

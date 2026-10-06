@@ -58,7 +58,8 @@ function LabelInput({ id, value, onChange }) {
     ref.current?.focus(); ref.current?.select();
     useStore.setState({ fresh: null });
   }, [id]);
-  return <input ref={ref} value={value} onChange={onChange} />;
+  // Enter / Esc finish naming and hand the keyboard back to the diagram, so Cmd+C / Cmd+V / D work straight away.
+  return <input ref={ref} value={value} onChange={onChange} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); e.currentTarget.blur(); } }} />;
 }
 
 function Inspector({ sel }) {
@@ -257,14 +258,16 @@ export function Editor({ id }) {
   useEffect(() => {
     const warn = (e) => { if (useStore.getState().rev && status !== 'saved') e.preventDefault(); };
     const key = (e) => {
-      if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return; // let text fields keep their own undo
+      const t = e.target;   // let real text fields keep their own copy/paste/undo (checkboxes, sliders and buttons are not text fields)
+      if (t.isContentEditable || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || (t.tagName === 'INPUT' && !/^(checkbox|radio|range|button|color|file|submit)$/.test(t.type))) return;
       if ((e.ctrlKey || e.metaKey) && !e.altKey) {
         const key = e.key.toLowerCase();
+        const is = (letter) => key === letter || e.code === `Key${letter.toUpperCase()}`;   // `code` covers other keyboard layouts
         if (key === 'z') { e.preventDefault(); e.shiftKey ? useStore.getState().redo() : useStore.getState().undo(); return; }
         if (key === 'y') { e.preventDefault(); useStore.getState().redo(); return; }
-        if (key === 'c' && useStore.getState().selection) { e.preventDefault(); useStore.getState().copySelection(); return; }
-        if (key === 'v') { e.preventDefault(); useStore.getState().pasteClipboard(); return; }
-        if (key === 'd') { e.preventDefault(); useStore.getState().duplicateSelection(); return; }   // Ctrl/Cmd+D would bookmark the page
+        if (is('c') && useStore.getState().selection) { e.preventDefault(); useStore.getState().copySelection(); return; }
+        if (is('v')) { e.preventDefault(); useStore.getState().pasteClipboard(); return; }
+        if (is('d')) { e.preventDefault(); useStore.getState().duplicateSelection(); return; }   // Ctrl/Cmd+D would bookmark the page
       }
       if (e.key === 'Delete' || e.key === 'Backspace') useStore.getState().removeSelection();
       if (e.key === 'Escape') { useStore.getState().setMode('select'); useStore.getState().select(null); }

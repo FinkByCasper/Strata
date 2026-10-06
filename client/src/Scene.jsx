@@ -3,10 +3,35 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Line, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { useStore } from './store';
-import { GROUND, UP, camState, useHoldMove } from './hold';
+import { GROUND, UP, camState, pointerCell, useHoldMove } from './hold';
 import { LabelLayout, openAddMenu } from './labels';
 import { FloorTiles, NodeLabels, NodesLayer } from './nodes';
 import { ConnectorsLayer } from './connectors';
+
+// Keeps `pointerCell` up to date: which ground square the mouse is over (for pasting at the cursor).
+function PointerTracker() {
+  const { gl, camera } = useThree();
+  useEffect(() => {
+    const el = gl.domElement;
+    const ray = new THREE.Raycaster(), plane = new THREE.Plane(UP, 0), hit = new THREE.Vector3(), v = new THREE.Vector2();
+    let raf = 0, ev = null;
+    const move = (e) => {
+      ev = e;
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        const r = el.getBoundingClientRect();
+        v.set(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1);
+        ray.setFromCamera(v, camera);
+        if (ray.ray.intersectPlane(plane, hit)) { pointerCell.x = Math.round(hit.x); pointerCell.z = Math.round(hit.z); pointerCell.over = true; }
+      });
+    };
+    const leave = () => { pointerCell.over = false; };
+    el.addEventListener('pointermove', move); el.addEventListener('pointerleave', leave);
+    return () => { cancelAnimationFrame(raf); el.removeEventListener('pointermove', move); el.removeEventListener('pointerleave', leave); };
+  }, [gl, camera]);
+  return null;
+}
 
 function ContextHandler() {
   const { gl, camera } = useThree();
@@ -471,6 +496,7 @@ export function Scene() {
       />
       <CameraRig controls={controls} />
       <ContextHandler />
+      <PointerTracker />
       <LabelLayout />
       {data.zones.map((z) => <ZoneView key={z.id} zone={z} />)}
       <FloorTiles />

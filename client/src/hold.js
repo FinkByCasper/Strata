@@ -5,6 +5,9 @@ import { useStore } from './store';
 // Live camera numbers (written by the scene each frame) so UI outside the canvas, e.g. the tour, can watch them.
 export const camState = { azimuth: 0, zoom: 1 };
 
+// The grid square under the mouse while it is over the canvas (null otherwise); paste drops things there.
+export const pointerCell = { x: 0, z: 0, over: false };
+
 export const UP = new THREE.Vector3(0, 1, 0);
 export const GROUND = new THREE.Plane(UP, 0);
 const HOLD_MS = 500;   // press and hold this long to pick an object up
