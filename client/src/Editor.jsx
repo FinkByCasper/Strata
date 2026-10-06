@@ -198,7 +198,7 @@ function Inspector({ sel }) {
         <Segmented value={mode} onChange={(m) => s.updateZone(z.id, { labelMode: m })} options={[['edge', 'On an edge'], ['center', 'Centre'], ['none', 'None']]} />
         {mode === 'edge' && <Segmented value={z.labelEdge ?? 'back'} onChange={(ed) => s.updateZone(z.id, { labelEdge: ed })} options={LABEL_EDGES.map((e) => [e, e])} className="mt-1 [&_button]:capitalize" />}
       </Field>
-      <div className="grid gap-1.5"><Label>Centre</Label>{pair(z.position, ['X', 'Z'], [0, 2], (p) => s.updateZone(z.id, { position: p }))}</div>
+      <div className="grid gap-1.5"><Label>Centre <span className="font-normal text-muted-foreground">· moves what is inside too</span></Label>{pair(z.position, ['X', 'Z'], [0, 2], (p) => s.moveZone(z.id, p[0], p[2]))}</div>
       <div className="grid gap-1.5"><Label>Size</Label>{pair(z.size, ['Width', 'Depth'], [0, 2], (p) => s.updateZone(z.id, { size: [Math.max(1, p[0]), 0, Math.max(1, p[2])] }))}</div>
       <DeleteButton onClick={s.removeSelection}>Delete zone</DeleteButton>
     </Panel>

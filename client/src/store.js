@@ -1,6 +1,7 @@
 import { placed, pointerCell } from './hold';
 import { create } from 'zustand';
 import { EMPTY, flatten, freeSpot, newConnector, newNode, newZone, uid } from './model';
+import { zoneContents } from './highlight';
 import { buildClip, describe, freeOffset, materialize, snapAnchor } from './clipboard';
 
 // `rev` bumps on every user edit; the editor watches it to drive autosave.
@@ -12,7 +13,7 @@ export const useStore = create((set, get) => {
   let lastKey = null, lastAt = 0;
   const edit = (fn, key) => set((s) => {
     const now = Date.now();
-    const merge = key != null && key === lastKey && now - lastAt < COALESCE_MS;
+    const merge = key != null && key === lastKey && (now - lastAt < COALESCE_MS || s.dragging);   // a whole drag is one step, however slow
     lastKey = key ?? null; lastAt = now;
     return {
       ...fn(s), rev: s.rev + 1,
@@ -56,7 +57,7 @@ export const useStore = create((set, get) => {
     select: (selection) => set({ selection }),
     setMode: (mode) => set({ mode, connectFrom: null }),
     setSnap: (snap) => set({ snap }),
-    setDragging: (dragging) => set({ dragging }),
+    setDragging: (dragging) => { if (dragging) lastKey = null; set({ dragging }); },
     setHovering: (hovering) => set({ hovering }),
     openMenu: (menu) => set({ menu }),
     closeMenu: () => set({ menu: null }),
@@ -76,6 +77,24 @@ export const useStore = create((set, get) => {
       set({ toast: msg });
       clearTimeout(toastTimer);
       toastTimer = setTimeout(() => set({ toast: null }), 2200);
+    },
+    // Move a zone to (x, z) and carry what is inside it by the same amount (one undo step per drag). `carry` is what to bring
+    // ({nodes, zones} id sets); a drag captures it when the zone is picked up so it does not scoop up things it passes over.
+    moveZone: (id, x, z, carry = null) => {
+      const { data } = get();
+      const zone = data.zones.find((q) => q.id === id);
+      if (!zone) return;
+      const dx = x - zone.position[0], dz = z - zone.position[2];
+      if (!dx && !dz) return;
+      const c = carry ?? zoneContents(zone, data);
+      const shift = (o) => ({ ...o, position: [o.position[0] + dx, o.position[1], o.position[2] + dz] });
+      edit((s) => ({
+        data: {
+          ...s.data,
+          zones: s.data.zones.map((q) => (q.id === id ? { ...q, position: [x, q.position[1], z] } : c.zones.has(q.id) ? shift(q) : q)),
+          nodes: s.data.nodes.map((n) => (c.nodes.has(n.id) ? shift(n) : n)),
+        },
+      }), `zonemove:${id}`);
     },
     // Copy / paste / duplicate (Ctrl/Cmd+C, Ctrl/Cmd+V, D). Copying a zone takes everything in it with it. After a copy a
     // ghost follows the mouse (`placing`); the next click, or V, puts the copy there. Duplicate drops it right beside.

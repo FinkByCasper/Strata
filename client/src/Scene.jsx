@@ -7,6 +7,7 @@ import { useTheme } from './theme';
 import { GROUND, UP, camState, placed, pointerCell, useHoldMove } from './hold';
 import { materialFor, partsFor } from './parts';
 import { snapAnchor } from './clipboard';
+import { zoneContents } from './highlight';
 import { LabelLayout, openAddMenu } from './labels';
 import { FloorTiles, NodeLabels, NodesLayer } from './nodes';
 import { ConnectorsLayer } from './connectors';
@@ -256,9 +257,10 @@ function ZoneView({ zone }) {
     const off = zone.size[axis] % 2 === 0 ? 0.5 : 0;
     return Math.round(v - off) + off;
   };
+  const carry = useRef(null);   // what is inside the zone, captured when it is picked up
   const hold = useHoldMove(
     () => zone.position,
-    (x, z) => useStore.getState().updateZone(zone.id, { position: [x, 0, z] }),
+    (x, z) => useStore.getState().moveZone(zone.id, x, z, carry.current),
     snapAxis,
   );
   const shape = useMemo(() => roundedRect(w, d, cornerRadius(w, d)), [w, d]);
@@ -272,6 +274,7 @@ function ZoneView({ zone }) {
     if (s.readOnly || s.mode !== 'select' || e.nativeEvent.button !== 0) return;   // view-only selects on click instead (below)
     e.stopPropagation();
     s.select({ type: 'zone', id: zone.id });
+    carry.current = zoneContents(s.data.zones.find((q) => q.id === zone.id) ?? zone, s.data);
     hold.start(e);
   };
 
