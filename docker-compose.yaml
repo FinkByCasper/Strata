@@ -1,21 +1,22 @@
-# Strata, self-hosted.
+# Strata. This file is written for Coolify (Docker Compose build pack): Coolify assigns the domain, terminates
+# HTTPS and generates the password, so nothing is published on the host here.
 #
-#   1. cp .env.example .env   and set STRATA_PASSWORD
-#   2. docker compose up -d --build
-#   3. open http://<server>:3001   (log in as "strata" with your password)
-#
-# Over the internet use HTTPS (the password is only protected in transit by it). Either put your own reverse proxy
-# in front, or let the bundled Caddy do it (it fetches a free certificate for DOMAIN automatically):
-#   docker compose --profile https up -d --build
+#   Coolify:  New resource -> Docker Compose -> this repo. Put your domain on the "strata" service (port 3001).
+#             The login password is generated for you: see STRATA_PASSWORD / SERVICE_PASSWORD_STRATA in the
+#             Environment Variables tab (change it there if you like). Login name: strata.
+#   Plain Docker (no Coolify):  see README ("Hosting it online"); docker-compose.override.yaml publishes the port.
 services:
   strata:
     build: .
     restart: unless-stopped
     environment:
-      STRATA_PASSWORD: ${STRATA_PASSWORD:?Set STRATA_PASSWORD in .env so the editor is not open to the whole internet}
+      # Coolify: gives the service its domain (routed to port 3001) and exposes it in the UI.
+      SERVICE_FQDN_STRATA_3001: ""
+      # Coolify generates this password once. Without a password the editor would be open to the internet.
+      STRATA_PASSWORD: ${SERVICE_PASSWORD_STRATA}
       STRATA_USER: ${STRATA_USER:-strata}
-    ports:
-      - "${STRATA_PORT:-3001}:3001"
+    expose:
+      - "3001"
     volumes:
       - strata-data:/data          # the SQLite database lives here: back this volume up
     healthcheck:
@@ -24,22 +25,5 @@ services:
       timeout: 5s
       retries: 3
 
-  caddy:
-    profiles: ["https"]
-    image: caddy:2-alpine
-    restart: unless-stopped
-    depends_on: [strata]
-    environment:
-      DOMAIN: ${DOMAIN:-localhost}
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy-data:/data
-      - caddy-config:/config
-
 volumes:
   strata-data:
-  caddy-data:
-  caddy-config:
