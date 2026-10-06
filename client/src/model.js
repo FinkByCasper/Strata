@@ -1,6 +1,12 @@
 import * as THREE from 'three';
 
-export const uid = () => crypto.randomUUID().slice(0, 8);
+// Short random id. crypto.randomUUID() only exists on HTTPS / localhost, and Strata is often served over plain http
+// (a LAN address, an IP behind a proxy), where it is undefined, so fall back to getRandomValues (works everywhere).
+export const uid = () => {
+  const bytes = new Uint8Array(4);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+};
 export const EMPTY = () => ({ nodes: [], connectors: [], zones: [] });
 
 export const BASIC_SHAPES = ['box', 'cylinder', 'sphere', 'slab'];

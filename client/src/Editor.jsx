@@ -190,7 +190,15 @@ function ShareDialog({ id, viewToken, onClose, onRotate }) {
   const origin = window.location.origin;
   const link = `${origin}/v/${viewToken}`;
   const embed = `<iframe src="${origin}/embed/${viewToken}" width="800" height="500" style="border:0" allowfullscreen></iframe>`;
-  const copy = (t) => navigator.clipboard?.writeText(t);
+  // navigator.clipboard only exists on HTTPS / localhost; on plain http fall back to a hidden textarea.
+  const copy = (t) => {
+    if (navigator.clipboard?.writeText) return navigator.clipboard.writeText(t).catch(() => {});
+    const ta = Object.assign(document.createElement('textarea'), { value: t });
+    ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); } catch { /* nothing more to try */ }
+    ta.remove();
+  };
   return (
     <div className="modal" onClick={onClose}>
       <div className="dialog" onClick={(e) => e.stopPropagation()}>
