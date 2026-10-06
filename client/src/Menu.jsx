@@ -1,6 +1,9 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useStore } from './store';
 import { BASIC_SHAPES, DEVICE_SHAPES, PALETTE, freeSpot, shapeName } from './model';
+import { cn } from '@/lib/utils';
+import { Separator } from '@/components/ui/separator';
+import { Fit, Reset, RotL, RotR } from './menuIcons';
 
 export function ShapeIcon({ shape }) {
   const p = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.6, strokeLinejoin: 'round', strokeLinecap: 'round' };
@@ -35,31 +38,37 @@ export const ZoneIcon = () => (
   </svg>
 );
 
+const tile = (on) => cn(
+  'flex flex-col items-center gap-1 rounded-md border bg-card px-1 py-1.5 text-[10px] leading-none text-muted-foreground transition-colors outline-none hover:bg-accent hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40',
+  on && 'border-primary bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary',
+);
+
 export function ShapePicker({ value, onPick }) {
   const group = (title, list) => (
-    <>
-      <div className="shapes-title">{title}</div>
-      <div className="shapes">
+    <div className="flex flex-col gap-1.5">
+      <div className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">{title}</div>
+      <div className="grid grid-cols-3 gap-1">
         {list.map((sh) => (
-          <button key={sh} className={value === sh ? 'on' : ''} onClick={() => onPick(sh)} title={shapeName(sh)}>
-            <ShapeIcon shape={sh} /><span>{shapeName(sh)}</span>
+          <button key={sh} className={tile(value === sh)} onClick={() => onPick(sh)} title={shapeName(sh)} aria-pressed={value === sh}>
+            <ShapeIcon shape={sh} /><span className="max-w-full truncate">{shapeName(sh)}</span>
           </button>
         ))}
       </div>
-    </>
+    </div>
   );
-  return <div className="picker">{group('Devices', DEVICE_SHAPES)}{group('Basic shapes', BASIC_SHAPES)}</div>;
+  return <div className="flex flex-col gap-3">{group('Devices', DEVICE_SHAPES)}{group('Basic shapes', BASIC_SHAPES)}</div>;
 }
 
 export function Swatches({ value, onPick, custom = true }) {
   return (
-    <div className="swatches">
+    <div className="flex flex-wrap items-center gap-1.5">
       {PALETTE.map((c) => (
-        <button key={c} className={value === c ? 'on' : ''} style={{ background: c }} aria-label={c} onClick={() => onPick(c)} />
+        <button key={c} aria-label={c} onClick={() => onPick(c)} style={{ background: c }}
+          className={cn('size-6 rounded-full border-2 border-card shadow-[0_0_0_1px_var(--border)] outline-none transition-transform hover:scale-110 focus-visible:ring-[3px] focus-visible:ring-ring/50', value === c && 'shadow-[0_0_0_2px_var(--foreground)]')} />
       ))}
       {custom && (
-        <input type="color" value={/^#[0-9a-f]{6}$/i.test(value || '') ? value : '#4f8cff'}
-          onChange={(e) => onPick(e.target.value)} aria-label="Custom colour" />
+        <input type="color" value={/^#[0-9a-f]{6}$/i.test(value || '') ? value : '#4f8cff'} onChange={(e) => onPick(e.target.value)} aria-label="Custom colour"
+          className="size-6 cursor-pointer rounded-full border-2 border-card bg-transparent p-0 shadow-[0_0_0_1px_var(--border)] [&::-moz-color-swatch]:rounded-full [&::-moz-color-swatch]:border-0 [&::-webkit-color-swatch]:rounded-full [&::-webkit-color-swatch]:border-0 [&::-webkit-color-swatch-wrapper]:p-0" />
       )}
     </div>
   );
@@ -99,22 +108,22 @@ export function ContextMenu() {
   const st = useStore.getState();
   const done = (fn) => () => { fn(); st.closeMenu(); };
   const where = menu.world ?? freeSpot(data.nodes);
-  const body = (<>
-    <h4>Add here</h4>
-    <button className="item add" onClick={done(() => st.addNodeAt('box', where))}><ShapeIcon shape="box" /> Node</button>
-    <button className="item add" onClick={done(() => st.addZoneAt(where))}><ZoneIcon /> Zone</button>
-    <hr />
-    <div className="seg">
-      {[['rotL', '⟲ 90°'], ['rotR', '⟳ 90°'], ['fit', 'Fit'], ['reset', 'Reset']].map(([k, l]) => (
-        <button key={k} onClick={done(() => st.setView(k))}>{l}</button>
-      ))}
-    </div>
-  </>);
+  const item = 'flex w-full items-center gap-3 rounded-md px-2.5 py-2 text-left text-sm font-medium outline-none transition-colors hover:bg-accent focus-visible:bg-accent [&_svg]:text-muted-foreground';
 
   return (
-    <div ref={ref} className="ctx" style={{ left: (pos ?? menu).x, top: (pos ?? menu).y, visibility: pos ? 'visible' : 'hidden' }}
-      onContextMenu={(e) => e.preventDefault()}>
-      {body}
+    <div ref={ref} role="menu" onContextMenu={(e) => e.preventDefault()}
+      style={{ left: (pos ?? menu).x, top: (pos ?? menu).y, visibility: pos ? 'visible' : 'hidden' }}
+      className="fixed z-[250] flex min-w-[13rem] flex-col gap-0.5 rounded-lg border bg-popover p-1.5 text-popover-foreground shadow-xl animate-in fade-in-0 zoom-in-95">
+      <div className="px-2.5 pt-1 pb-1.5 text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">Add here</div>
+      <button role="menuitem" className={item} onClick={done(() => st.addNodeAt('box', where))}><ShapeIcon shape="box" /> Node</button>
+      <button role="menuitem" className={item} onClick={done(() => st.addZoneAt(where))}><ZoneIcon /> Zone</button>
+      <Separator className="my-1" />
+      <div className="grid grid-cols-4 gap-1">
+        {[['rotL', <RotL key="a" />, 'Rotate left'], ['rotR', <RotR key="b" />, 'Rotate right'], ['fit', <Fit key="c" />, 'Fit'], ['reset', <Reset key="d" />, 'Reset']].map(([k, icon, label]) => (
+          <button key={k} role="menuitem" title={label} aria-label={label} onClick={done(() => st.setView(k))}
+            className="grid h-8 place-items-center rounded-md text-muted-foreground outline-none hover:bg-accent hover:text-foreground focus-visible:bg-accent">{icon}</button>
+        ))}
+      </div>
     </div>
   );
 }

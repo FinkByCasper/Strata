@@ -1,62 +1,43 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React from 'react';
+import { CircleHelp, Download, FileJson, Grid3x3, ImageDown, LayoutGrid, MousePointer2, Orbit, Spline, Redo2, RotateCcw, RotateCw, Scan, Share2, Undo2, Upload } from 'lucide-react';
 import { Logo } from './Logo';
-import { Link } from './App';
+import { Link, navigate } from './App';
 import { useStore } from './store';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Hint } from '@/components/ui/tooltip';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import { cn } from '@/lib/utils';
 
-const I = ({ children, size = 18 }) => (
-  <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>{children}</svg>
-);
-export const Icons = {
-  select: <I><path d="M5 3l14 8-6 2-3 6z" /></I>,
-  connect: <I><circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="5.5" r="2.5" /><path d="M8 17l8-9" /></I>,
-  rotL: <I><path d="M4 12a8 8 0 1 0 3-6.2" /><path d="M4 4v4h4" /></I>,
-  rotR: <I><path d="M20 12a8 8 0 1 1-3-6.2" /><path d="M20 4v4h-4" /></I>,
-  fit: <I><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" /></I>,
-  reset: <I><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z" /><path d="M12 12l8-4.5" /></I>,
-  grid: <I><path d="M4 4h16v16H4zM4 12h16M12 4v16" /></I>,
-  undo: <I><path d="M9 14L4 9l5-5" /><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" /></I>,
-  redo: <I><path d="M15 14l5-5-5-5" /><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13" /></I>,
-  share: <I><path d="M12 15V3" /><path d="M7.5 7.5L12 3l4.5 4.5" /><path d="M5 12v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" /></I>,
-  chevron: <I size={14}><path d="M6 9l6 6 6-6" /></I>,
-};
+// A small grouped strip of icon buttons (the "pill" that holds related tools).
+export const Strip = ({ className, ...props }) => <div className={cn('inline-flex items-center gap-0.5 rounded-lg bg-muted p-0.5', className)} {...props} />;
 
-function Tool({ icon, label, on, onClick, hint, disabled }) {
+function Tool({ icon, label, keys, onClick, disabled, pressed }) {
   return (
-    <button className={`tool ${on ? 'on' : ''}`} onClick={onClick} title={hint ? `${label} (${hint})` : label} aria-label={label} aria-pressed={on} disabled={disabled}>
-      {icon}
-    </button>
+    <Hint label={label} keys={keys}>
+      <Button variant="ghost" size="icon-sm" onClick={onClick} disabled={disabled} aria-label={label} aria-pressed={pressed}
+        className={cn('text-muted-foreground hover:bg-card hover:text-foreground', pressed && 'bg-card text-primary shadow-sm')}>
+        {icon}
+      </Button>
+    </Hint>
   );
 }
 
 export function CameraTools() {
   const setView = useStore((s) => s.setView);
   return (
-    <div className="tb-group" role="group" aria-label="Camera">
-      <Tool icon={Icons.rotL} label="Rotate left 90°" hint="Q" onClick={() => setView('rotL')} />
-      <Tool icon={Icons.rotR} label="Rotate right 90°" hint="E" onClick={() => setView('rotR')} />
-      <Tool icon={Icons.fit} label="Fit to content" hint="F" onClick={() => setView('fit')} />
-      <Tool icon={Icons.reset} label="Reset camera" onClick={() => setView('reset')} />
-    </div>
+    <Strip role="group" aria-label="Camera">
+      <Tool icon={<RotateCcw />} label="Rotate left 90°" keys="Q" onClick={() => setView('rotL')} />
+      <Tool icon={<RotateCw />} label="Rotate right 90°" keys="E" onClick={() => setView('rotR')} />
+      <Tool icon={<Scan />} label="Fit to content" keys="F" onClick={() => setView('fit')} />
+      <Tool icon={<Orbit />} label="Reset camera" onClick={() => setView('reset')} />
+    </Strip>
   );
 }
 
-function Dropdown({ icon, title, primary, children }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef();
-  useEffect(() => {
-    if (!open) return;
-    const away = (e) => { if (!ref.current?.contains(e.target)) setOpen(false); };
-    const esc = (e) => { if (e.key === 'Escape') setOpen(false); };
-    window.addEventListener('pointerdown', away); window.addEventListener('keydown', esc);
-    return () => { window.removeEventListener('pointerdown', away); window.removeEventListener('keydown', esc); };
-  }, [open]);
-  return (
-    <div className="dropdown" ref={ref}>
-      <button className={`icon-btn ${primary ? 'primary' : ''}`} onClick={() => setOpen(!open)} aria-expanded={open} aria-haspopup="menu" title={title} aria-label={title}>{icon}</button>
-      {open && <div className="popover" role="menu" onClick={() => setOpen(false)}>{children}</div>}
-    </div>
-  );
-}
+const STATUS = { saved: ['bg-success', 'Saved'], saving: ['bg-warning', 'Saving…'], error: ['bg-destructive', 'Save failed'] };
 
 export function Topbar({ status, onShare, onExportJson, onExportPng, onImport, onTips }) {
   const name = useStore((s) => s.name);
@@ -65,41 +46,51 @@ export function Topbar({ status, onShare, onExportJson, onExportPng, onImport, o
   const canUndo = useStore((s) => s.past.length > 0);
   const canRedo = useStore((s) => s.future.length > 0);
   const st = useStore.getState();
+  const [dot, text] = STATUS[status] ?? STATUS.saved;
 
   return (
-    <header className="topbar">
-      <div className="tb-left">
-        <Link to="/" className="logo-link" title="All diagrams"><Logo size={28} /></Link>
-        <input className="title" value={name} onChange={(e) => st.setName(e.target.value)} aria-label="Diagram name" placeholder="Untitled diagram" />
-        <span className={`status ${status}`} role="status"><i />{{ saved: 'Saved', saving: 'Saving…', error: 'Save failed' }[status]}</span>
+    <header className="z-40 grid min-h-14 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-b bg-card px-3 py-1.5 max-[900px]:grid-cols-[1fr_auto]">
+      <div className="flex min-w-0 items-center gap-2">
+        <Hint label="All diagrams"><Link to="/" className="grid place-items-center rounded-md p-1 hover:bg-accent" aria-label="All diagrams"><Logo size={26} /></Link></Hint>
+        <Input value={name} onChange={(e) => st.setName(e.target.value)} aria-label="Diagram name" placeholder="Untitled diagram"
+          className="h-8 w-64 min-w-0 max-w-full flex-1 border-transparent bg-transparent text-[15px] font-semibold shadow-none hover:border-input focus-visible:bg-card sm:flex-none" />
+        <span className="inline-flex items-center gap-1.5 text-xs whitespace-nowrap text-muted-foreground max-sm:hidden" role="status">
+          <i className={cn('size-1.5 rounded-full', dot)} />{text}
+        </span>
       </div>
 
-      <div className="tb-center">
-        <div className="tb-group" role="group" aria-label="Tool">
-          <Tool icon={Icons.select} label="Select" hint="V" on={mode === 'select'} onClick={() => st.setMode('select')} />
-          <Tool icon={Icons.connect} label="Connect" hint="C" on={mode === 'connect'} onClick={() => st.setMode('connect')} />
-        </div>
-        <div className="tb-group" role="group" aria-label="History">
-          <Tool icon={Icons.undo} label="Undo" hint="Ctrl+Z" disabled={!canUndo} onClick={() => st.undo()} />
-          <Tool icon={Icons.redo} label="Redo" hint="Ctrl+Shift+Z" disabled={!canRedo} onClick={() => st.redo()} />
-        </div>
+      <div className="flex items-center gap-2 max-[900px]:order-3 max-[900px]:col-span-full max-[900px]:justify-center">
+        <ToggleGroup type="single" value={mode} onValueChange={(v) => v && st.setMode(v)} aria-label="Tool">
+          <Hint label="Select" keys="V"><ToggleGroupItem value="select" aria-label="Select"><MousePointer2 /></ToggleGroupItem></Hint>
+          <Hint label="Connect" keys="C"><ToggleGroupItem value="connect" aria-label="Connect"><Spline /></ToggleGroupItem></Hint>
+        </ToggleGroup>
+        <Strip role="group" aria-label="History">
+          <Tool icon={<Undo2 />} label="Undo" keys="Ctrl+Z" disabled={!canUndo} onClick={() => st.undo()} />
+          <Tool icon={<Redo2 />} label="Redo" keys="Ctrl+Shift+Z" disabled={!canRedo} onClick={() => st.redo()} />
+        </Strip>
       </div>
 
-      <div className="tb-right">
-        <CameraTools />
-        <Tool icon={Icons.grid} label="Snap to grid" hint="G" on={snap} onClick={() => st.setSnap(!snap)} />
-        <Dropdown icon={Icons.share} title="Share & file" primary>
-          <button className="menu-strong" onClick={onShare}>Share link &amp; embed…</button>
-          <hr />
-          <button onClick={onExportJson}>Export JSON</button>
-          <button onClick={onExportPng}>Export PNG</button>
-          <button onClick={onImport}>Import JSON…</button>
-          <hr />
-          <Link to="/" className="menu-link">All diagrams</Link>
-          <button onClick={onTips}>Show camera tips</button>
-          <hr />
-          <div className="build">Build {typeof __BUILD__ === 'string' ? __BUILD__ : 'dev'}</div>
-        </Dropdown>
+      <div className="flex items-center justify-end gap-2">
+        <div className="max-sm:hidden"><CameraTools /></div>
+        <Strip><Tool icon={<Grid3x3 />} label="Snap to grid" keys="G" pressed={snap} onClick={() => st.setSnap(!snap)} /></Strip>
+        <ThemeToggle />
+        <DropdownMenu>
+          <Hint label="Share & file">
+            <DropdownMenuTrigger asChild><Button size="icon" aria-label="Share & file"><Share2 /></Button></DropdownMenuTrigger>
+          </Hint>
+          <DropdownMenuContent>
+            <DropdownMenuItem onSelect={onShare} className="font-medium"><Share2 /> Share link &amp; embed…</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={onExportJson}><FileJson /> Export JSON</DropdownMenuItem>
+            <DropdownMenuItem onSelect={onExportPng}><ImageDown /> Export PNG</DropdownMenuItem>
+            <DropdownMenuItem onSelect={onImport}><Upload /> Import JSON…</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={() => navigate('/')}><LayoutGrid /> All diagrams</DropdownMenuItem>
+            <DropdownMenuItem onSelect={onTips}><CircleHelp /> Show camera tips</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel className="font-normal">Build {typeof __BUILD__ === 'string' ? __BUILD__ : 'dev'}</DropdownMenuLabel>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );

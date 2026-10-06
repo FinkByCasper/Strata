@@ -11,9 +11,9 @@ import { UP } from './hold';
 import { Label, useLod } from './labels';
 import { RichText } from './richtext';
 import { useHighlight } from './highlight';
+import { useTheme } from './theme';
 
 const selectConnector = (id) => useStore.getState().select({ type: 'connector', id });
-const FADE = new THREE.Color('#eceef4');   // the floor colour: dimmed lines are mixed towards it
 
 // Every connector under the pointer, nearest first. Clicking the same spot again steps to the next one, so
 // lines stacked on top of each other can all be reached.
@@ -38,6 +38,8 @@ export function ConnectorsLayer() {
   const { size, raycaster } = useThree();
   const lod = useLod();
   const hl = useHighlight();
+  const dark = useTheme((st) => st.dark);
+  const FADE = useMemo(() => new THREE.Color(dark ? '#0d1017' : '#eceef4'), [dark]);   // the floor colour: dimmed lines are mixed towards it
 
   const routes = useMemo(() => {
     const byId = new Map(nodes.map((n) => [n.id, n]));
@@ -71,7 +73,7 @@ export function ConnectorsLayer() {
       return l;
     };
     return [make(false), make(true)].filter(Boolean);
-  }, [routes, hl]);
+  }, [routes, hl, FADE]);
   useEffect(() => () => lines.forEach((l) => { l.geometry.dispose(); l.material.dispose(); }), [lines]);
   useEffect(() => { lines.forEach((l) => l.material.resolution.set(size.width, size.height)); }, [lines, size]);
 

@@ -92,9 +92,19 @@ The Strata mark (three stacked isometric layers) lives in `brand/` as SVG and PN
 ## Layout
 
 ```
-server/   Express API, SQLite store, diagram validation, tests (npm test)
-client/   React + react-three-fiber app (Scene.jsx is the 3D part)
+server/                    Express API, SQLite store, diagram validation, tests (npm test)
+client/src/                React + react-three-fiber app (Scene.jsx is the 3D part)
+client/src/components/ui/  shadcn/ui-style components (Radix primitives + Tailwind), copied in so they can be edited
+client/src/index.css       Design tokens: light and dark themes (the `.dark` class on <html>)
+client/src/scene.css       Styles for the DOM labels and overlays that sit on the 3D canvas
 ```
+
+### UI
+
+The interface uses Tailwind CSS v4, [shadcn/ui](https://ui.shadcn.com) components (MIT) on [Radix UI](https://www.radix-ui.com), and
+[Lucide](https://lucide.dev) icons (ISC), all of which are fine in an open-source project. The theme (Light / Dark / System, remembered in
+the browser) is in the sun/moon menu; the 3D scene (background, floor grid, shadows, labels) follows it. To add another component, copy it
+into `client/src/components/ui/` and import it with `@/components/ui/<name>`.
 
 ## Not done yet
 

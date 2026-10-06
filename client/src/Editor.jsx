@@ -8,6 +8,17 @@ import { RichText } from './richtext';
 import { ContextMenu, ShapePicker, Swatches } from './Menu';
 import { Topbar } from './Topbar';
 import { Intro, useIntro } from './Intro';
+import { ArrowLeftRight, Ban, Check, Copy, ImagePlus, RefreshCw, Trash2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { zoneMembers } from './highlight';
 
 const download = (name, text, type) => {
@@ -20,8 +31,41 @@ const slug = (s) => (s || 'diagram').toLowerCase().replace(/[^a-z0-9]+/g, '-').r
 
 export { CameraTools as ViewButtons } from './Topbar';
 
-// Field editors that edit the current selection. `readOnly` shows just the rich-text details.
+// ---- side panel pieces ----
 const nodeName = (data, id) => data.nodes.find((n) => n.id === id)?.label || 'Untitled';
+
+// The floating inspector card on the right of the stage.
+function Panel({ title, subtitle, children }) {
+  return (
+    <aside className="absolute top-3 right-3 z-[35] flex max-h-[calc(100%-1.5rem)] w-[290px] flex-col overflow-hidden rounded-xl border bg-card text-card-foreground shadow-lg max-[720px]:inset-x-2 max-[720px]:top-auto max-[720px]:bottom-2 max-[720px]:max-h-[48%] max-[720px]:w-auto">
+      <div className="flex flex-col gap-0.5 border-b px-4 py-3">
+        <h3 className="text-sm leading-tight font-semibold">{title}</h3>
+        {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
+      </div>
+      <div className="flex flex-col gap-4 overflow-y-auto p-4">{children}</div>
+    </aside>
+  );
+}
+
+function Field({ label, hint, children, className }) {
+  return (
+    <div className={cn('grid gap-1.5', className)}>
+      <Label>{label}</Label>
+      {hint && <p className="-mt-0.5 text-[11px] leading-snug text-muted-foreground">{hint.replace(/^ · /, '')}</p>}
+      {children}
+    </div>
+  );
+}
+
+const Segmented = ({ value, onChange, options, className }) => (
+  <ToggleGroup type="single" value={value} onValueChange={(v) => v && onChange(v)} className={cn('w-full', className)}>
+    {options.map(([v, l]) => <ToggleGroupItem key={v} value={v}>{l}</ToggleGroupItem>)}
+  </ToggleGroup>
+);
+
+const DeleteButton = ({ children, onClick }) => (
+  <Button variant="outline" className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={onClick}><Trash2 /> {children}</Button>
+);
 
 export function Details({ readOnly }) {
   const sel = useStore((s) => s.selection);
@@ -32,19 +76,16 @@ export function Details({ readOnly }) {
   if (readOnly) {
     if (conn) {
       return (
-        <aside className="panel">
-          <h3>{conn.label || 'Connection'}</h3>
-          <p className="muted route-names">{nodeName(data, conn.from)} → {nodeName(data, conn.to)}{conn.subtitle ? ` · ${conn.subtitle}` : ''}</p>
-          {conn.description ? <RichText text={conn.description} /> : <p className="muted">No description.</p>}
-        </aside>
+        <Panel title={conn.label || 'Connection'} subtitle={`${nodeName(data, conn.from)} → ${nodeName(data, conn.to)}${conn.subtitle ? ` · ${conn.subtitle}` : ''}`}>
+          {conn.description ? <RichText text={conn.description} /> : <p className="text-muted-foreground">No description.</p>}
+        </Panel>
       );
     }
     if (!node) return null;
     return (
-      <aside className="panel">
-        <h3>{node.label}</h3>
-        {node.description ? <RichText text={node.description} /> : <p className="muted">No description.</p>}
-      </aside>
+      <Panel title={node.label || 'Untitled'} subtitle={node.subtitle}>
+        {node.description ? <RichText text={node.description} /> : <p className="text-muted-foreground">No description.</p>}
+      </Panel>
     );
   }
   return <Inspector sel={sel} />;
@@ -59,8 +100,12 @@ function LabelInput({ id, value, onChange }) {
     useStore.setState({ fresh: null });
   }, [id]);
   // Enter / Esc finish naming and hand the keyboard back to the diagram, so Cmd+C / Cmd+V / D work straight away.
-  return <input ref={ref} value={value} onChange={onChange} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); e.currentTarget.blur(); } }} />;
+  return <Input ref={ref} value={value} onChange={onChange} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); e.currentTarget.blur(); } }} />;
 }
+
+const NumberInput = ({ value, onChange }) => (
+  <Input type="number" step="1" value={value} onChange={(e) => { const v = Number(e.target.value); if (Number.isFinite(v)) onChange(v); }} />
+);
 
 function Inspector({ sel }) {
   const s = useStore();
@@ -68,11 +113,10 @@ function Inspector({ sel }) {
   const fileRef = useRef();
   const [iconError, setIconError] = useState('');
 
-  const num = (arr, i, set) => (
-    <input type="number" step="1" value={arr[i]} onChange={(e) => {
-      const v = Number(e.target.value);
-      if (Number.isFinite(v)) set(arr.map((x, j) => (j === i ? v : x)));
-    }} />
+  const pair = (arr, labels, idx, set) => (
+    <div className="grid grid-cols-2 gap-2">
+      {labels.map((l, k) => <Field key={l} label={l}><NumberInput value={arr[idx[k]]} onChange={(v) => set(arr.map((x, j) => (j === idx[k] ? v : x)))} /></Field>)}
+    </div>
   );
 
   const uploadIcon = (f, id) => {
@@ -88,101 +132,76 @@ function Inspector({ sel }) {
   if (sel.type === 'node') {
     const n = data.nodes.find((x) => x.id === sel.id);
     if (!n) return null;
+    const iconBtn = (on) => cn('grid size-8 place-items-center rounded-md border bg-card text-base outline-none transition-colors hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/40', on && 'border-primary bg-primary/10');
     return (
-      <aside className="panel">
-        <h3>Node</h3>
-        <label>Label<LabelInput id={n.id} value={n.label} onChange={(e) => s.updateNode(n.id, { label: e.target.value })} /></label>
-        <label>Subtitle <span className="muted">(second line on the label, e.g. an IP)</span>
-          <input value={n.subtitle ?? ''} onChange={(e) => s.updateNode(n.id, { subtitle: e.target.value })} /></label>
-        <label>Description <span className="muted">(**bold**, *italic*, `code`, - lists)</span>
-          <textarea rows={5} value={n.description} onChange={(e) => s.updateNode(n.id, { description: e.target.value })} /></label>
-        <div className="field">Model<ShapePicker value={n.shape} onPick={(shape) => s.updateNode(n.id, { shape })} /></div>
-        <div className="field">Colour<Swatches value={n.color} onPick={(color) => s.updateNode(n.id, { color })} /></div>
-        <div className="field">Icon</div>
-        <div className="icons">
-          <button className={!n.icon ? 'on' : ''} onClick={() => s.updateNode(n.id, { icon: null })}>∅</button>
-          {ICONS.map((i) => <button key={i} className={n.icon === i ? 'on' : ''} onClick={() => s.updateNode(n.id, { icon: i })}>{i}</button>)}
-          <button onClick={() => fileRef.current.click()} title="Upload your own icon">⤴</button>
-          <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden
-            onChange={(e) => { uploadIcon(e.target.files[0], n.id); e.target.value = ''; }} />
-        </div>
-        {iconError && <p className="error">{iconError}</p>}
-        <div className="xz">
-          {[['X', 0], ['Z', 2]].map(([a, i]) => <label key={a}>{a}{num(n.position, i, (p) => s.updateNode(n.id, { position: p }))}</label>)}
-        </div>
-        <button className="danger" onClick={s.removeSelection}>Delete node</button>
-      </aside>
+      <Panel title="Node">
+        <Field label="Label"><LabelInput id={n.id} value={n.label} onChange={(e) => s.updateNode(n.id, { label: e.target.value })} /></Field>
+        <Field label="Subtitle" hint=" · second line, e.g. an IP"><Input value={n.subtitle ?? ''} onChange={(e) => s.updateNode(n.id, { subtitle: e.target.value })} /></Field>
+        <Field label="Description" hint=" · **bold**, *italic*, `code`, - lists"><Textarea rows={5} value={n.description} onChange={(e) => s.updateNode(n.id, { description: e.target.value })} /></Field>
+        <Field label="Model"><ShapePicker value={n.shape} onPick={(shape) => s.updateNode(n.id, { shape })} /></Field>
+        <Field label="Colour"><Swatches value={n.color} onPick={(color) => s.updateNode(n.id, { color })} /></Field>
+        <Field label="Icon">
+          <div className="flex flex-wrap gap-1.5">
+            <button className={iconBtn(!n.icon)} onClick={() => s.updateNode(n.id, { icon: null })} aria-label="No icon"><Ban className="size-4 text-muted-foreground" /></button>
+            {ICONS.map((i) => <button key={i} className={iconBtn(n.icon === i)} onClick={() => s.updateNode(n.id, { icon: i })}>{i}</button>)}
+            <button className={iconBtn(false)} onClick={() => fileRef.current.click()} title="Upload your own icon" aria-label="Upload your own icon"><ImagePlus className="size-4 text-muted-foreground" /></button>
+            <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden onChange={(e) => { uploadIcon(e.target.files[0], n.id); e.target.value = ''; }} />
+          </div>
+          {iconError && <p className="text-xs text-destructive">{iconError}</p>}
+        </Field>
+        {pair(n.position, ['X', 'Z'], [0, 2], (p) => s.updateNode(n.id, { position: p }))}
+        <DeleteButton onClick={s.removeSelection}>Delete node</DeleteButton>
+      </Panel>
     );
   }
 
   if (sel.type === 'connector') {
     const c = data.connectors.find((x) => x.id === sel.id);
     if (!c) return null;
+    const flow = c.flow ?? 'none';
     return (
-      <aside className="panel">
-        <h3>Connector</h3>
-        <p className="muted route-names">{nodeName(data, c.from)} → {nodeName(data, c.to)}</p>
-        <label>Label<input value={c.label} onChange={(e) => s.updateConnector(c.id, { label: e.target.value })} /></label>
-        <label>Subtitle <span className="muted">(second line, e.g. port and protocol)</span>
-          <input value={c.subtitle ?? ''} placeholder="TCP 5432 · TLS" onChange={(e) => s.updateConnector(c.id, { subtitle: e.target.value })} /></label>
-        <label>Description <span className="muted">(**bold**, *italic*, `code`, - lists)</span>
-          <textarea rows={4} value={c.description ?? ''} onChange={(e) => s.updateConnector(c.id, { description: e.target.value })} /></label>
-        <label>Routing
-          <select value={c.route} onChange={(e) => s.updateConnector(c.id, { route: e.target.value })}>
-            {ROUTES.map((x) => <option key={x} value={x}>{ROUTE_NAMES[x] ?? x}</option>)}
-          </select></label>
-        <label>Line
-          <select value={c.line} onChange={(e) => s.updateConnector(c.id, { line: e.target.value })}>
-            <option>solid</option><option>dashed</option>
-          </select></label>
-        <div className="field">Colour<Swatches value={c.color || '#475569'} onPick={(color) => s.updateConnector(c.id, { color })} /></div>
-        <div className="field">Data flow
-          <div className="seg">
-            {[['none', 'Off'], ['forward', 'One way'], ['both', 'Both ways']].map(([m, l]) => (
-              <button key={m} className={(c.flow ?? 'none') === m ? 'on' : ''} onClick={() => s.updateConnector(c.id, { flow: m })}>{l}</button>
-            ))}
-          </div>
-          <span className="muted">{(c.flow ?? 'none') === 'none' ? 'Small dots travel along the line in the arrow\'s direction.' : (c.flow === 'both' ? 'Line colour goes forward; the return colour comes back in its own lane.' : 'Dots travel from the source to the target in the line colour.')}</span>
-        </div>
-        {c.flow === 'both' && <div className="field">Return colour<Swatches value={c.color2 || '#f5a524'} onPick={(color2) => s.updateConnector(c.id, { color2 })} /></div>}
-        <div className="field">Arrowheads
-          <label className="check"><input type="checkbox" checked={!!c.arrow} onChange={(e) => s.updateConnector(c.id, { arrow: e.target.checked })} /> At the target ({nodeName(data, c.to)})</label>
-          <label className="check"><input type="checkbox" checked={!!c.arrowStart} onChange={(e) => s.updateConnector(c.id, { arrowStart: e.target.checked })} /> At the source ({nodeName(data, c.from)})</label>
-        </div>
-        <button onClick={() => s.updateConnector(c.id, { from: c.to, to: c.from })}>Reverse direction</button>
-        <button className="danger" onClick={s.removeSelection}>Delete connector</button>
-      </aside>
+      <Panel title="Connector" subtitle={`${nodeName(data, c.from)} → ${nodeName(data, c.to)}`}>
+        <Field label="Label"><Input value={c.label} onChange={(e) => s.updateConnector(c.id, { label: e.target.value })} /></Field>
+        <Field label="Subtitle" hint=" · e.g. port and protocol"><Input value={c.subtitle ?? ''} placeholder="TCP 5432 · TLS" onChange={(e) => s.updateConnector(c.id, { subtitle: e.target.value })} /></Field>
+        <Field label="Description" hint=" · **bold**, *italic*, `code`, - lists"><Textarea rows={4} value={c.description ?? ''} onChange={(e) => s.updateConnector(c.id, { description: e.target.value })} /></Field>
+        <Field label="Routing">
+          <Select value={c.route} onValueChange={(route) => s.updateConnector(c.id, { route })}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>{ROUTES.map((x) => <SelectItem key={x} value={x}>{ROUTE_NAMES[x] ?? x}</SelectItem>)}</SelectContent>
+          </Select>
+        </Field>
+        <Field label="Line"><Segmented value={c.line} onChange={(line) => s.updateConnector(c.id, { line })} options={[['solid', 'Solid'], ['dashed', 'Dashed']]} /></Field>
+        <Field label="Colour"><Swatches value={c.color || '#475569'} onPick={(color) => s.updateConnector(c.id, { color })} /></Field>
+        <Field label="Data flow">
+          <Segmented value={flow} onChange={(m) => s.updateConnector(c.id, { flow: m })} options={[['none', 'Off'], ['forward', 'One way'], ['both', 'Both ways']]} />
+          <p className="text-xs text-muted-foreground">{flow === 'none' ? "Small dots travel along the line in the arrow's direction." : flow === 'both' ? 'Line colour goes forward; the return colour comes back in its own lane.' : 'Dots travel from the source to the target in the line colour.'}</p>
+        </Field>
+        {flow === 'both' && <Field label="Return colour"><Swatches value={c.color2 || '#f5a524'} onPick={(color2) => s.updateConnector(c.id, { color2 })} /></Field>}
+        <Field label="Arrowheads">
+          <label className="flex items-center gap-2 text-sm font-normal"><Checkbox checked={!!c.arrow} onCheckedChange={(v) => s.updateConnector(c.id, { arrow: v === true })} /> At the target ({nodeName(data, c.to)})</label>
+          <label className="flex items-center gap-2 text-sm font-normal"><Checkbox checked={!!c.arrowStart} onCheckedChange={(v) => s.updateConnector(c.id, { arrowStart: v === true })} /> At the source ({nodeName(data, c.from)})</label>
+        </Field>
+        <Button variant="outline" onClick={() => s.updateConnector(c.id, { from: c.to, to: c.from })}><ArrowLeftRight /> Reverse direction</Button>
+        <DeleteButton onClick={s.removeSelection}>Delete connector</DeleteButton>
+      </Panel>
     );
   }
 
   const z = data.zones.find((x) => x.id === sel.id);
   if (!z) return null;
+  const mode = z.labelMode ?? 'edge';
   return (
-    <aside className="panel">
-      <h3>Zone</h3>
-      <label>Label<LabelInput id={z.id} value={z.label} onChange={(e) => s.updateZone(z.id, { label: e.target.value })} /></label>
-      <div className="field">Colour<Swatches value={z.color} onPick={(color) => s.updateZone(z.id, { color })} /></div>
-      <div className="field">Name on the floor
-        <div className="seg">
-          {[['edge', 'On an edge'], ['center', 'Centre'], ['none', 'None']].map(([m, l]) => (
-            <button key={m} className={(z.labelMode ?? 'edge') === m ? 'on' : ''} onClick={() => s.updateZone(z.id, { labelMode: m })}>{l}</button>
-          ))}
-        </div>
-        {(z.labelMode ?? 'edge') === 'edge' && (
-          <div className="edges">
-            {LABEL_EDGES.map((ed) => (
-              <button key={ed} className={(z.labelEdge ?? 'back') === ed ? 'on' : ''} onClick={() => s.updateZone(z.id, { labelEdge: ed })}>{ed}</button>
-            ))}
-          </div>
-        )}
-      </div>
-      <p className="muted">Centre</p>
-      <div className="xz">{[['X', 0], ['Z', 2]].map(([a, i]) => <label key={a}>{a}{num(z.position, i, (p) => s.updateZone(z.id, { position: p }))}</label>)}</div>
-      <p className="muted">Size</p>
-      <div className="xz">{[['Width', 0], ['Depth', 2]].map(([a, i]) => <label key={a}>{a}{num(z.size, i, (p) => s.updateZone(z.id, { size: [Math.max(1, p[0]), 0, Math.max(1, p[2])] }))}</label>)}</div>
-      <p className="muted">{zoneSummary(z, data)}</p>
-      <button className="danger" onClick={s.removeSelection}>Delete zone</button>
-    </aside>
+    <Panel title="Zone" subtitle={zoneSummary(z, data)}>
+      <Field label="Label"><LabelInput id={z.id} value={z.label} onChange={(e) => s.updateZone(z.id, { label: e.target.value })} /></Field>
+      <Field label="Colour"><Swatches value={z.color} onPick={(color) => s.updateZone(z.id, { color })} /></Field>
+      <Field label="Name on the floor">
+        <Segmented value={mode} onChange={(m) => s.updateZone(z.id, { labelMode: m })} options={[['edge', 'On an edge'], ['center', 'Centre'], ['none', 'None']]} />
+        {mode === 'edge' && <Segmented value={z.labelEdge ?? 'back'} onChange={(ed) => s.updateZone(z.id, { labelEdge: ed })} options={LABEL_EDGES.map((e) => [e, e])} className="mt-1 [&_button]:capitalize" />}
+      </Field>
+      <div className="grid gap-1.5"><Label>Centre</Label>{pair(z.position, ['X', 'Z'], [0, 2], (p) => s.updateZone(z.id, { position: p }))}</div>
+      <div className="grid gap-1.5"><Label>Size</Label>{pair(z.size, ['Width', 'Depth'], [0, 2], (p) => s.updateZone(z.id, { size: [Math.max(1, p[0]), 0, Math.max(1, p[2])] }))}</div>
+      <DeleteButton onClick={s.removeSelection}>Delete zone</DeleteButton>
+    </Panel>
   );
 }
 
@@ -190,37 +209,58 @@ function ShareDialog({ id, viewToken, onClose, onRotate }) {
   const origin = window.location.origin;
   const link = `${origin}/v/${viewToken}`;
   const embed = `<iframe src="${origin}/embed/${viewToken}" width="800" height="500" style="border:0" allowfullscreen></iframe>`;
+  const [copied, setCopied] = useState('');
+  const [revoke, setRevoke] = useState(false);
   // navigator.clipboard only exists on HTTPS / localhost; on plain http fall back to a hidden textarea.
-  const copy = (t) => {
-    if (navigator.clipboard?.writeText) return navigator.clipboard.writeText(t).catch(() => {});
+  const copy = (key, t) => {
+    const done = () => { setCopied(key); setTimeout(() => setCopied(''), 1600); };
+    if (navigator.clipboard?.writeText) return navigator.clipboard.writeText(t).then(done, () => {});
     const ta = Object.assign(document.createElement('textarea'), { value: t });
     ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
     document.body.appendChild(ta); ta.select();
-    try { document.execCommand('copy'); } catch { /* nothing more to try */ }
+    try { document.execCommand('copy'); done(); } catch { /* nothing more to try */ }
     ta.remove();
   };
-  return (
-    <div className="modal" onClick={onClose}>
-      <div className="dialog" onClick={(e) => e.stopPropagation()}>
-        <h3>Share (view-only)</h3>
-        <label>Link<div className="row"><input readOnly value={link} onFocus={(e) => e.target.select()} /><button onClick={() => copy(link)}>Copy</button></div></label>
-        <label>Embed<div className="row"><input readOnly value={embed} onFocus={(e) => e.target.select()} /><button onClick={() => copy(embed)}>Copy</button></div></label>
-        <p className="muted">Anyone with the link can view but not edit. Regenerate it to revoke the old link and embeds.</p>
-        <div className="row end">
-          <button className="danger" onClick={() => confirm('Revoke the current link and embeds?') && onRotate(id)}>Regenerate link</button>
-          <button className="primary" onClick={onClose}>Done</button>
-        </div>
+  const row = (key, label, value) => (
+    <Field label={label}>
+      <div className="flex gap-2">
+        <Input readOnly value={value} onFocus={(e) => e.target.select()} className="font-mono text-xs" />
+        <Button variant="outline" onClick={() => copy(key, value)} className="w-24">{copied === key ? <><Check /> Copied</> : <><Copy /> Copy</>}</Button>
       </div>
-    </div>
+    </Field>
+  );
+  return (
+    <>
+      <Dialog open onOpenChange={(o) => !o && onClose()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Share (view-only)</DialogTitle>
+            <DialogDescription>Anyone with the link can view but not edit. Regenerate it to revoke the old link and embeds.</DialogDescription>
+          </DialogHeader>
+          {row('link', 'Link', link)}
+          {row('embed', 'Embed', embed)}
+          <DialogFooter className="sm:justify-between">
+            <Button variant="outline" className="text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setRevoke(true)}><RefreshCw /> Regenerate link</Button>
+            <Button onClick={onClose}>Done</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <AlertDialog open={revoke} onOpenChange={setRevoke}>
+        <AlertDialogContent>
+          <AlertDialogHeader><AlertDialogTitle>Revoke the current link?</AlertDialogTitle><AlertDialogDescription>The old link and every embed using it will stop working.</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction variant="destructive" onClick={() => onRotate(id)}>Regenerate</AlertDialogAction></AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 
-// Shown while in Connect mode: a glowing frame round the viewport plus a banner saying what to do next.
 function Toast() {
   const msg = useStore((s) => s.toast);
-  return msg ? <div className="toast" role="status">{msg}</div> : null;
+  return msg ? <div className="pointer-events-none absolute top-3.5 left-1/2 z-[60] -translate-x-1/2 animate-in rounded-full bg-foreground px-4 py-1.5 text-[13px] text-background shadow-lg fade-in-0 slide-in-from-top-2" role="status">{msg}</div> : null;
 }
 
+// Shown while in Connect mode: a glowing frame round the viewport plus a banner saying what to do next.
 function ConnectOverlay() {
   const mode = useStore((s) => s.mode);
   const from = useStore((s) => s.connectFrom);
@@ -229,9 +269,9 @@ function ConnectOverlay() {
   return (
     <>
       <div className="connect-frame" />
-      <div className="connect-banner" role="status">
+      <div className="absolute top-3 left-1/2 z-[26] flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 items-center gap-3 rounded-full bg-[#f5a524] py-1.5 pr-1.5 pl-4 text-[13px] font-semibold text-[#1f1300] shadow-[0_6px_20px_rgb(245_165_36/0.45)]" role="status">
         <span>{from ? `Connect mode · now click the node to link “${name || 'Untitled'}” to` : 'Connect mode · click a node to start a connection'}</span>
-        <button onClick={() => useStore.getState().setMode('select')}>Done (Esc)</button>
+        <button className="rounded-full bg-black/15 px-3 py-1 hover:bg-black/25" onClick={() => useStore.getState().setMode('select')}>Done (Esc)</button>
       </div>
     </>
   );
@@ -248,6 +288,7 @@ export function Editor({ id }) {
   const [meta, setMeta] = useState(null); // { viewToken }
   const [status, setStatus] = useState('loading'); // loading | saved | saving | error | missing
   const [sharing, setSharing] = useState(false);
+  const [pendingImport, setPendingImport] = useState(null);   // a parsed file waiting for the "replace?" confirmation
   const importRef = useRef();
   const intro = useIntro(status !== 'loading' && status !== 'missing');
 
@@ -300,8 +341,8 @@ export function Editor({ id }) {
     return () => { window.removeEventListener('beforeunload', warn); window.removeEventListener('keydown', key); };
   }, [status]);
 
-  if (status === 'missing') return <div className="center"><h2>Diagram not found</h2><Link to="/">Back to diagrams</Link></div>;
-  if (status === 'loading') return <div className="center muted">Loading…</div>;
+  if (status === 'missing') return <div className="grid h-full place-content-center gap-2 text-center"><h2 className="text-xl font-semibold">Diagram not found</h2><Link to="/">Back to diagrams</Link></div>;
+  if (status === 'loading') return <div className="grid h-full place-content-center text-muted-foreground">Loading…</div>;
 
   const exportJson = () => download(`${slug(s.name)}.strata.json`, JSON.stringify({ name: s.name, data: s.data }, null, 2), 'application/json');
   const exportPng = () => {
@@ -313,16 +354,16 @@ export function Editor({ id }) {
     if (!f) return;
     try {
       const { name, data } = parseDiagram(await f.text());
-      if (confirm('Replace the current diagram with the imported one?')) { s.replaceData(name, data); s.setView('fit'); }
-    } catch (e) { alert(`Import failed: ${e.message}`); }
+      setPendingImport({ name, data });
+    } catch (e) { s.showToast(`Import failed: ${e.message}`); }
   };
 
   return (
-    <div className="app">
+    <div className="relative flex h-full flex-col">
       <Topbar status={status} onShare={() => setSharing(true)} onExportJson={exportJson} onExportPng={exportPng}
         onImport={() => importRef.current.click()} onTips={intro.replay} />
       <input ref={importRef} type="file" accept="application/json,.json" hidden onChange={(e) => { importJson(e.target.files[0]); e.target.value = ''; }} />
-      <div className="stage">
+      <div className="stage relative min-h-0 flex-1">
         <Scene />
         <Details />
         <ContextMenu />
@@ -330,6 +371,13 @@ export function Editor({ id }) {
         <Toast />
         {intro.show && <Intro onDone={intro.dismiss} />}
       </div>
+      <AlertDialog open={!!pendingImport} onOpenChange={(o) => !o && setPendingImport(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader><AlertDialogTitle>Replace this diagram?</AlertDialogTitle><AlertDialogDescription>The imported file replaces everything in “{s.name || 'this diagram'}”. You can undo it with Ctrl/Cmd+Z.</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { s.replaceData(pendingImport.name, pendingImport.data); s.setView('fit'); setPendingImport(null); }}>Replace</AlertDialogAction></AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       {sharing && meta && (
         <ShareDialog id={id} viewToken={meta.viewToken} onClose={() => setSharing(false)}
           onRotate={async (i) => setMeta({ viewToken: (await api.rotate(i)).viewToken })} />

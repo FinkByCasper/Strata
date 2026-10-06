@@ -3,6 +3,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Line, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { useStore } from './store';
+import { useTheme } from './theme';
 import { GROUND, UP, camState, pointerCell, useHoldMove } from './hold';
 import { LabelLayout, openAddMenu } from './labels';
 import { FloorTiles, NodeLabels, NodesLayer } from './nodes';
@@ -165,6 +166,8 @@ function ZoneHandle({ zone, corner: [sx, sz], onHover }) {
 const CORNERS = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
 
 function ZoneView({ zone }) {
+  const dark = useTheme((st) => st.dark);
+  const nameColor = useMemo(() => (dark ? `#${new THREE.Color(zone.color).lerp(new THREE.Color('#ffffff'), 0.45).getHexString()}` : zone.color), [dark, zone.color]);   // lighter on a dark floor
   const selected = useStore((s) => s.selection?.type === 'zone' && s.selection.id === zone.id);
   const editable = useStore((s) => !s.readOnly && s.mode === 'select');
   const [hovered, setHovered] = useState(false);
@@ -224,13 +227,13 @@ function ZoneView({ zone }) {
       </group>
       {labelMode === 'edge' && zone.label && (
         <group position={textPos} rotation={[0, edge === 'left' || edge === 'right' ? Math.PI / 2 : 0, 0]}>
-          <FloorText text={zone.label} color={zone.color} maxWidth={edge === 'left' || edge === 'right' ? d : w} />
+          <FloorText text={zone.label} color={nameColor} maxWidth={edge === 'left' || edge === 'right' ? d : w} />
         </group>
       )}
       {/* "Centre": a big darker-tinted watermark that fills the zone, running along its longer side. */}
       {labelMode === 'center' && zone.label && (
         <group position={[0, -0.465, 0]} rotation={[0, d > w ? Math.PI / 2 : 0, 0]}>
-          <FloorText text={zone.label} color={zone.color} opacity={0.6}
+          <FloorText text={zone.label} color={nameColor} opacity={0.6}
             maxWidth={Math.max(w, d) * 0.9} maxHeight={Math.min(w, d) * 0.6} />
         </group>
       )}
@@ -392,6 +395,7 @@ const GRID_FRAG = /* glsl */`
 
 function FloorGrid({ y = -0.5, cell = 1, section = 5 }) {
   const controls = useThree((st) => st.controls);
+  const dark = useTheme((st) => st.dark);
   const material = useMemo(() => new THREE.ShaderMaterial({
     transparent: true, side: THREE.DoubleSide, depthWrite: false,
     vertexShader: GRID_VERT, fragmentShader: GRID_FRAG,
@@ -405,6 +409,10 @@ function FloorGrid({ y = -0.5, cell = 1, section = 5 }) {
     },
   }), [y, cell, section]);
   useEffect(() => () => material.dispose(), [material]);
+  useEffect(() => {   // grid lines follow the theme
+    material.uniforms.cellColor.value.set(dark ? '#222a3d' : '#d2d6e0');
+    material.uniforms.sectionColor.value.set(dark ? '#313b55' : '#b9bfce');
+  }, [material, dark]);
   useFrame(() => {
     const t = controls?.target;
     if (t) material.uniforms.center.value.set(t.x, y, t.z);
@@ -455,6 +463,7 @@ let lastData = null, lastLift = null, burst = 0;
 
 export function Scene() {
   const data = useStore((s) => s.data);
+  const dark = useTheme((s) => s.dark);
   const orbitLocked = useStore((s) => s.dragging || s.hovering);
   const controls = useRef();
   // Clicking empty floor clears the selection, but moving the camera (any drag, however small, or a
@@ -479,14 +488,14 @@ export function Scene() {
       dpr={[1, 1.5]} gl={{ preserveDrawingBuffer: true, antialias: true }}
       onPointerMissed={clearOnEmptyClick}
     >
-      <color attach="background" args={['#eceef4']} />
-      <ambientLight intensity={1.05} />
+      <color attach="background" args={[dark ? '#0d1017' : '#eceef4']} />
+      <ambientLight intensity={dark ? 0.8 : 1.05} />
       <Sun />
       <directionalLight position={[-6, 4, -8]} intensity={0.45} />
       {/* Invisible floor that only shows the shadows cast on it. */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.494, 0]} receiveShadow raycast={() => null}>
         <planeGeometry args={[800, 800]} />
-        <shadowMaterial opacity={0.4} />
+        <shadowMaterial opacity={dark ? 0.6 : 0.4} />
       </mesh>
       <FloorGrid />
       <OrbitControls

@@ -2,6 +2,9 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Logo } from './Logo';
 import { camState } from './hold';
 import { useStore } from './store';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import { Check } from 'lucide-react';
 
 const KEY = 'strata.intro.seen';
 
@@ -37,11 +40,11 @@ export const VIEWER_TOUR = ['zoom', 'rotate', 'details'];
 function Mouse({ mode }) {
   return (
     <svg className={`mouse ${mode}`} viewBox="0 0 40 60" width="46" height="69" aria-hidden>
-      <rect x="4" y="4" width="32" height="52" rx="16" fill="#fff" stroke="#334155" strokeWidth="2.5" />
+      <rect className="body" x="4" y="4" width="32" height="52" rx="16" strokeWidth="2.5" />
       <path className="lbtn" d="M4 24V20a16 16 0 0 1 16-16V24Z" />
       <path className="rbtn" d="M36 24V20A16 16 0 0 0 20 4V24Z" />
-      <line x1="20" y1="4" x2="20" y2="24" stroke="#334155" strokeWidth="2" />
-      <line x1="4.5" y1="24" x2="35.5" y2="24" stroke="#334155" strokeWidth="2" />
+      <line className="split" x1="20" y1="4" x2="20" y2="24" strokeWidth="2" />
+      <line className="split" x1="4.5" y1="24" x2="35.5" y2="24" strokeWidth="2" />
       <rect className="wheel" x="17" y="9" width="6" height="11" rx="3" />
     </svg>
   );
@@ -49,8 +52,8 @@ function Mouse({ mode }) {
 
 function Demo({ mode }) {
   return (
-    <div className={`intro-demo ${mode}`}>
-      {mode === 'right' && <div className="mini-menu"><i /><i /></div>}
+    <div className={`intro-demo ${mode} grid size-[70px] place-items-center rounded-xl bg-muted`}>
+      {mode === 'right' && <div className="mini-menu grid w-[38px] gap-1.5 rounded-lg bg-popover p-1.5 shadow-md"><i className="h-1.5 rounded-sm bg-primary" /><i className="h-1.5 rounded-sm bg-border" /></div>}
       {mode !== 'right' && <Logo size={52} title="" />}
     </div>
   );
@@ -58,7 +61,7 @@ function Demo({ mode }) {
 
 // Watches what the user does and calls `done` once the current step's action has happened.
 function useStepWatcher(watch, done) {
-  const lastInput = useRef(0);
+  const lastInput = useRef(-1e9);   // "never": the app's own first camera fit must not count as the user zooming
   useEffect(() => {
     const stamp = () => { lastInput.current = performance.now(); };
     const opts = { capture: true, passive: true };
@@ -105,23 +108,23 @@ export function Intro({ onDone, steps = EDITOR_TOUR }) {
   }, [finished, onDone]);
 
   return (
-    <div className="intro" role="status" aria-live="polite">
+    <div className="intro absolute bottom-6 left-1/2 z-30 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 items-center gap-4 rounded-2xl border bg-card py-3 pr-3 pl-4 shadow-xl animate-in fade-in-0 slide-in-from-bottom-4" role="status" aria-live="polite">
       {finished ? (
-        <div className="intro-text done"><strong>✓ You're all set</strong><span>The camera tips are always under the share/file menu.</span></div>
+        <div className="flex min-w-[260px] flex-col gap-0.5"><strong className="flex items-center gap-1.5 text-[15px]"><Check className="size-4 text-success" /> You're all set</strong><span className="text-xs text-muted-foreground">The camera tips are always under the share/file menu.</span></div>
       ) : (
         <>
-          <div className="intro-scene">
+          <div className="flex items-center gap-3.5">
             <Mouse mode={step.mouse} />
             <Demo mode={step.mouse} />
           </div>
-          <div className="intro-text">
-            <strong>{step.title}</strong>
-            <span>{step.text}</span>
-            <div className="intro-dots" aria-label={`Step ${i + 1} of ${steps.length}`}>
-              {steps.map((s, k) => <i key={s} className={k < i ? 'done' : k === i ? 'now' : ''} />)}
+          <div className="flex min-w-[180px] max-w-[250px] flex-col gap-0.5">
+            <strong className="text-[15px]">{step.title}</strong>
+            <span className="text-xs text-muted-foreground">{step.text}</span>
+            <div className="mt-1.5 flex gap-1.5" aria-label={`Step ${i + 1} of ${steps.length}`}>
+              {steps.map((k, n) => <i key={k} className={cn('size-1.5 rounded-full bg-border transition-all', n < i && 'bg-success', n === i && 'scale-125 bg-primary')} />)}
             </div>
           </div>
-          <button className="intro-skip" onClick={onDone}>Skip</button>
+          <Button variant="ghost" size="xs" className="self-start text-muted-foreground" onClick={onDone}>Skip</Button>
         </>
       )}
     </div>

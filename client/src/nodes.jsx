@@ -8,6 +8,7 @@ import { BASIC_KINDS, NO_SHADOW, SELECTED_ONLY, TINT_ROLES, labelY, materialFor,
 import { IconGlyph, Label, lodFor, usePortal } from './labels';
 import { RichText } from './richtext';
 import { useHighlight } from './highlight';
+import { useTheme } from './theme';
 
 // Connect-mode click, or plain selection. Returns whether a press-and-hold pick-up may start.
 export function pickNode(id) {
@@ -160,6 +161,7 @@ function getBlobTexture() {
 const flatPlane = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
 
 export function FloorTiles() {
+  const dark = useTheme((st) => st.dark);
   const nodes = useStore((s) => s.data.nodes);
   const liftedId = useStore((s) => s.liftedId);
   const list = useMemo(() => nodes.filter((n) => n.shape !== 'slab' && n.id !== liftedId), [nodes, liftedId]);
@@ -185,7 +187,7 @@ export function FloorTiles() {
   useEffect(() => () => lineGeo.dispose(), [lineGeo]);
 
   useLayoutEffect(() => {
-    const o = new THREE.Object3D(), c = new THREE.Color(), white = new THREE.Color('#ffffff');
+    const o = new THREE.Object3D(), c = new THREE.Color(), white = new THREE.Color(dark ? '#141925' : '#ffffff');   // tiles are the node colour washed towards the floor tone
     list.forEach((n, i) => {
       o.position.set(n.position[0], -0.497, n.position[2]); o.scale.set(1, 1, 1); o.updateMatrix();
       tiles.current?.setMatrixAt(i, o.matrix);

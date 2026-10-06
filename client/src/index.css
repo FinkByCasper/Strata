@@ -1,0 +1,88 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "./scene.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Design tokens (shadcn "neutral" structure, tinted blue to match the Strata mark). Light first, dark below. */
+:root {
+  --radius: 0.625rem;
+  --background: #eceef4;
+  --foreground: #111827;
+  --card: #ffffff;
+  --card-foreground: #111827;
+  --popover: #ffffff;
+  --popover-foreground: #111827;
+  --primary: #3a73ee;
+  --primary-foreground: #ffffff;
+  --secondary: #e8ebf3;
+  --secondary-foreground: #1f2937;
+  --muted: #eff1f6;
+  --muted-foreground: #657084;
+  --accent: #e4e9f6;
+  --accent-foreground: #1f2937;
+  --destructive: #d9304f;
+  --border: #d9dde6;
+  --input: #d3d8e3;
+  --ring: #4f8cff;
+  --success: #2fb170;
+  --warning: #f5a524;
+}
+
+.dark {
+  --background: #0d1017;
+  --foreground: #e8ebf3;
+  --card: #161a24;
+  --card-foreground: #e8ebf3;
+  --popover: #1a1f2b;
+  --popover-foreground: #e8ebf3;
+  --primary: #5b93ff;
+  --primary-foreground: #0b1220;
+  --secondary: #222838;
+  --secondary-foreground: #e8ebf3;
+  --muted: #1c2130;
+  --muted-foreground: #98a2b8;
+  --accent: #272e43;
+  --accent-foreground: #e8ebf3;
+  --destructive: #f0647e;
+  --border: #2a3145;
+  --input: #303852;
+  --ring: #5b93ff;
+}
+
+@theme inline {
+  --font-sans: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+}
+
+@layer base {
+  * { @apply border-border outline-ring/50; }
+  html, body, #root { height: 100%; margin: 0; }
+  body { @apply bg-background text-foreground font-sans text-sm antialiased; }
+  a { @apply text-primary no-underline; }
+  button:not(:disabled), [role='button']:not([aria-disabled='true']) { cursor: pointer; }
+}
+
