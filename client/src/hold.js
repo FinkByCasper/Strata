@@ -2,6 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { useStore } from './store';
 
+// Live camera numbers (written by the scene each frame) so UI outside the canvas, e.g. the tour, can watch them.
+export const camState = { azimuth: 0, zoom: 1 };
+
 export const UP = new THREE.Vector3(0, 1, 0);
 export const GROUND = new THREE.Plane(UP, 0);
 const HOLD_MS = 500;   // press and hold this long to pick an object up

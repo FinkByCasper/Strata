@@ -244,3 +244,27 @@ button.pill:not(.primary) { background: rgb(127 135 160 / 0.12); border-color: t
 .popover .menu-strong { font-weight: 600; }
 
 .app { position: relative; }
+
+/* ---- step-by-step tour ---- */
+.intro-skip { border: 0; background: transparent; color: var(--muted); font-size: 12px; align-self: flex-start; padding: 2px 6px; }
+.intro-skip:hover { color: var(--text); }
+.intro-text.done { min-width: 260px; }
+.intro-dots { display: flex; gap: 5px; margin-top: 6px; }
+.intro-dots i { width: 7px; height: 7px; border-radius: 50%; background: rgb(127 135 160 / 0.35); }
+.intro-dots i.done { background: #3fb27f; }
+.intro-dots i.now { background: var(--accent); transform: scale(1.25); }
+.mouse .rbtn { fill: transparent; stroke: none; }
+.mouse.right .rbtn { fill: #4f8cff; animation: blink 1.2s ease-in-out infinite; }
+.mouse.click .lbtn { animation: blink 1.2s ease-in-out infinite; fill: #4f8cff; }
+.mouse.hold .lbtn { fill: #4f8cff; }
+.mouse.click, .mouse.hold, .mouse.right { animation: nudge 2.4s ease-in-out infinite; }
+@keyframes blink { 0%, 55%, 100% { opacity: 0.15; } 70%, 85% { opacity: 1; } }
+@keyframes nudge { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(5px, -3px); } }
+.intro-demo.click .logo-mark { animation: press 1.2s ease-in-out infinite; }
+.intro-demo.hold .logo-mark { animation: lift 2.4s ease-in-out infinite; }
+@keyframes press { 0%, 55%, 100% { transform: scale(1); } 70% { transform: scale(0.88); } }
+@keyframes lift { 0%, 25% { transform: translate(0, 0); filter: none; } 40%, 100% { transform: translate(14px, -10px); filter: drop-shadow(0 8px 5px rgb(15 23 42 / 0.3)); } }
+.mini-menu { width: 38px; padding: 6px; border-radius: 8px; background: #fff; box-shadow: 0 4px 12px rgb(15 23 42 / 0.2); display: grid; gap: 5px; animation: pop 2.4s ease-in-out infinite; }
+.mini-menu i { height: 6px; border-radius: 3px; background: #cbd5e1; }
+.mini-menu i:first-child { background: #4f8cff; }
+@keyframes pop { 0%, 40% { transform: scale(0.3); opacity: 0; } 55%, 100% { transform: scale(1); opacity: 1; } }

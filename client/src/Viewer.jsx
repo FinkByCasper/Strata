@@ -5,7 +5,7 @@ import { Scene } from './Scene';
 import { useStore } from './store';
 import { Details } from './Editor';
 import { CameraTools } from './Topbar';
-import { Intro, useIntro } from './Intro';
+import { Intro, useIntro, VIEWER_TOUR } from './Intro';
 
 // In an embed the top bar is hidden; it slides in when the pointer goes to the top edge (tap it on touch screens).
 function AutoHideBar({ children }) {
@@ -52,7 +52,7 @@ export function Viewer({ token, embed = false }) {
       <div className="stage">
         <Scene />
         <Details readOnly />
-        {intro.show && <Intro onDone={intro.dismiss} />}
+        {intro.show && <Intro onDone={intro.dismiss} steps={VIEWER_TOUR} />}
       </div>
     </div>
   );

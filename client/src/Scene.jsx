@@ -3,7 +3,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Line, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { useStore } from './store';
-import { GROUND, UP, useHoldMove } from './hold';
+import { GROUND, UP, camState, useHoldMove } from './hold';
 import { LabelLayout, openAddMenu } from './labels';
 import { FloorTiles, NodeLabels, NodesLayer } from './nodes';
 import { ConnectorsLayer } from './connectors';
@@ -214,6 +214,10 @@ const dirFor = (az) => new THREE.Vector3(
 function CameraRig({ controls }) {
   const view = useStore((s) => s.view);
   const { camera, size } = useThree();
+  useFrame(() => {
+    const c = controls.current;
+    if (c) { camState.azimuth = c.getAzimuthalAngle(); camState.zoom = camera.zoom; }
+  });
 
   useEffect(() => {
     const c = controls.current;
