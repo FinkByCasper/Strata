@@ -47,6 +47,28 @@ pnpm start          # serves the app AND the API on http://localhost:3001
 
 or with Docker: `docker build -t strata . && docker run -p 3001:3001 -v strata-data:/data strata`
 
+### Hosting it online (Docker Compose)
+
+```bash
+cp .env.example .env        # set STRATA_PASSWORD (and DOMAIN if you want HTTPS)
+docker compose up -d --build
+```
+
+Open `http://<your-server>:3001` and log in as `strata` with your password. The editor, the diagram list and the edit API
+need the login; **share links (`/v/…`) and embeds (`/embed/…`) stay public**, so you can send a link to a colleague without
+giving them access to everything else.
+
+For HTTPS (recommended on the internet; the password is otherwise sent in clear text), point a DNS name at the server and run
+`docker compose --profile https up -d --build`. The bundled Caddy gets a free certificate for `DOMAIN` automatically (ports 80 and 443
+must be reachable). Data lives in the `strata-data` volume, so back that up. Update with `git pull && docker compose up -d --build`.
+
+| Variable | Meaning |
+| --- | --- |
+| `STRATA_PASSWORD` | Required by the compose file. Without it (running outside Docker) the editor is open to anyone who can reach the port |
+| `STRATA_USER` | Login name, default `strata` |
+| `STRATA_PORT` | Host port, default `3001` |
+| `DOMAIN` | Only for the `https` profile |
+
 Config (env vars): `PORT` (default 3001), `STRATA_DB` (default `./data/strata.db`).
 
 Troubleshooting:

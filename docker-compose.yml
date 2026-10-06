@@ -1,0 +1,45 @@
+# Strata, self-hosted.
+#
+#   1. cp .env.example .env   and set STRATA_PASSWORD
+#   2. docker compose up -d --build
+#   3. open http://<server>:3001   (log in as "strata" with your password)
+#
+# Over the internet use HTTPS (the password is only protected in transit by it). Either put your own reverse proxy
+# in front, or let the bundled Caddy do it (it fetches a free certificate for DOMAIN automatically):
+#   docker compose --profile https up -d --build
+services:
+  strata:
+    build: .
+    restart: unless-stopped
+    environment:
+      STRATA_PASSWORD: ${STRATA_PASSWORD:?Set STRATA_PASSWORD in .env so the editor is not open to the whole internet}
+      STRATA_USER: ${STRATA_USER:-strata}
+    ports:
+      - "${STRATA_PORT:-3001}:3001"
+    volumes:
+      - strata-data:/data          # the SQLite database lives here: back this volume up
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3001/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  caddy:
+    profiles: ["https"]
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on: [strata]
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  strata-data:
+  caddy-data:
+  caddy-config:

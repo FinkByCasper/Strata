@@ -46,3 +46,13 @@ test('without a built UI, / explains where the web app is', () => withServer(asy
   assert.equal(r.status, 200);
   assert.match(await r.text(), /localhost:5173/);
 }, { dist: '/definitely/not/here' }));
+
+test('password gate protects the editor but not share links', () => withServer(async (base) => {
+  const auth = { authorization: 'Basic ' + Buffer.from('strata:secret').toString('base64') };
+  assert.equal((await fetch(`${base}/api/diagrams`)).status, 401);
+  assert.equal((await fetch(`${base}/api/diagrams`, { headers: { authorization: 'Basic ' + Buffer.from('strata:nope').toString('base64') } })).status, 401);
+  const created = await (await fetch(`${base}/api/diagrams`, { ...json('POST', { name: 'x' }), headers: { 'content-type': 'application/json', ...auth } })).json();
+  assert.equal((await fetch(`${base}/api/diagrams/${created.id}`, { headers: auth })).status, 200);
+  assert.equal((await fetch(`${base}/api/shared/${created.viewToken}`)).status, 200, 'share links stay public');
+  assert.equal((await fetch(`${base}/healthz`)).status, 200);
+}, { password: 'secret' }));

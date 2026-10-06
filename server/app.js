@@ -3,20 +3,27 @@ import { existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { validateDiagram } from './schema.js';
+import { requireLogin } from './auth.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const EMPTY = { nodes: [], connectors: [], zones: [] };
 
-export function createApp(store, { dist = process.env.STRATA_DIST || join(here, '..', 'dist') } = {}) {
+export function createApp(store, {
+  dist = process.env.STRATA_DIST || join(here, '..', 'dist'),
+  user = process.env.STRATA_USER || 'strata',
+  password = process.env.STRATA_PASSWORD,
+} = {}) {
   const app = express();
   app.disable('x-powered-by');
   app.locals.hasUi = existsSync(dist);   // is the built web app next to the server?
+  app.get('/healthz', (_req, res) => res.type('text').send('ok'));
+  app.use(requireLogin({ user, password }));
   app.use(express.json({ limit: '4mb' }));
 
   const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res)).catch(next);
 
-  // Editor API: anyone with server access can list/edit. Access control is left to the
-  // deployment (reverse proxy / network); sharing with others is via the view token.
+  // Editor API: open to anyone who can reach the server unless STRATA_PASSWORD is set (see auth.js);
+  // sharing with others is via the view token.
   app.get('/api/diagrams', (_req, res) => res.json(store.list()));
 
   app.post('/api/diagrams', wrap((req, res) => {
