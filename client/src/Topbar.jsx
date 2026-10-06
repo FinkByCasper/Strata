@@ -18,7 +18,7 @@ function Tool({ icon, label, keys, onClick, disabled, pressed }) {
   return (
     <Hint label={label} keys={keys}>
       <Button variant="ghost" size="icon-sm" onClick={onClick} disabled={disabled} aria-label={label} aria-pressed={pressed}
-        className={cn('text-muted-foreground hover:bg-card hover:text-foreground', pressed && 'bg-card text-primary shadow-sm')}>
+        className={cn('text-muted-foreground hover:bg-card hover:text-foreground', pressed && 'bg-primary/15 text-primary ring-1 ring-primary/60 hover:bg-primary/20 hover:text-primary')}>
         {icon}
       </Button>
     </Hint>
@@ -60,9 +60,9 @@ export function Topbar({ status, onShare, onExportJson, onExportPng, onImport, o
       </div>
 
       <div className="flex items-center gap-2 max-[900px]:order-3 max-[900px]:col-span-full max-[900px]:justify-center">
-        <ToggleGroup type="single" value={mode} onValueChange={(v) => v && st.setMode(v)} aria-label="Tool">
-          <Hint label="Select" keys="V"><ToggleGroupItem value="select" aria-label="Select"><MousePointer2 /></ToggleGroupItem></Hint>
-          <Hint label="Connect" keys="C"><ToggleGroupItem value="connect" aria-label="Connect"><Spline /></ToggleGroupItem></Hint>
+        <ToggleGroup type="single" value={mode} onValueChange={(v) => v && st.setMode(v)} aria-label="Tool" className="gap-0.5 p-0.5">
+          <Hint label="Select" keys="V"><ToggleGroupItem variant="tool" value="select" aria-label="Select"><MousePointer2 /></ToggleGroupItem></Hint>
+          <Hint label="Connect" keys="C"><ToggleGroupItem variant="tool" value="connect" aria-label="Connect"><Spline /></ToggleGroupItem></Hint>
         </ToggleGroup>
         <Strip role="group" aria-label="History">
           <Tool icon={<Undo2 />} label="Undo" keys="Ctrl+Z" disabled={!canUndo} onClick={() => st.undo()} />
