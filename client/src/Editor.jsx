@@ -324,7 +324,11 @@ export function Editor({ id }) {
         if (is('d')) { e.preventDefault(); useStore.getState().duplicateSelection(); return; }   // Ctrl/Cmd+D would bookmark the page
       }
       if (e.key === 'Delete' || e.key === 'Backspace') useStore.getState().removeSelection();
-      if (e.key === 'Escape') { useStore.getState().setMode('select'); useStore.getState().select(null); }
+      if (e.key === 'Escape') {
+        const st = useStore.getState();
+        if (st.placing) { st.cancelPlacing(); return; }   // first Esc only drops the paste preview
+        st.setMode('select'); st.select(null);
+      }
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       const st = useStore.getState();
       const k = e.key.toLowerCase();

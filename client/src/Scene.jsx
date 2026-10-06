@@ -4,7 +4,9 @@ import { Line, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { useStore } from './store';
 import { useTheme } from './theme';
-import { GROUND, UP, camState, pointerCell, useHoldMove } from './hold';
+import { GROUND, UP, camState, placed, pointerCell, useHoldMove } from './hold';
+import { materialFor, partsFor } from './parts';
+import { snapAnchor } from './clipboard';
 import { LabelLayout, openAddMenu } from './labels';
 import { FloorTiles, NodeLabels, NodesLayer } from './nodes';
 import { ConnectorsLayer } from './connectors';
@@ -31,6 +33,77 @@ function PointerTracker() {
     el.addEventListener('pointermove', move); el.addEventListener('pointerleave', leave);
     return () => { cancelAnimationFrame(raf); el.removeEventListener('pointermove', move); el.removeEventListener('pointerleave', leave); };
   }, [gl, camera]);
+  return null;
+}
+
+// ---- paste preview ----
+// While `placing` (after Ctrl/Cmd+C) a translucent copy of what was copied follows the mouse; the next click, or V, drops it there.
+function GhostNode({ node }) {
+  const parts = partsFor(node.shape);
+  const mats = useMemo(() => parts.map((p) => {
+    const m = materialFor(p.role, node.color).clone();
+    m.transparent = true; m.opacity = 0.5; m.depthWrite = false;
+    return m;
+  }), [node, parts]);
+  useEffect(() => () => mats.forEach((m) => m.dispose()), [mats]);
+  return (
+    <group position={node.position}>
+      {parts.map((p, i) => <mesh key={p.role} geometry={p.geometry} material={mats[i]} raycast={() => null} />)}
+    </group>
+  );
+}
+
+function GhostZone({ zone }) {
+  const [w, , d] = zone.size;
+  const shape = useMemo(() => roundedRect(w, d, cornerRadius(w, d)), [w, d]);
+  const outline = useMemo(() => { const pts = shape.getPoints(10).map((p) => [p.x, 0, p.y]); return [...pts, pts[0]]; }, [shape]);
+  return (
+    <group position={[zone.position[0], 0, zone.position[2]]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.47, 0]} raycast={() => null}>
+        <shapeGeometry args={[shape, 10]} />
+        <meshBasicMaterial color={zone.color} transparent opacity={0.28} depthWrite={false} side={THREE.DoubleSide} />
+      </mesh>
+      <group position={[0, -0.46, 0]}><Line points={outline} color={zone.color} lineWidth={2} dashed dashSize={0.3} gapSize={0.2} raycast={() => null} /></group>
+    </group>
+  );
+}
+
+function PasteGhost() {
+  const placing = useStore((s) => s.placing);
+  const clip = useStore((s) => s.clip);
+  const ref = useRef();
+  useFrame(() => {
+    const g = ref.current;
+    if (!g || !clip) return;
+    g.visible = pointerCell.over;
+    const [ax, az] = snapAnchor(clip, pointerCell.x, pointerCell.z);
+    g.position.set(ax - clip.anchor[0], 0, az - clip.anchor[1]);   // everything is stored at its original spot; shift it all together
+  });
+  if (!placing || !clip) return null;
+  return (
+    <group ref={ref} visible={false}>
+      {clip.zones.map((z, i) => <GhostZone key={`z${i}`} zone={z} />)}
+      {clip.nodes.map((n, i) => <GhostNode key={`n${i}`} node={n} />)}
+    </group>
+  );
+}
+
+// A plain click (not a camera drag) while a ghost is showing places the copy under the mouse.
+function PlaceHandler() {
+  const gl = useThree((st) => st.gl);
+  useEffect(() => {
+    let down = null;
+    const onDown = (e) => { down = e.button === 0 ? { x: e.clientX, y: e.clientY } : null; };
+    const onUp = (e) => {
+      const d = down; down = null;
+      if (!d || e.button !== 0 || e.target !== gl.domElement) return;
+      if (Math.hypot(e.clientX - d.x, e.clientY - d.y) > 5) return;
+      const st = useStore.getState();
+      if (st.placing) st.pasteClipboard();
+    };
+    window.addEventListener('pointerdown', onDown, true); window.addEventListener('pointerup', onUp, true);
+    return () => { window.removeEventListener('pointerdown', onDown, true); window.removeEventListener('pointerup', onUp, true); };
+  }, [gl]);
   return null;
 }
 
@@ -476,6 +549,7 @@ export function Scene() {
   }, []);
   const clearOnEmptyClick = (e) => {
     if (e.type !== 'click' || e.button !== 0) return;
+    if (performance.now() - placed.at < 500) return;   // this click just placed a pasted copy
     const p = press.current;
     if (p && (Math.hypot(e.clientX - p.x, e.clientY - p.y) > 4 || Math.abs(camState.azimuth - p.az) > 1e-3 || Math.abs(camState.zoom - p.zoom) > 1e-3)) return;
     const s = useStore.getState();
@@ -506,6 +580,8 @@ export function Scene() {
       <CameraRig controls={controls} />
       <ContextHandler />
       <PointerTracker />
+      <PlaceHandler />
+      <PasteGhost />
       <LabelLayout />
       {data.zones.map((z) => <ZoneView key={z.id} zone={z} />)}
       <FloorTiles />

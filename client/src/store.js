@@ -1,22 +1,10 @@
-import { pointerCell } from './hold';
+import { placed, pointerCell } from './hold';
 import { create } from 'zustand';
 import { EMPTY, flatten, freeSpot, newConnector, newNode, newZone, uid } from './model';
+import { buildClip, describe, freeOffset, materialize, snapAnchor } from './clipboard';
 
 // `rev` bumps on every user edit; the editor watches it to drive autosave.
-// The nearest grid square to (x, z) that has no node on it.
-function nearestFree(nodes, x, z) {
-  const taken = new Set(nodes.map((n) => `${n.position[0]},${n.position[2]}`));
-  for (let r = 0; r < 30; r++) {
-    const ring = [];
-    for (let dx = -r; dx <= r; dx++) for (let dz = -r; dz <= r; dz++) if (Math.max(Math.abs(dx), Math.abs(dz)) === r) ring.push([x + dx, z + dz]);
-    ring.sort((a, b) => Math.hypot(a[0] - x, a[1] - z) - Math.hypot(b[0] - x, b[1] - z) || a[1] - b[1]);
-    const free = ring.find(([cx, cz]) => !taken.has(`${cx},${cz}`));
-    if (free) return free;
-  }
-  return [x, z];
-}
 let toastTimer = 0;
-let clip = null;   // the copy/paste buffer
 export const useStore = create((set, get) => {
   // Undo history is a stack of {data, name} snapshots taken *before* each edit. Rapid edits of the same
   // thing (typing a label, dragging, resizing) share a `key` and collapse into one undo step.
@@ -45,10 +33,10 @@ export const useStore = create((set, get) => {
   return {
     name: '', data: EMPTY(), readOnly: false, rev: 0,
     selection: null, mode: 'select', connectFrom: null,
-    toast: null, snap: true, dragging: false, hovering: false, view: null, menu: null, fresh: null, liftedId: null,
+    toast: null, clip: null, placing: false, snap: true, dragging: false, hovering: false, view: null, menu: null, fresh: null, liftedId: null,
     past: [], future: [],
 
-    load: (name, data, readOnly = false) => { lastKey = null; set({ name, data: flatten(data), readOnly, rev: 0, selection: null, mode: 'select', connectFrom: null, view: null, past: [], future: [] }); },
+    load: (name, data, readOnly = false) => { lastKey = null; set({ name, data: flatten(data), readOnly, rev: 0, selection: null, mode: 'select', connectFrom: null, placing: false, view: null, past: [], future: [] }); },
     replaceData: (name, data) => edit(() => ({ data: flatten(data), name: name ?? get().name, selection: null })),
     setName: (name) => edit(() => ({ name }), 'name'),
 
@@ -89,43 +77,36 @@ export const useStore = create((set, get) => {
       clearTimeout(toastTimer);
       toastTimer = setTimeout(() => set({ toast: null }), 2200);
     },
-    copySelection: () => {
-      const { selection: sel, data } = get();
-      const item = sel?.type === 'node' ? data.nodes.find((x) => x.id === sel.id) : sel?.type === 'zone' ? data.zones.find((x) => x.id === sel.id) : null;
-      if (!item) { get().showToast('Select a node or zone first'); return false; }
-      clip = { type: sel.type, item: structuredClone(item), pasted: 0 };
-      get().showToast(`Copied “${item.label || 'Untitled'}”`);
+    // Copy / paste / duplicate (Ctrl/Cmd+C, Ctrl/Cmd+V, D). Copying a zone takes everything in it with it. After a copy a
+    // ghost follows the mouse (`placing`); the next click, or V, puts the copy there. Duplicate drops it right beside.
+    copySelection: (ghost = true) => {
+      const clip = buildClip(get().data, get().selection);
+      if (!clip) { get().showToast('Select a node or zone first'); return false; }
+      set({ clip, placing: ghost && !get().readOnly });
+      get().showToast(ghost ? `Copied ${describe(clip)}: click to place it (or press V), Esc to cancel` : `Copied ${describe(clip)}`);
       return true;
     },
-    // Paste lands on the square under the mouse (or one square down-right of the original when the mouse is not over
-    // the diagram); duplicate puts the copy right beside the original. A node never lands on an occupied square.
+    cancelPlacing: () => set({ placing: false }),
     pasteClipboard: (beside = false) => {
+      const { clip, data } = get();
       if (get().readOnly) return;
       if (!clip) { get().showToast('Nothing copied yet: select something and press Ctrl/Cmd+C'); return; }
-      const { type, item } = clip;
-      const { nodes, zones } = get().data;
-      let x, z;
-      if (beside) {
-        if (type === 'zone') { x = item.position[0] + item.size[0] + 1; z = item.position[2]; }
-        else [x, z] = nearestFree(nodes, item.position[0] + 1, item.position[2]);
-      } else if (pointerCell.over) {
-        x = pointerCell.x; z = pointerCell.z;
-        if (type === 'zone') { const off = (n) => (item.size[n] % 2 === 0 ? 0.5 : 0); x = Math.round(x - off(0)) + off(0); z = Math.round(z - off(2)) + off(2); }
-        else [x, z] = nearestFree(nodes, x, z);
-      } else {
-        clip.pasted += 1;
-        x = item.position[0] + clip.pasted; z = item.position[2] + clip.pasted;
-        if (type === 'node') [x, z] = nearestFree(nodes, x, z);
-      }
-      const copy = { ...structuredClone(item), id: uid(), position: [x, item.position[1], z] };
-      if (type === 'node') edit((s) => ({ data: { ...s.data, nodes: [...s.data.nodes, copy] }, selection: { type: 'node', id: copy.id } }));
-      else edit((s) => ({ data: { ...s.data, zones: [...s.data.zones, copy] }, selection: { type: 'zone', id: copy.id } }));
-      get().showToast(`${beside ? 'Duplicated' : 'Pasted'} “${item.label || 'Untitled'}”`);
-      void zones;
+      let target;   // where the anchor should land
+      if (beside) target = clip.type === 'zone' ? [clip.anchor[0] + clip.main.size[0] + 1, clip.anchor[1]] : [clip.anchor[0] + 1, clip.anchor[1]];
+      else if (pointerCell.over) target = snapAnchor(clip, pointerCell.x, pointerCell.z);
+      else { clip.pasted += 1; target = [clip.anchor[0] + clip.pasted, clip.anchor[1] + clip.pasted]; }
+      const [dx, dz] = freeOffset(clip, data.nodes, target[0] - clip.anchor[0], target[1] - clip.anchor[1]);
+      const made = materialize(clip, dx, dz);
+      edit((s) => ({
+        data: { ...s.data, nodes: [...s.data.nodes, ...made.nodes], zones: [...s.data.zones, ...made.zones], connectors: [...s.data.connectors, ...made.connectors] },
+        selection: made.main, placing: false,
+      }));
+      placed.at = performance.now();
+      get().showToast(`${beside ? 'Duplicated' : 'Pasted'} ${describe(clip)}`);
     },
     duplicateSelection: () => {
       if (get().readOnly) return;
-      if (get().copySelection()) get().pasteClipboard(true);
+      if (get().copySelection(false)) get().pasteClipboard(true);
     },
     startConnectFrom: (id) => set({ mode: 'connect', connectFrom: id }),
     setView: (name) => set({ view: { name, nonce: Math.random() } }),

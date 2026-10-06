@@ -7,6 +7,8 @@ export const camState = { azimuth: 0, zoom: 1 };
 
 // The grid square under the mouse while it is over the canvas (null otherwise); paste drops things there.
 export const pointerCell = { x: 0, z: 0, over: false };
+// When something was last placed from the clipboard (the click that did it must not also clear the selection).
+export const placed = { at: -1e9 };
 
 export const UP = new THREE.Vector3(0, 1, 0);
 export const GROUND = new THREE.Plane(UP, 0);
