@@ -208,6 +208,11 @@ function ShareDialog({ id, viewToken, onClose, onRotate }) {
 }
 
 // Shown while in Connect mode: a glowing frame round the viewport plus a banner saying what to do next.
+function Toast() {
+  const msg = useStore((s) => s.toast);
+  return msg ? <div className="toast" role="status">{msg}</div> : null;
+}
+
 function ConnectOverlay() {
   const mode = useStore((s) => s.mode);
   const from = useStore((s) => s.connectFrom);
@@ -314,6 +319,7 @@ export function Editor({ id }) {
         <Details />
         <ContextMenu />
         <ConnectOverlay />
+        <Toast />
         {intro.show && <Intro onDone={intro.dismiss} />}
       </div>
       {sharing && meta && (

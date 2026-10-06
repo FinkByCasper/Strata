@@ -15,6 +15,7 @@ function nearestFree(nodes, x, z) {
   }
   return [x, z];
 }
+let toastTimer = 0;
 let clip = null;   // the copy/paste buffer
 export const useStore = create((set, get) => {
   // Undo history is a stack of {data, name} snapshots taken *before* each edit. Rapid edits of the same
@@ -44,7 +45,7 @@ export const useStore = create((set, get) => {
   return {
     name: '', data: EMPTY(), readOnly: false, rev: 0,
     selection: null, mode: 'select', connectFrom: null,
-    snap: true, dragging: false, hovering: false, view: null, menu: null, fresh: null, liftedId: null,
+    toast: null, snap: true, dragging: false, hovering: false, view: null, menu: null, fresh: null, liftedId: null,
     past: [], future: [],
 
     load: (name, data, readOnly = false) => { lastKey = null; set({ name, data: flatten(data), readOnly, rev: 0, selection: null, mode: 'select', connectFrom: null, view: null, past: [], future: [] }); },
@@ -83,15 +84,24 @@ export const useStore = create((set, get) => {
     },
     // Copy / paste / duplicate for nodes and zones (Ctrl/Cmd+C, Ctrl/Cmd+V, D). A paste lands one square down-right
     // of where the last copy or paste was, so repeated pastes fan out instead of stacking.
+    showToast: (msg) => {
+      set({ toast: msg });
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => set({ toast: null }), 2200);
+    },
     copySelection: () => {
       const { selection: sel, data } = get();
       const item = sel?.type === 'node' ? data.nodes.find((x) => x.id === sel.id) : sel?.type === 'zone' ? data.zones.find((x) => x.id === sel.id) : null;
-      clip = item ? { type: sel.type, item: structuredClone(item), pasted: 0 } : clip;
+      if (!item) { get().showToast('Select a node or zone first'); return false; }
+      clip = { type: sel.type, item: structuredClone(item), pasted: 0 };
+      get().showToast(`Copied “${item.label || 'Untitled'}”`);
+      return true;
     },
     // Paste lands on the square under the mouse (or one square down-right of the original when the mouse is not over
     // the diagram); duplicate puts the copy right beside the original. A node never lands on an occupied square.
     pasteClipboard: (beside = false) => {
-      if (!clip || get().readOnly) return;
+      if (get().readOnly) return;
+      if (!clip) { get().showToast('Nothing copied yet: select something and press Ctrl/Cmd+C'); return; }
       const { type, item } = clip;
       const { nodes, zones } = get().data;
       let x, z;
@@ -110,12 +120,12 @@ export const useStore = create((set, get) => {
       const copy = { ...structuredClone(item), id: uid(), position: [x, item.position[1], z] };
       if (type === 'node') edit((s) => ({ data: { ...s.data, nodes: [...s.data.nodes, copy] }, selection: { type: 'node', id: copy.id } }));
       else edit((s) => ({ data: { ...s.data, zones: [...s.data.zones, copy] }, selection: { type: 'zone', id: copy.id } }));
+      get().showToast(`${beside ? 'Duplicated' : 'Pasted'} “${item.label || 'Untitled'}”`);
       void zones;
     },
     duplicateSelection: () => {
-      if (get().readOnly || !get().selection) return;
-      get().copySelection();
-      get().pasteClipboard(true);
+      if (get().readOnly) return;
+      if (get().copySelection()) get().pasteClipboard(true);
     },
     startConnectFrom: (id) => set({ mode: 'connect', connectFrom: id }),
     setView: (name) => set({ view: { name, nonce: Math.random() } }),

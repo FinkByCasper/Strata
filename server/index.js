@@ -8,7 +8,7 @@ const app = createApp(store);
 const dev = process.argv.includes('--dev');   // `pnpm dev` passes --dev: Vite serves the UI, this process is only the API
 app.listen(port, () => {
   if (app.locals.hasUi && !dev) {
-    if (!process.env.STRATA_PASSWORD && process.env.NODE_ENV === 'production') console.warn('[strata] WARNING: STRATA_PASSWORD is not set, so anyone who can reach this server can edit and delete diagrams.');
+    if (!process.env.STRATA_PASSWORD && process.env.NODE_ENV === 'production') console.log('[strata] Note: STRATA_PASSWORD is not set, so anyone who can reach this server can edit and delete diagrams. Share links work either way.');
     console.log(banner(['Strata is running', '', `Open the app:   http://localhost:${port}`, `Data:           ${process.env.STRATA_DB || './data/strata.db'}`, ...(process.env.STRATA_PASSWORD ? [`Login:          required (user "${process.env.STRATA_USER || 'strata'}")`] : [])]));
   } else {
     // Dev mode: this process is only the API; Vite serves the UI (and prints its own banner when it is ready).

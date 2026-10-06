@@ -51,25 +51,25 @@ or with Docker: `docker build -t strata . && docker run -p 3001:3001 -v strata-d
 ### Hosting it online
 
 **Coolify** (recommended): New resource → Docker Compose → pick this repo (compose file `/docker-compose.yaml`). Put your domain on
-the `strata` service (port 3001); Coolify handles HTTPS. It generates the login password for you: find it under Environment Variables as
-`SERVICE_PASSWORD_STRATA` (edit it there if you like), and log in as `strata`. The data lives in the `strata-data` volume.
+the `strata` service (port 3001); Coolify handles HTTPS. The editor is open by default; to put a login in front of it add an environment
+variable `STRATA_PASSWORD` in Coolify (login name `strata`, or set `STRATA_USER`). The data lives in the `strata-data` volume.
 
 **Plain Docker**:
 
 ```bash
-cp .env.example .env        # set STRATA_PASSWORD
+cp .env.example .env        # optionally set STRATA_PASSWORD
 docker compose up -d --build   # http://<server>:3001
 # with automatic HTTPS (set DOMAIN in .env first; ports 80/443 must be reachable):
 docker compose -f docker-compose.yaml -f docker-compose.caddy.yaml up -d --build
 ```
 
-The editor, the diagram list and the edit API need the login; **share links (`/v/…`) and embeds (`/embed/…`) stay public**, so you can
+With `STRATA_PASSWORD` set, the editor, the diagram list and the edit API need the login; **share links (`/v/…`) and embeds (`/embed/…`) stay public**, so you can
 send a link to a colleague without giving them access to everything else. Without HTTPS the password travels in clear text, so use one of the
 HTTPS options on the internet. Update with `git pull && docker compose up -d --build` (Coolify: Redeploy).
 
 | Variable | Meaning |
 | --- | --- |
-| `STRATA_PASSWORD` | Editor password. If it is not set the editor is open to anyone who can reach the port (the server warns about it) |
+| `STRATA_PASSWORD` | Optional editor password. If it is not set the editor is open to anyone who can reach the port (the server logs a note about it) |
 | `STRATA_USER` | Login name, default `strata` |
 | `STRATA_PORT` | Plain Docker only: host port, default `3001` |
 | `DOMAIN` | Only for `docker-compose.caddy.yaml` |
