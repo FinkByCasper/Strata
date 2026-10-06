@@ -106,6 +106,11 @@ The interface uses Tailwind CSS v4, [shadcn/ui](https://ui.shadcn.com) component
 the browser) is in the sun/moon menu; the 3D scene (background, floor grid, shadows, labels) follows it. To add another component, copy it
 into `client/src/components/ui/` and import it with `@/components/ui/<name>`.
 
-## Roadmap
+## Status
 
-Strata is a beta. What works, what is next and the known limits are in [ROADMAP.md](ROADMAP.md).
+Strata is a beta. Known limits today: the editor has no login (share links and embeds are read-only), two people editing the same diagram at
+once overwrite each other, and PNG export does not include the text labels. Each diagram is limited to 2000 nodes, 4000 connectors, 500 zones and 4 MB.
+
+## License
+
+[MIT](LICENSE), copyright (c) 2026 FinkByCasper.
