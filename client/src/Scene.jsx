@@ -227,6 +227,31 @@ function CameraRig({ controls }) {
     if (c) { camState.azimuth = c.getAzimuthalAngle(); camState.zoom = camera.zoom; }
   });
 
+  // With the tilt locked at 30°, a step along the ground in the viewing direction only moves 1/2 as far on screen
+  // (sin 30°) as a sideways step, so dragging up/down panned half as fast as left/right. Boost the along-view part
+  // of a pan by 1/sin(tilt) so the floor follows the cursor 1:1 in both directions.
+  useEffect(() => {
+    const c = controls.current;
+    if (!c) return;
+    const last = c.target.clone(), d = new THREE.Vector3(), f = new THREE.Vector3();
+    let panning = false;
+    const down = (e) => { panning = e.button === 2 || e.shiftKey || e.ctrlKey || e.metaKey; };
+    const up = () => { panning = false; };
+    const onChange = () => {
+      if (panning) {
+        d.copy(c.target).sub(last);
+        f.set(camera.position.x - c.target.x, 0, camera.position.z - c.target.z).normalize();   // ground direction along the view
+        const extra = d.dot(f) * (1 / Math.sin(ELEVATION) - 1);
+        c.target.addScaledVector(f, extra);
+        camera.position.addScaledVector(f, extra);
+      }
+      last.copy(c.target);
+    };
+    window.addEventListener('pointerdown', down, true); window.addEventListener('pointerup', up, true);
+    c.addEventListener('change', onChange);
+    return () => { window.removeEventListener('pointerdown', down, true); window.removeEventListener('pointerup', up, true); c.removeEventListener('change', onChange); };
+  }, [controls, camera]);
+
   useEffect(() => {
     const c = controls.current;
     if (!c) return;

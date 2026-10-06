@@ -31,12 +31,13 @@ export const lodFor = (zoom) => (zoom >= LOD_FULL ? 'full' : zoom >= LOD_TITLE ?
 // Every label registers itself so LabelLayout can nudge overlapping ones apart.
 const labelRegistry = new Set();
 
-export function Label({ position, children, className = '', onClick, priority = 2 }) {
+export function Label({ position, target = null, children, className = '', onClick, priority = 2 }) {
   const gl = useThree((s) => s.gl);
   const portal = usePortal();
   const rec = useRef({ el: null, priority, dx: 0, dy: 0, w: 0, h: 0, pos: new THREE.Vector3(), ro: null });
   rec.current.priority = priority;
   rec.current.pos.set(position[0], position[1], position[2]);
+  rec.current.target = target ? (rec.current.target ?? new THREE.Vector3()).set(target[0], target[1], target[2]) : null;   // what the label belongs to: a line is drawn down to it
   // drei's Html mounts its children in a separate React root *after* this effect runs, so the element
   // is attached through a callback ref rather than read in the effect.
   // Its size is cached by a ResizeObserver so the layout pass never has to read the DOM (which forces a reflow).
@@ -87,7 +88,9 @@ export function LabelLayout() {
       v.copy(r.pos).project(camera);   // where the label's anchor sits on screen, without touching the DOM
       const x = (v.x * 0.5 + 0.5) * size.width - r.w / 2, y = (-v.y * 0.5 + 0.5) * size.height - r.h / 2;
       if (x > size.width || y > size.height || x + r.w < 0 || y + r.h < 0) continue;
-      items.push({ r, x, y, w: r.w, h: r.h });
+      const it = { r, x, y, w: r.w, h: r.h };
+      if (r.target) { v.copy(r.target).project(camera); it.tx = (v.x * 0.5 + 0.5) * size.width; it.ty = (-v.y * 0.5 + 0.5) * size.height; }
+      items.push(it);
       sig += `${Math.round(x)},${Math.round(y)},${r.w};`;
     }
     if (sig !== lastSig) {
@@ -115,14 +118,18 @@ export function LabelLayout() {
         if (best.dx !== it.r.dx || best.dy !== it.r.dy) {
           it.r.dx = best.dx; it.r.dy = best.dy;
           it.r.el.style.translate = best.dx || best.dy ? `${best.dx}px ${best.dy}px` : '';
-          // a thin line back to the thing the label belongs to, so a label that had to move is still clearly attached
-          const lead = (it.r.leader ??= it.r.el.querySelector(':scope > .leader'));
-          if (lead) {
-            const tx = -best.dx, ty = -best.dy + it.h / 2;   // the anchor, relative to the label's centre (labels sit half a height above it)
-            const len = Math.hypot(tx, ty);
-            lead.style.display = len < 14 ? 'none' : 'block';
-            lead.style.width = `${len}px`;
-            lead.style.transform = `rotate(${Math.atan2(ty, tx)}rad)`;
+        }
+        // A thin line from the label down to the thing it belongs to (labels sit half a height above their anchor).
+        const lead = (it.r.leader ??= it.r.el.querySelector(':scope > .leader'));
+        if (lead) {
+          const cx = it.x + it.w / 2 + best.dx, cy = it.y + it.h / 2 + best.dy - it.h / 2;   // the label's centre on screen
+          const vx = (it.tx ?? it.x + it.w / 2) - cx, vy = (it.ty ?? it.y + it.h / 2) - cy;
+          const len = Math.hypot(vx, vy);
+          const css = len < 10 ? 'none' : `${len.toFixed(1)}|${Math.atan2(vy, vx).toFixed(3)}`;
+          if (css !== it.r.leaderCss) {
+            it.r.leaderCss = css;
+            if (css === 'none') lead.style.display = 'none';
+            else { lead.style.display = 'block'; lead.style.width = `${len}px`; lead.style.transform = `rotate(${Math.atan2(vy, vx)}rad)`; }
           }
         }
       }

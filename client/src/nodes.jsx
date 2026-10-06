@@ -4,7 +4,7 @@ import { Html, Line } from '@react-three/drei';
 import * as THREE from 'three';
 import { useStore } from './store';
 import { useHoldMove } from './hold';
-import { BASIC_KINDS, NO_SHADOW, TINT_ROLES, labelY, materialFor, partsFor } from './parts';
+import { BASIC_KINDS, NO_SHADOW, SELECTED_ONLY, TINT_ROLES, labelY, materialFor, partsFor } from './parts';
 import { IconGlyph, Label, lodFor, usePortal } from './labels';
 import { RichText } from './richtext';
 import { useHighlight } from './highlight';
@@ -65,6 +65,7 @@ function PartInstances({ kind, part, list, focus, h, dim }) {
     if (m.instanceColor) m.instanceColor.needsUpdate = true;
     m.computeBoundingSphere();   // raycasting uses it, so it must follow the instances
   });
+  if (SELECTED_ONLY.has(part.role)) return null;
   return (
     <instancedMesh
       key={`${kind}-${part.role}-${list.length}`} ref={ref} args={[part.geometry, material, list.length]} frustumCulled={false}
@@ -85,7 +86,7 @@ function FocusNode({ node, lifted, glow, h }) {
       onPointerDown={(e) => h.onDown(node, e)} onPointerMove={h.move}
       onPointerOver={() => setHover(true)} onPointerOut={() => setHover(false)}
     >
-      {parts.map((p) => (
+      {parts.filter((p) => glow || !SELECTED_ONLY.has(p.role)).map((p) => (
         <mesh key={p.role} geometry={p.geometry} material={materialFor(p.role, node.color, glow)}
           castShadow={!NO_SHADOW.has(p.role)} receiveShadow={p.role !== 'cast'} />
       ))}
@@ -263,7 +264,7 @@ export function NodeLabels() {
               </Html>
             )}
             <Label
-              position={[n.position[0], lift + labelY(n.shape), n.position[2]]}
+              position={[n.position[0], lift + labelY(n.shape), n.position[2]]} target={[n.position[0], lift + 0.1, n.position[2]]}
               className={`${selected ? 'selected' : ''} ${full ? '' : 'small'} ${spot ? '' : 'dim'}`} priority={selected ? 3 : hl && spot ? 2.5 : MINOR.has(n.shape) ? 1.8 : 2}
               onClick={() => pickNode(n.id)}
             >

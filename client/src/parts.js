@@ -119,7 +119,7 @@ const BUILDERS = {
   container: ({ B }) => {
     B('glass', [0.95, 0.95, 0.95]);
     for (const a of [-0.475, 0.475]) for (const b of [-0.475, 0.475]) {   // the glass cube's 12 edges
-      B('dark', [0.95, 0.02, 0.02], [0, a, b]); B('dark', [0.02, 0.95, 0.02], [a, 0, b]); B('dark', [0.02, 0.02, 0.95], [a, b, 0]);
+      B('cage', [0.95, 0.02, 0.02], [0, a, b]); B('cage', [0.02, 0.95, 0.02], [a, 0, b]); B('cage', [0.02, 0.02, 0.95], [a, b, 0]);
     }
     for (const y of [-0.2, 0.06]) B('main', [0.62, 0.18, 0.62], [0, y, 0]);
     B('light', [0.62, 0.05, 0.62], [0, -0.4, 0]); B('light', [0.5, 0.05, 0.5], [0, 0.27, 0]);
@@ -143,7 +143,9 @@ export function partsFor(kind) {
 // "Tinted" roles take the node's colour. In instanced draws that comes from the per-instance colour, so the
 // material itself is white; non-instanced (focused) nodes use a coloured, optionally glowing material.
 export const TINT_ROLES = new Set(['main', 'ring', 'glass', 'lattice']);
-export const NO_SHADOW = new Set(['ring', 'glass', 'lattice']);
+export const NO_SHADOW = new Set(['ring', 'glass', 'lattice', 'cage']);
+// Decorative shells (a container's glass and frame) are only drawn while the node is selected, so the model inside is always plain to see.
+export const SELECTED_ONLY = new Set(['glass', 'cage']);
 const FIXED = {
   dark: { color: '#1f2937', roughness: 0.45, metalness: 0.15 },
   light: { color: '#e5e7eb', roughness: 0.45, metalness: 0.15 },
@@ -159,6 +161,7 @@ const FIXED = {
 const tintProps = (role) => ({
   main: { roughness: 0.5, metalness: 0.08 },
   ring: { roughness: 0.4, transparent: true, opacity: 0.65 },
+  cage: { color: '#1f2937', roughness: 0.45, metalness: 0.15 },
   glass: { roughness: 0.15, transparent: true, opacity: 0.2, depthWrite: false },
   lattice: { roughness: 0.5, wireframe: true },
 }[role]);
