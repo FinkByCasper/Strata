@@ -387,15 +387,27 @@ export function Scene() {
   const data = useStore((s) => s.data);
   const orbitLocked = useStore((s) => s.dragging || s.hovering);
   const controls = useRef();
+  // Clicking empty floor clears the selection, but moving the camera (any drag, however small, or a
+  // right-click/drag, or a wheel/rotate) must not: remember where and how the press started.
+  const press = useRef(null);
+  useEffect(() => {
+    const down = (e) => { press.current = { x: e.clientX, y: e.clientY, az: camState.azimuth, zoom: camState.zoom }; };
+    window.addEventListener('pointerdown', down, true);
+    return () => window.removeEventListener('pointerdown', down, true);
+  }, []);
+  const clearOnEmptyClick = (e) => {
+    if (e.type !== 'click' || e.button !== 0) return;
+    const p = press.current;
+    if (p && (Math.hypot(e.clientX - p.x, e.clientY - p.y) > 4 || Math.abs(camState.azimuth - p.az) > 1e-3 || Math.abs(camState.zoom - p.zoom) > 1e-3)) return;
+    const s = useStore.getState();
+    if (s.mode === 'select') s.select(null);
+  };
 
   return (
     <Canvas
       shadows orthographic camera={{ position: [30, 24, 30], zoom: 50, near: -500, far: 500 }}
       dpr={[1, 1.5]} gl={{ preserveDrawingBuffer: true, antialias: true }}
-      onPointerMissed={() => {
-        const s = useStore.getState();
-        if (s.mode === 'select') s.select(null);
-      }}
+      onPointerMissed={clearOnEmptyClick}
     >
       <color attach="background" args={['#eceef4']} />
       <ambientLight intensity={1.05} />
