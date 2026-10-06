@@ -65,6 +65,7 @@ export function Label({ position, children, className = '', onClick, priority = 
         onWheel={(e) => gl.domElement.dispatchEvent(new WheelEvent('wheel', e.nativeEvent))}
       >
         {children}
+        <i className="leader" aria-hidden />
       </div>
     </Html>
   );
@@ -114,6 +115,15 @@ export function LabelLayout() {
         if (best.dx !== it.r.dx || best.dy !== it.r.dy) {
           it.r.dx = best.dx; it.r.dy = best.dy;
           it.r.el.style.translate = best.dx || best.dy ? `${best.dx}px ${best.dy}px` : '';
+          // a thin line back to the thing the label belongs to, so a label that had to move is still clearly attached
+          const lead = (it.r.leader ??= it.r.el.querySelector(':scope > .leader'));
+          if (lead) {
+            const tx = -best.dx, ty = -best.dy + it.h / 2;   // the anchor, relative to the label's centre (labels sit half a height above it)
+            const len = Math.hypot(tx, ty);
+            lead.style.display = len < 14 ? 'none' : 'block';
+            lead.style.width = `${len}px`;
+            lead.style.transform = `rotate(${Math.atan2(ty, tx)}rad)`;
+          }
         }
       }
     }

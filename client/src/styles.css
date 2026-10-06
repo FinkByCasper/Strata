@@ -268,3 +268,9 @@ button.pill:not(.primary) { background: rgb(127 135 160 / 0.12); border-color: t
 .mini-menu i { height: 6px; border-radius: 3px; background: #cbd5e1; }
 .mini-menu i:first-child { background: #4f8cff; }
 @keyframes pop { 0%, 40% { transform: scale(0.3); opacity: 0; } 55%, 100% { transform: scale(1); opacity: 1; } }
+
+/* ---- label leader lines and spotlight dimming ---- */
+.label { isolation: isolate; }
+.label .leader { display: none; position: absolute; left: 50%; top: 50%; height: 0; border-top: 1.5px solid rgb(79 140 255 / 0.85); transform-origin: 0 0; z-index: -1; pointer-events: none; }
+.label .leader::after { content: ''; position: absolute; right: -3px; top: -4px; width: 6px; height: 6px; border-radius: 50%; background: #4f8cff; }
+.label.dim { opacity: 0.22; }

@@ -8,6 +8,7 @@ import { RichText } from './richtext';
 import { ContextMenu, ShapePicker, Swatches } from './Menu';
 import { Topbar } from './Topbar';
 import { Intro, useIntro } from './Intro';
+import { zoneMembers } from './highlight';
 
 const download = (name, text, type) => {
   const url = URL.createObjectURL(new Blob([text], { type }));
@@ -183,6 +184,7 @@ function Inspector({ sel }) {
       <p className="muted">Size</p>
       <div className="xz">{[['Width', 0], ['Depth', 2]].map(([a, i]) => <label key={a}>{a}{num(z.size, i, (p) => s.updateZone(z.id, { size: [Math.max(1, p[0]), 0, Math.max(1, p[2])] }))}</label>)}</div>
       <button onClick={s.duplicateSelection}>Duplicate</button>
+      <p className="muted">{zoneSummary(z, data)}</p>
       <button className="danger" onClick={s.removeSelection}>Delete zone</button>
     </aside>
   );
@@ -224,6 +226,12 @@ function ConnectOverlay() {
       </div>
     </>
   );
+}
+
+function zoneSummary(z, data) {
+  const inside = new Set(zoneMembers(z, data.nodes).map((n) => n.id));
+  const links = data.connectors.filter((c) => inside.has(c.from) || inside.has(c.to)).length;
+  return `${inside.size} ${inside.size === 1 ? 'item' : 'items'} inside · ${links} ${links === 1 ? 'connection' : 'connections'}. Everything in the zone is highlighted while it is selected.`;
 }
 
 export function Editor({ id }) {

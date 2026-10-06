@@ -7,6 +7,7 @@ import { useHoldMove } from './hold';
 import { BASIC_KINDS, NO_SHADOW, TINT_ROLES, labelY, materialFor, partsFor } from './parts';
 import { IconGlyph, Label, lodFor, usePortal } from './labels';
 import { RichText } from './richtext';
+import { useHighlight } from './highlight';
 
 // Connect-mode click, or plain selection. Returns whether a press-and-hold pick-up may start.
 export function pickNode(id) {
@@ -42,9 +43,13 @@ function CellMarker({ size, color, fill, outline, position }) {
 // Node bodies. All nodes of one kind share baked geometry and are drawn with one InstancedMesh per
 // material role, so the number of draw calls depends on the number of kinds, not on the node count.
 // ---------------------------------------------------------------------------------------------
-function PartInstances({ kind, part, list, focus, h }) {
+function PartInstances({ kind, part, list, focus, h, dim }) {
   const ref = useRef();
-  const material = useMemo(() => materialFor(part.role), [part.role]);
+  const material = useMemo(() => materialFor(part.role).clone(), [part.role]);
+  useEffect(() => {   // while something is spotlighted, everything else fades back
+    material.transparent = dim; material.opacity = dim ? 0.22 : 1; material.depthWrite = !dim; material.needsUpdate = true;
+  }, [material, dim]);
+  useEffect(() => () => material.dispose(), [material]);
   useLayoutEffect(() => {
     const m = ref.current;
     if (!m) return;
@@ -100,7 +105,10 @@ export function NodesLayer() {
   const liftedId = hold.lifted ? activeRef.current : null;
   useEffect(() => { useStore.setState({ liftedId }); }, [liftedId]);
 
-  const focus = useMemo(() => new Set([selId, connectFrom, liftedId].filter(Boolean)), [selId, connectFrom, liftedId]);
+  const hl = useHighlight();
+  const core = useMemo(() => new Set([selId, connectFrom, liftedId].filter(Boolean)), [selId, connectFrom, liftedId]);
+  // spotlighted nodes are drawn as ordinary full-strength meshes, the rest are the (faded) instances
+  const focus = useMemo(() => (hl ? new Set([...core, ...hl.nodes]) : core), [core, hl]);
   const byKind = useMemo(() => {
     const m = new Map();
     for (const n of nodes) (m.get(n.shape) ?? m.set(n.shape, []).get(n.shape)).push(n);
@@ -118,12 +126,12 @@ export function NodesLayer() {
   return (
     <>
       {[...byKind].map(([kind, list]) => partsFor(kind).map((part) => (
-        <PartInstances key={`${kind}-${part.role}`} kind={kind} part={part} list={list} focus={focus} h={h} />
+        <PartInstances key={`${kind}-${part.role}`} kind={kind} part={part} list={list} focus={focus} h={h} dim={!!hl} />
       )))}
       {nodes.filter((n) => focus.has(n.id)).map((n) => (
         <React.Fragment key={n.id}>
           <FocusNode node={n} lifted={n.id === liftedId} glow={n.id === selId || n.id === connectFrom} h={h} />
-          {n.id === liftedId
+          {!core.has(n.id) ? null : n.id === liftedId
             ? <CellMarker position={n.position} size={1} color={n.color} fill={0.45} />
             : <CellMarker position={n.position} size={1} color={n.id === connectFrom ? '#f5a524' : '#4f8cff'} fill={0.22} outline />}
         </React.Fragment>
@@ -210,6 +218,7 @@ export function NodeLabels() {
   const selId = useStore((s) => (s.selection?.type === 'node' ? s.selection.id : null));
   const connectFrom = useStore((s) => s.connectFrom);
   const liftedId = useStore((s) => s.liftedId);
+  const hl = useHighlight();
   const { camera, size } = useThree();
   const [vis, setVis] = useState({ ids: new Set(), lod: 'full' });
   const prev = useRef('');
@@ -239,9 +248,12 @@ export function NodeLabels() {
   const portal = usePortal();
   return (
     <>
-      {nodes.filter((n) => vis.ids.has(n.id)).map((n) => {
+      {nodes.filter((n) => vis.ids.has(n.id) || hl?.nodes.has(n.id)).map((n) => {
         const selected = n.id === selId, lift = n.id === liftedId ? 0.5 : 0;
-        const full = vis.lod === 'full' || selected;
+        const spot = !hl || hl.nodes.has(n.id);
+        // With lots of labels on screen the two-line form is too busy: only the title, unless the item is spotlighted
+        const dense = vis.ids.size > 45;
+        const full = (vis.lod === 'full' && !dense) || selected || (!!hl && spot && hl.nodes.size <= 30);
         const onShape = n.icon && BASIC_KINDS.includes(n.shape) && n.shape !== 'slab';
         return (
           <React.Fragment key={n.id}>
@@ -252,7 +264,7 @@ export function NodeLabels() {
             )}
             <Label
               position={[n.position[0], lift + labelY(n.shape), n.position[2]]}
-              className={`${selected ? 'selected' : ''} ${full ? '' : 'small'}`} priority={selected ? 3 : MINOR.has(n.shape) ? 1.8 : 2}
+              className={`${selected ? 'selected' : ''} ${full ? '' : 'small'} ${spot ? '' : 'dim'}`} priority={selected ? 3 : hl && spot ? 2.5 : MINOR.has(n.shape) ? 1.8 : 2}
               onClick={() => pickNode(n.id)}
             >
               <div className="title">

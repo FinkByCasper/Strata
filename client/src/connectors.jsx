@@ -10,8 +10,24 @@ import { polylineMidpoint, routePoints } from './model';
 import { UP } from './hold';
 import { Label, useLod } from './labels';
 import { RichText } from './richtext';
+import { useHighlight } from './highlight';
 
 const selectConnector = (id) => useStore.getState().select({ type: 'connector', id });
+const FADE = new THREE.Color('#eceef4');   // the floor colour: dimmed lines are mixed towards it
+
+// Every connector under the pointer, nearest first. Clicking the same spot again steps to the next one, so
+// lines stacked on top of each other can all be reached.
+function pickConnector(raycaster, targets, idOf, current) {
+  const ids = [];
+  // R3F drops all but one hit per object (overlapping segments of one merged line would be lost), so ask the raycaster directly
+  for (const hit of raycaster.intersectObjects(targets, false)) {
+    const id = idOf(hit);
+    if (id && !ids.includes(id)) ids.push(id);
+  }
+  if (!ids.length) return null;
+  const at = ids.indexOf(current);
+  return at >= 0 ? ids[(at + 1) % ids.length] : ids[0];
+}
 
 // All connector lines are merged into two objects (solid + dashed) with per-segment colours, arrowheads are
 // one instanced mesh, and the moving data blobs another, so the number of connectors barely affects draw calls.
@@ -19,8 +35,9 @@ export function ConnectorsLayer() {
   const connectors = useStore((s) => s.data.connectors);
   const nodes = useStore((s) => s.data.nodes);
   const selId = useStore((s) => (s.selection?.type === 'connector' ? s.selection.id : null));
-  const { size } = useThree();
+  const { size, raycaster } = useThree();
   const lod = useLod();
+  const hl = useHighlight();
 
   const routes = useMemo(() => {
     const byId = new Map(nodes.map((n) => [n.id, n]));
@@ -36,6 +53,7 @@ export function ConnectorsLayer() {
       routes.forEach((r, ri) => {
         if ((r.c.line === 'dashed') !== dashed) return;
         color.set(r.c.color || '#475569');
+        if (hl && !hl.connectors.has(r.c.id)) color.lerp(FADE, 0.85);
         for (let i = 0; i < r.pts.length - 1; i++) {
           const p = r.pts[i], q = r.pts[i + 1];
           pos.push(p.x, p.y, p.z, q.x, q.y, q.z);
@@ -53,7 +71,7 @@ export function ConnectorsLayer() {
       return l;
     };
     return [make(false), make(true)].filter(Boolean);
-  }, [routes]);
+  }, [routes, hl]);
   useEffect(() => () => lines.forEach((l) => { l.geometry.dispose(); l.material.dispose(); }), [lines]);
   useEffect(() => { lines.forEach((l) => l.material.resolution.set(size.width, size.height)); }, [lines, size]);
 
@@ -77,7 +95,9 @@ export function ConnectorsLayer() {
       o.scale.setScalar(r.c.id === selId ? 1.25 : 1);
       o.updateMatrix();
       m.setMatrixAt(i, o.matrix);
-      m.setColorAt(i, c.set(r.c.color || '#475569'));
+      c.set(r.c.color || '#475569');
+      if (hl && !hl.connectors.has(r.c.id)) c.lerp(FADE, 0.85);
+      m.setColorAt(i, c);
     });
     m.instanceMatrix.needsUpdate = true;
     if (m.instanceColor) m.instanceColor.needsUpdate = true;
@@ -85,23 +105,32 @@ export function ConnectorsLayer() {
   });
 
   const selRoute = routes.find((r) => r.c.id === selId);
+  const flowRoutes = useMemo(() => (hl ? routes.filter((r) => hl.connectors.has(r.c.id)) : routes), [routes, hl]);   // faded lines carry no moving dots
   return (
     <>
       {selRoute && <Line points={selRoute.pts} color="#4f8cff" lineWidth={7} transparent opacity={0.35} raycast={() => null} />}
       {lines.map((l, i) => (
         <primitive
           key={i} object={l}
-          onClick={(e) => { e.stopPropagation(); const r = routes[l.userData.map[e.faceIndex]]; if (r) selectConnector(r.c.id); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            const id = pickConnector(raycaster, [...lines, arrowMesh.current].filter(Boolean), (hit) => (hit.object.userData.map ? routes[hit.object.userData.map[hit.faceIndex]]?.c.id : hit.object === arrowMesh.current ? arrows[hit.instanceId]?.r.c.id : null), selId);
+            if (id) selectConnector(id);
+          }}
           onPointerOver={() => { document.body.style.cursor = 'pointer'; }} onPointerOut={() => { document.body.style.cursor = ''; }}
         />
       ))}
       {arrows.length > 0 && (
         <instancedMesh
           key={arrows.length} ref={arrowMesh} args={[coneGeo, coneMat, arrows.length]} frustumCulled={false}
-          onClick={(e) => { e.stopPropagation(); const a = arrows[e.instanceId]; if (a) selectConnector(a.r.c.id); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            const id = pickConnector(raycaster, [...lines, arrowMesh.current].filter(Boolean), (hit) => (hit.object.userData.map ? routes[hit.object.userData.map[hit.faceIndex]]?.c.id : hit.object === arrowMesh.current ? arrows[hit.instanceId]?.r.c.id : null), selId);
+            if (id) selectConnector(id);
+          }}
         />
       )}
-      {lod !== 'off' && routes.filter((r) => r.c.label || r.c.subtitle || r.c.id === selId).map((r) => {
+      {lod !== 'off' && routes.filter((r) => (r.c.label || r.c.subtitle || r.c.id === selId) && (!hl || hl.connectors.has(r.c.id))).map((r) => {
         const selected = r.c.id === selId, full = lod === 'full' || selected;
         return (
           <Label key={r.c.id} position={polylineMidpoint(r.pts)} className={`line-label ${selected ? 'selected' : ''} ${full ? '' : 'small'}`}
@@ -112,7 +141,7 @@ export function ConnectorsLayer() {
           </Label>
         );
       })}
-      <FlowBlobs routes={routes} />
+      <FlowBlobs routes={flowRoutes} />
     </>
   );
 }

@@ -127,3 +127,4 @@ export const useStore = create((set, get) => {
     },
   };
 });
+if (typeof window !== 'undefined') window.__strataStore = useStore;   // handy for debugging and tests
