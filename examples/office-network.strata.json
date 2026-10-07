@@ -1,0 +1,247 @@
+{
+  "name": "Office network",
+  "data": {
+    "nodes": [
+      {
+        "id": "n17",
+        "label": "Laptop",
+        "subtitle": "",
+        "description": "",
+        "shape": "laptop",
+        "color": "#ef5b7b",
+        "position": [
+          -12,
+          0,
+          -6
+        ],
+        "icon": null
+      },
+      {
+        "id": "n18",
+        "label": "PC",
+        "subtitle": "",
+        "description": "",
+        "shape": "pc",
+        "color": "#64748b",
+        "position": [
+          -12,
+          0,
+          0
+        ],
+        "icon": null
+      },
+      {
+        "id": "n19",
+        "label": "Phone",
+        "subtitle": "",
+        "description": "",
+        "shape": "phone",
+        "color": "#4f8cff",
+        "position": [
+          -12,
+          0,
+          6
+        ],
+        "icon": null
+      },
+      {
+        "id": "n20",
+        "label": "Access point",
+        "subtitle": "",
+        "description": "",
+        "shape": "accesspoint",
+        "color": "#22b8a6",
+        "position": [
+          -6,
+          0,
+          0
+        ],
+        "icon": null
+      },
+      {
+        "id": "n21",
+        "label": "Router",
+        "subtitle": "",
+        "description": "",
+        "shape": "router",
+        "color": "#8b6cf6",
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "icon": null
+      },
+      {
+        "id": "n22",
+        "label": "App server",
+        "subtitle": "",
+        "description": "",
+        "shape": "server",
+        "color": "#6f93d6",
+        "position": [
+          6,
+          0,
+          0
+        ],
+        "icon": null
+      },
+      {
+        "id": "n23",
+        "label": "Database",
+        "subtitle": "",
+        "description": "",
+        "shape": "database",
+        "color": "#22b8a6",
+        "position": [
+          12,
+          0,
+          -6
+        ],
+        "icon": null
+      },
+      {
+        "id": "n24",
+        "label": "Cache",
+        "subtitle": "",
+        "description": "",
+        "shape": "cache",
+        "color": "#f5a524",
+        "position": [
+          12,
+          0,
+          6
+        ],
+        "icon": null
+      },
+      {
+        "id": "n25",
+        "label": "Admin",
+        "subtitle": "",
+        "description": "",
+        "shape": "user",
+        "color": "#64748b",
+        "position": [
+          0,
+          0,
+          6
+        ],
+        "icon": null
+      }
+    ],
+    "connectors": [
+      {
+        "id": "c26",
+        "from": "n17",
+        "to": "n20",
+        "route": "orthogonal",
+        "line": "dashed",
+        "arrow": true,
+        "label": "Wi-Fi",
+        "color": "#22b8a6"
+      },
+      {
+        "id": "c27",
+        "from": "n19",
+        "to": "n20",
+        "route": "orthogonal",
+        "line": "dashed",
+        "arrow": true,
+        "label": "Wi-Fi",
+        "color": "#22b8a6"
+      },
+      {
+        "id": "c28",
+        "from": "n18",
+        "to": "n20",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": true,
+        "label": "Ethernet",
+        "color": "#4f8cff"
+      },
+      {
+        "id": "c29",
+        "from": "n20",
+        "to": "n21",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": true,
+        "label": "",
+        "color": "#8b6cf6"
+      },
+      {
+        "id": "c30",
+        "from": "n21",
+        "to": "n22",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": true,
+        "label": "LAN",
+        "color": "#f5a524"
+      },
+      {
+        "id": "c31",
+        "from": "n22",
+        "to": "n23",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": true,
+        "label": "SQL",
+        "color": "#ef5b7b"
+      },
+      {
+        "id": "c32",
+        "from": "n22",
+        "to": "n24",
+        "route": "orthogonal-z",
+        "line": "solid",
+        "arrow": true,
+        "label": "get / set",
+        "color": "#8b6cf6"
+      },
+      {
+        "id": "c33",
+        "from": "n25",
+        "to": "n22",
+        "route": "orthogonal-z",
+        "line": "dashed",
+        "arrow": true,
+        "label": "SSH",
+        "color": "#64748b"
+      }
+    ],
+    "zones": [
+      {
+        "id": "z34",
+        "label": "Office",
+        "color": "#4f8cff",
+        "position": [
+          -8.5,
+          0,
+          0.5
+        ],
+        "size": [
+          11,
+          0,
+          17
+        ]
+      },
+      {
+        "id": "z35",
+        "label": "Data centre",
+        "color": "#22b8a6",
+        "position": [
+          9.5,
+          0,
+          0.5
+        ],
+        "size": [
+          9,
+          0,
+          17
+        ]
+      }
+    ]
+  }
+}

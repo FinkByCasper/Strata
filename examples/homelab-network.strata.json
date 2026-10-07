@@ -1,0 +1,806 @@
+{
+  "name": "Homelab network",
+  "data": {
+    "nodes": [
+      {
+        "id": "n36",
+        "label": "Unifi 8P PoE",
+        "subtitle": "",
+        "description": "",
+        "shape": "switch",
+        "color": "#9db4ee",
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "icon": null
+      },
+      {
+        "id": "n37",
+        "label": "Mikrotik",
+        "subtitle": "192.168.10.1 · WinBox 8888",
+        "description": "",
+        "shape": "router",
+        "color": "#7a8fd0",
+        "position": [
+          0,
+          0,
+          -4
+        ],
+        "icon": null
+      },
+      {
+        "id": "n38",
+        "label": "Mikrotik Firewall",
+        "subtitle": "",
+        "description": "",
+        "shape": "firewall",
+        "color": "#d9534f",
+        "position": [
+          0,
+          0,
+          -8
+        ],
+        "icon": null
+      },
+      {
+        "id": "n39",
+        "label": "Internet",
+        "subtitle": "",
+        "description": "",
+        "shape": "cloud",
+        "color": "#f8fafc",
+        "position": [
+          0,
+          0,
+          -12
+        ],
+        "icon": null
+      },
+      {
+        "id": "n40",
+        "label": "WiFi",
+        "subtitle": "",
+        "description": "",
+        "shape": "antenna",
+        "color": "#5b6577",
+        "position": [
+          -4,
+          0,
+          0
+        ],
+        "icon": null
+      },
+      {
+        "id": "n41",
+        "label": "HP Laserjet",
+        "subtitle": "192.168.10.4",
+        "description": "",
+        "shape": "printer",
+        "color": "#6b7280",
+        "position": [
+          -8,
+          0,
+          0
+        ],
+        "icon": null
+      },
+      {
+        "id": "n42",
+        "label": "Brother",
+        "subtitle": "192.168.10.20",
+        "description": "",
+        "shape": "printer",
+        "color": "#6b7280",
+        "position": [
+          -12,
+          0,
+          0
+        ],
+        "icon": null
+      },
+      {
+        "id": "n43",
+        "label": "Fibaro",
+        "subtitle": "192.168.10.3",
+        "description": "",
+        "shape": "pyramid",
+        "color": "#7da2f0",
+        "position": [
+          -4,
+          0,
+          4
+        ],
+        "icon": null
+      },
+      {
+        "id": "n44",
+        "label": "NAS - Synology",
+        "subtitle": "192.168.10.5:5000",
+        "description": "",
+        "shape": "database",
+        "color": "#8fb0e8",
+        "position": [
+          4,
+          0,
+          4
+        ],
+        "icon": null
+      },
+      {
+        "id": "n45",
+        "label": "NAS - QNAP",
+        "subtitle": "192.168.10.6",
+        "description": "",
+        "shape": "database",
+        "color": "#8fb0e8",
+        "position": [
+          4,
+          0,
+          8
+        ],
+        "icon": null
+      },
+      {
+        "id": "n46",
+        "label": "ESXi Server",
+        "subtitle": "192.168.10.10",
+        "description": "",
+        "shape": "server",
+        "color": "#6f93d6",
+        "position": [
+          8,
+          0,
+          0
+        ],
+        "icon": null
+      },
+      {
+        "id": "n47",
+        "label": "Docker",
+        "subtitle": "192.168.10.14",
+        "description": "",
+        "shape": "container",
+        "color": "#7da2f0",
+        "position": [
+          12,
+          0,
+          -4
+        ],
+        "icon": null
+      },
+      {
+        "id": "n48",
+        "label": "Unifi Controller",
+        "subtitle": "192.168.10.12",
+        "description": "",
+        "shape": "container",
+        "color": "#7da2f0",
+        "position": [
+          12,
+          0,
+          0
+        ],
+        "icon": null
+      },
+      {
+        "id": "n49",
+        "label": "PiHole",
+        "subtitle": "192.168.10.2",
+        "description": "",
+        "shape": "sphere",
+        "color": "#cbd5e1",
+        "position": [
+          12,
+          0,
+          4
+        ],
+        "icon": "DNS"
+      },
+      {
+        "id": "n50",
+        "label": "vCSA",
+        "subtitle": "192.168.10.11",
+        "description": "",
+        "shape": "container",
+        "color": "#7da2f0",
+        "position": [
+          16,
+          0,
+          -4
+        ],
+        "icon": null
+      },
+      {
+        "id": "n51",
+        "label": "Quickbooks",
+        "subtitle": "192.168.10.15",
+        "description": "",
+        "shape": "container",
+        "color": "#7da2f0",
+        "position": [
+          16,
+          0,
+          0
+        ],
+        "icon": null
+      },
+      {
+        "id": "n52",
+        "label": "Prowlarr",
+        "subtitle": "9696",
+        "description": "",
+        "shape": "container",
+        "color": "#7da2f0",
+        "position": [
+          -8,
+          0,
+          14
+        ],
+        "icon": null
+      },
+      {
+        "id": "n53",
+        "label": "Bazarr",
+        "subtitle": "6767",
+        "description": "",
+        "shape": "container",
+        "color": "#7da2f0",
+        "position": [
+          -4,
+          0,
+          14
+        ],
+        "icon": null
+      },
+      {
+        "id": "n54",
+        "label": "Sonarr",
+        "subtitle": "8989",
+        "description": "",
+        "shape": "container",
+        "color": "#7da2f0",
+        "position": [
+          0,
+          0,
+          14
+        ],
+        "icon": null
+      },
+      {
+        "id": "n55",
+        "label": "Radarr",
+        "subtitle": "7878",
+        "description": "",
+        "shape": "container",
+        "color": "#7da2f0",
+        "position": [
+          4,
+          0,
+          14
+        ],
+        "icon": null
+      },
+      {
+        "id": "n56",
+        "label": "JellySeerr",
+        "subtitle": "5055",
+        "description": "",
+        "shape": "container",
+        "color": "#7da2f0",
+        "position": [
+          8,
+          0,
+          14
+        ],
+        "icon": null
+      },
+      {
+        "id": "n57",
+        "label": "IsoFlow",
+        "subtitle": "9999",
+        "description": "",
+        "shape": "container",
+        "color": "#7da2f0",
+        "position": [
+          -8,
+          0,
+          18
+        ],
+        "icon": null
+      },
+      {
+        "id": "n58",
+        "label": "n8n",
+        "subtitle": "5678",
+        "description": "",
+        "shape": "container",
+        "color": "#7da2f0",
+        "position": [
+          -4,
+          0,
+          18
+        ],
+        "icon": null
+      },
+      {
+        "id": "n59",
+        "label": "Gitea",
+        "subtitle": "1234 · 2222",
+        "description": "",
+        "shape": "container",
+        "color": "#7da2f0",
+        "position": [
+          0,
+          0,
+          18
+        ],
+        "icon": null
+      },
+      {
+        "id": "n60",
+        "label": "Arr Stack",
+        "subtitle": "",
+        "description": "",
+        "shape": "container",
+        "color": "#7da2f0",
+        "position": [
+          4,
+          0,
+          18
+        ],
+        "icon": null
+      },
+      {
+        "id": "n61",
+        "label": "qBittorrent",
+        "subtitle": "8080",
+        "description": "",
+        "shape": "container",
+        "color": "#7da2f0",
+        "position": [
+          8,
+          0,
+          18
+        ],
+        "icon": null
+      },
+      {
+        "id": "n62",
+        "label": "Homepage",
+        "subtitle": "3000",
+        "description": "",
+        "shape": "container",
+        "color": "#7da2f0",
+        "position": [
+          -8,
+          0,
+          22
+        ],
+        "icon": null
+      },
+      {
+        "id": "n63",
+        "label": "Jellyfin",
+        "subtitle": "8096",
+        "description": "",
+        "shape": "container",
+        "color": "#7da2f0",
+        "position": [
+          -4,
+          0,
+          22
+        ],
+        "icon": null
+      },
+      {
+        "id": "n64",
+        "label": "Portainer",
+        "subtitle": "9443",
+        "description": "",
+        "shape": "container",
+        "color": "#7da2f0",
+        "position": [
+          0,
+          0,
+          22
+        ],
+        "icon": null
+      },
+      {
+        "id": "n65",
+        "label": "DumbAssets",
+        "subtitle": "3001",
+        "description": "",
+        "shape": "container",
+        "color": "#7da2f0",
+        "position": [
+          4,
+          0,
+          22
+        ],
+        "icon": null
+      },
+      {
+        "id": "n66",
+        "label": "Immich",
+        "subtitle": "2283",
+        "description": "",
+        "shape": "container",
+        "color": "#7da2f0",
+        "position": [
+          8,
+          0,
+          22
+        ],
+        "icon": null
+      },
+      {
+        "id": "n67",
+        "label": "Cloudflared",
+        "subtitle": "",
+        "description": "",
+        "shape": "server",
+        "color": "#6f93d6",
+        "position": [
+          16,
+          0,
+          14
+        ],
+        "icon": null
+      },
+      {
+        "id": "n68",
+        "label": "Twingate",
+        "subtitle": "",
+        "description": "",
+        "shape": "server",
+        "color": "#6f93d6",
+        "position": [
+          20,
+          0,
+          14
+        ],
+        "icon": null
+      },
+      {
+        "id": "n69",
+        "label": "Portainer Agent",
+        "subtitle": "",
+        "description": "",
+        "shape": "server",
+        "color": "#6f93d6",
+        "position": [
+          16,
+          0,
+          18
+        ],
+        "icon": null
+      },
+      {
+        "id": "n70",
+        "label": "DumbAssets",
+        "subtitle": "",
+        "description": "",
+        "shape": "server",
+        "color": "#6f93d6",
+        "position": [
+          20,
+          0,
+          18
+        ],
+        "icon": null
+      }
+    ],
+    "connectors": [
+      {
+        "id": "c71",
+        "from": "n36",
+        "to": "n37",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c72",
+        "from": "n37",
+        "to": "n38",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c73",
+        "from": "n38",
+        "to": "n39",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c74",
+        "from": "n36",
+        "to": "n40",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c75",
+        "from": "n40",
+        "to": "n41",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c76",
+        "from": "n41",
+        "to": "n42",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c77",
+        "from": "n36",
+        "to": "n43",
+        "route": "orthogonal-z",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c78",
+        "from": "n36",
+        "to": "n44",
+        "route": "orthogonal-z",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c79",
+        "from": "n44",
+        "to": "n45",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c80",
+        "from": "n36",
+        "to": "n46",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c81",
+        "from": "n46",
+        "to": "n47",
+        "route": "orthogonal-z",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c82",
+        "from": "n46",
+        "to": "n48",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c83",
+        "from": "n46",
+        "to": "n49",
+        "route": "orthogonal-z",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c84",
+        "from": "n47",
+        "to": "n50",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c85",
+        "from": "n48",
+        "to": "n51",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c86",
+        "from": "n49",
+        "to": "n67",
+        "route": "orthogonal-z",
+        "line": "solid",
+        "arrow": false,
+        "label": "DNS",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c87",
+        "from": "n45",
+        "to": "n55",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c88",
+        "from": "n52",
+        "to": "n53",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": true,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c89",
+        "from": "n53",
+        "to": "n54",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": true,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c90",
+        "from": "n54",
+        "to": "n55",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": true,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c91",
+        "from": "n55",
+        "to": "n56",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": true,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c92",
+        "from": "n55",
+        "to": "n60",
+        "route": "orthogonal-z",
+        "line": "solid",
+        "arrow": true,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c93",
+        "from": "n60",
+        "to": "n61",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": true,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c94",
+        "from": "n67",
+        "to": "n68",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c95",
+        "from": "n69",
+        "to": "n70",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c96",
+        "from": "n67",
+        "to": "n69",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      }
+    ],
+    "zones": [
+      {
+        "id": "z97",
+        "label": "ESXi Server",
+        "color": "#22b8a6",
+        "position": [
+          12.5,
+          0,
+          0.5
+        ],
+        "size": [
+          12,
+          0,
+          12
+        ]
+      },
+      {
+        "id": "z98",
+        "label": "Docker host",
+        "color": "#f5c542",
+        "position": [
+          0,
+          0,
+          18
+        ],
+        "size": [
+          21,
+          0,
+          13
+        ]
+      },
+      {
+        "id": "z99",
+        "label": "Edge services",
+        "color": "#5cc46a",
+        "position": [
+          18,
+          0,
+          16
+        ],
+        "size": [
+          9,
+          0,
+          9
+        ]
+      }
+    ]
+  }
+}

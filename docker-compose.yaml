@@ -1,0 +1,25 @@
+# Strata. This file is written for Coolify (Docker Compose build pack): Coolify assigns the domain, terminates
+# HTTPS, so nothing is published on the host here.
+#
+#   Coolify:  New resource -> Docker Compose -> this repo. Put your domain on the "strata" service (port 3001).
+#             There is no login: anyone who can open the URL can edit. Share links (/v/...) and embeds are read-only.
+#   Plain Docker (no Coolify):  see README ("Hosting it online"); docker-compose.override.yaml publishes the port.
+services:
+  strata:
+    build: .
+    restart: unless-stopped
+    environment:
+      # Coolify: gives the service its domain (routed to port 3001) and exposes it in the UI.
+      SERVICE_FQDN_STRATA_3001: ""
+    expose:
+      - "3001"
+    volumes:
+      - strata-data:/data          # the SQLite database lives here: back this volume up
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3001/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  strata-data:

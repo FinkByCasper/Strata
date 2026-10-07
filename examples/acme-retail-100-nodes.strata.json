@@ -1,0 +1,2660 @@
+{
+  "name": "Acme Retail · hybrid network (~100 nodes)",
+  "data": {
+    "nodes": [
+      {
+        "id": "n1",
+        "label": "Salesforce",
+        "subtitle": "",
+        "description": "",
+        "shape": "cloud",
+        "color": "#f8fafc",
+        "position": [
+          -8,
+          0,
+          -24
+        ],
+        "icon": null
+      },
+      {
+        "id": "n2",
+        "label": "ISP A",
+        "subtitle": "",
+        "description": "",
+        "shape": "cloud",
+        "color": "#f8fafc",
+        "position": [
+          -4,
+          0,
+          -24
+        ],
+        "icon": null
+      },
+      {
+        "id": "n3",
+        "label": "ISP B",
+        "subtitle": "",
+        "description": "",
+        "shape": "cloud",
+        "color": "#f8fafc",
+        "position": [
+          0,
+          0,
+          -24
+        ],
+        "icon": null
+      },
+      {
+        "id": "n4",
+        "label": "Internet",
+        "subtitle": "",
+        "description": "",
+        "shape": "cloud",
+        "color": "#f8fafc",
+        "position": [
+          4,
+          0,
+          -24
+        ],
+        "icon": null
+      },
+      {
+        "id": "n5",
+        "label": "CDN",
+        "subtitle": "",
+        "description": "",
+        "shape": "cloud",
+        "color": "#f8fafc",
+        "position": [
+          8,
+          0,
+          -24
+        ],
+        "icon": null
+      },
+      {
+        "id": "n6",
+        "label": "Microsoft 365",
+        "subtitle": "",
+        "description": "",
+        "shape": "cloud",
+        "color": "#f8fafc",
+        "position": [
+          12,
+          0,
+          -24
+        ],
+        "icon": null
+      },
+      {
+        "id": "n13",
+        "label": "Firewall A",
+        "subtitle": "10.0.0.1",
+        "description": "",
+        "shape": "firewall",
+        "color": "#d9534f",
+        "position": [
+          -4,
+          0,
+          -16
+        ],
+        "icon": null
+      },
+      {
+        "id": "n14",
+        "label": "Firewall B",
+        "subtitle": "10.0.0.2",
+        "description": "",
+        "shape": "firewall",
+        "color": "#d9534f",
+        "position": [
+          0,
+          0,
+          -16
+        ],
+        "icon": null
+      },
+      {
+        "id": "n15",
+        "label": "VPN gateway",
+        "subtitle": "10.0.0.5",
+        "description": "",
+        "shape": "router",
+        "color": "#8b6cf6",
+        "position": [
+          4,
+          0,
+          -16
+        ],
+        "icon": null
+      },
+      {
+        "id": "n16",
+        "label": "Router A",
+        "subtitle": "10.0.1.1",
+        "description": "",
+        "shape": "router",
+        "color": "#8b6cf6",
+        "position": [
+          -4,
+          0,
+          -12
+        ],
+        "icon": null
+      },
+      {
+        "id": "n17",
+        "label": "Router B",
+        "subtitle": "10.0.1.2",
+        "description": "",
+        "shape": "router",
+        "color": "#8b6cf6",
+        "position": [
+          0,
+          0,
+          -12
+        ],
+        "icon": null
+      },
+      {
+        "id": "n18",
+        "label": "WAF",
+        "subtitle": "10.0.0.9",
+        "description": "",
+        "shape": "firewall",
+        "color": "#d9534f",
+        "position": [
+          4,
+          0,
+          -12
+        ],
+        "icon": null
+      },
+      {
+        "id": "n19",
+        "label": "Core switch A",
+        "subtitle": "10.0.2.1",
+        "description": "",
+        "shape": "switch",
+        "color": "#9db4ee",
+        "position": [
+          -4,
+          0,
+          -8
+        ],
+        "icon": null
+      },
+      {
+        "id": "n20",
+        "label": "Core switch B",
+        "subtitle": "10.0.2.2",
+        "description": "",
+        "shape": "switch",
+        "color": "#9db4ee",
+        "position": [
+          0,
+          0,
+          -8
+        ],
+        "icon": null
+      },
+      {
+        "id": "n32",
+        "label": "Reverse proxy 1",
+        "subtitle": "10.1.0.11",
+        "description": "",
+        "shape": "server",
+        "color": "#6f93d6",
+        "position": [
+          -4,
+          0,
+          -3
+        ],
+        "icon": null
+      },
+      {
+        "id": "n33",
+        "label": "Reverse proxy 2",
+        "subtitle": "10.1.0.12",
+        "description": "",
+        "shape": "server",
+        "color": "#6f93d6",
+        "position": [
+          0,
+          0,
+          -3
+        ],
+        "icon": null
+      },
+      {
+        "id": "n34",
+        "label": "Mail gateway",
+        "subtitle": "10.1.0.25",
+        "description": "",
+        "shape": "server",
+        "color": "#6f93d6",
+        "position": [
+          4,
+          0,
+          -3
+        ],
+        "icon": null
+      },
+      {
+        "id": "n35",
+        "label": "Web 1",
+        "subtitle": "",
+        "description": "",
+        "shape": "container",
+        "color": "#7da2f0",
+        "position": [
+          -4,
+          0,
+          1
+        ],
+        "icon": null
+      },
+      {
+        "id": "n36",
+        "label": "Web 2",
+        "subtitle": "",
+        "description": "",
+        "shape": "container",
+        "color": "#7da2f0",
+        "position": [
+          0,
+          0,
+          1
+        ],
+        "icon": null
+      },
+      {
+        "id": "n37",
+        "label": "Web 3",
+        "subtitle": "",
+        "description": "",
+        "shape": "container",
+        "color": "#7da2f0",
+        "position": [
+          4,
+          0,
+          1
+        ],
+        "icon": null
+      },
+      {
+        "id": "n38",
+        "label": "Web 4",
+        "subtitle": "",
+        "description": "",
+        "shape": "container",
+        "color": "#7da2f0",
+        "position": [
+          -4,
+          0,
+          5
+        ],
+        "icon": null
+      },
+      {
+        "id": "n39",
+        "label": "Bastion",
+        "subtitle": "10.1.0.99",
+        "description": "",
+        "shape": "server",
+        "color": "#6f93d6",
+        "position": [
+          0,
+          0,
+          5
+        ],
+        "icon": null
+      },
+      {
+        "id": "n40",
+        "label": "SFTP",
+        "subtitle": "10.1.0.22",
+        "description": "",
+        "shape": "server",
+        "color": "#6f93d6",
+        "position": [
+          4,
+          0,
+          5
+        ],
+        "icon": null
+      },
+      {
+        "id": "n51",
+        "label": "Load balancer A",
+        "subtitle": "10.20.0.11",
+        "description": "",
+        "shape": "router",
+        "color": "#8b6cf6",
+        "position": [
+          14,
+          0,
+          -16
+        ],
+        "icon": null
+      },
+      {
+        "id": "n52",
+        "label": "App 1",
+        "subtitle": "",
+        "description": "",
+        "shape": "container",
+        "color": "#7da2f0",
+        "position": [
+          18,
+          0,
+          -16
+        ],
+        "icon": null
+      },
+      {
+        "id": "n53",
+        "label": "App 5",
+        "subtitle": "",
+        "description": "",
+        "shape": "container",
+        "color": "#7da2f0",
+        "position": [
+          22,
+          0,
+          -16
+        ],
+        "icon": null
+      },
+      {
+        "id": "n54",
+        "label": "DB primary",
+        "subtitle": "10.20.5.10",
+        "description": "",
+        "shape": "database",
+        "color": "#22b8a6",
+        "position": [
+          26,
+          0,
+          -16
+        ],
+        "icon": null
+      },
+      {
+        "id": "n55",
+        "label": "Redis 1",
+        "subtitle": "",
+        "description": "",
+        "shape": "cache",
+        "color": "#f5a524",
+        "position": [
+          30,
+          0,
+          -16
+        ],
+        "icon": null
+      },
+      {
+        "id": "n56",
+        "label": "Backup server",
+        "subtitle": "",
+        "description": "",
+        "shape": "server",
+        "color": "#6f93d6",
+        "position": [
+          34,
+          0,
+          -16
+        ],
+        "icon": null
+      },
+      {
+        "id": "n57",
+        "label": "Directory A",
+        "subtitle": "",
+        "description": "",
+        "shape": "server",
+        "color": "#6f93d6",
+        "position": [
+          38,
+          0,
+          -16
+        ],
+        "icon": null
+      },
+      {
+        "id": "n58",
+        "label": "Load balancer B",
+        "subtitle": "10.20.0.12",
+        "description": "",
+        "shape": "router",
+        "color": "#8b6cf6",
+        "position": [
+          14,
+          0,
+          -12
+        ],
+        "icon": null
+      },
+      {
+        "id": "n59",
+        "label": "App 2",
+        "subtitle": "",
+        "description": "",
+        "shape": "container",
+        "color": "#7da2f0",
+        "position": [
+          18,
+          0,
+          -12
+        ],
+        "icon": null
+      },
+      {
+        "id": "n60",
+        "label": "App 6",
+        "subtitle": "",
+        "description": "",
+        "shape": "container",
+        "color": "#7da2f0",
+        "position": [
+          22,
+          0,
+          -12
+        ],
+        "icon": null
+      },
+      {
+        "id": "n61",
+        "label": "DB replica 1",
+        "subtitle": "10.20.5.11",
+        "description": "",
+        "shape": "database",
+        "color": "#22b8a6",
+        "position": [
+          26,
+          0,
+          -12
+        ],
+        "icon": null
+      },
+      {
+        "id": "n62",
+        "label": "Redis 2",
+        "subtitle": "",
+        "description": "",
+        "shape": "cache",
+        "color": "#f5a524",
+        "position": [
+          30,
+          0,
+          -12
+        ],
+        "icon": null
+      },
+      {
+        "id": "n63",
+        "label": "Monitoring",
+        "subtitle": "",
+        "description": "",
+        "shape": "server",
+        "color": "#6f93d6",
+        "position": [
+          34,
+          0,
+          -12
+        ],
+        "icon": null
+      },
+      {
+        "id": "n64",
+        "label": "Directory B",
+        "subtitle": "",
+        "description": "",
+        "shape": "server",
+        "color": "#6f93d6",
+        "position": [
+          38,
+          0,
+          -12
+        ],
+        "icon": null
+      },
+      {
+        "id": "n65",
+        "label": "API gateway",
+        "subtitle": "10.20.0.20",
+        "description": "",
+        "shape": "server",
+        "color": "#6f93d6",
+        "position": [
+          14,
+          0,
+          -8
+        ],
+        "icon": null
+      },
+      {
+        "id": "n66",
+        "label": "App 3",
+        "subtitle": "",
+        "description": "",
+        "shape": "container",
+        "color": "#7da2f0",
+        "position": [
+          18,
+          0,
+          -8
+        ],
+        "icon": null
+      },
+      {
+        "id": "n67",
+        "label": "App 7",
+        "subtitle": "",
+        "description": "",
+        "shape": "container",
+        "color": "#7da2f0",
+        "position": [
+          22,
+          0,
+          -8
+        ],
+        "icon": null
+      },
+      {
+        "id": "n68",
+        "label": "DB replica 2",
+        "subtitle": "10.20.5.12",
+        "description": "",
+        "shape": "database",
+        "color": "#22b8a6",
+        "position": [
+          26,
+          0,
+          -8
+        ],
+        "icon": null
+      },
+      {
+        "id": "n69",
+        "label": "SAN A",
+        "subtitle": "10.20.6.1",
+        "description": "",
+        "shape": "database",
+        "color": "#22b8a6",
+        "position": [
+          30,
+          0,
+          -8
+        ],
+        "icon": null
+      },
+      {
+        "id": "n70",
+        "label": "Log server",
+        "subtitle": "",
+        "description": "",
+        "shape": "server",
+        "color": "#6f93d6",
+        "position": [
+          34,
+          0,
+          -8
+        ],
+        "icon": null
+      },
+      {
+        "id": "n71",
+        "label": "Jump host",
+        "subtitle": "",
+        "description": "",
+        "shape": "server",
+        "color": "#6f93d6",
+        "position": [
+          38,
+          0,
+          -8
+        ],
+        "icon": null
+      },
+      {
+        "id": "n72",
+        "label": "Auth service",
+        "subtitle": "10.20.0.30",
+        "description": "",
+        "shape": "server",
+        "color": "#6f93d6",
+        "position": [
+          14,
+          0,
+          -4
+        ],
+        "icon": null
+      },
+      {
+        "id": "n73",
+        "label": "App 4",
+        "subtitle": "",
+        "description": "",
+        "shape": "container",
+        "color": "#7da2f0",
+        "position": [
+          18,
+          0,
+          -4
+        ],
+        "icon": null
+      },
+      {
+        "id": "n74",
+        "label": "App 8",
+        "subtitle": "",
+        "description": "",
+        "shape": "container",
+        "color": "#7da2f0",
+        "position": [
+          22,
+          0,
+          -4
+        ],
+        "icon": null
+      },
+      {
+        "id": "n75",
+        "label": "Message queue",
+        "subtitle": "10.20.5.40",
+        "description": "",
+        "shape": "server",
+        "color": "#6f93d6",
+        "position": [
+          26,
+          0,
+          -4
+        ],
+        "icon": null
+      },
+      {
+        "id": "n76",
+        "label": "SAN B",
+        "subtitle": "10.20.6.2",
+        "description": "",
+        "shape": "database",
+        "color": "#22b8a6",
+        "position": [
+          30,
+          0,
+          -4
+        ],
+        "icon": null
+      },
+      {
+        "id": "n77",
+        "label": "CI/CD",
+        "subtitle": "",
+        "description": "",
+        "shape": "server",
+        "color": "#6f93d6",
+        "position": [
+          34,
+          0,
+          -4
+        ],
+        "icon": null
+      },
+      {
+        "id": "n78",
+        "label": "Vault",
+        "subtitle": "",
+        "description": "",
+        "shape": "server",
+        "color": "#6f93d6",
+        "position": [
+          38,
+          0,
+          -4
+        ],
+        "icon": null
+      },
+      {
+        "id": "n106",
+        "label": "PC",
+        "subtitle": "",
+        "description": "",
+        "shape": "pc",
+        "color": "#64748b",
+        "position": [
+          -34,
+          0,
+          -16
+        ],
+        "icon": null
+      },
+      {
+        "id": "n107",
+        "label": "PC",
+        "subtitle": "",
+        "description": "",
+        "shape": "pc",
+        "color": "#64748b",
+        "position": [
+          -31,
+          0,
+          -16
+        ],
+        "icon": null
+      },
+      {
+        "id": "n108",
+        "label": "PC",
+        "subtitle": "",
+        "description": "",
+        "shape": "pc",
+        "color": "#64748b",
+        "position": [
+          -28,
+          0,
+          -16
+        ],
+        "icon": null
+      },
+      {
+        "id": "n109",
+        "label": "Wi-Fi AP",
+        "subtitle": "",
+        "description": "",
+        "shape": "accesspoint",
+        "color": "#22b8a6",
+        "position": [
+          -34,
+          0,
+          -13
+        ],
+        "icon": null
+      },
+      {
+        "id": "n110",
+        "label": "Access switch 1",
+        "subtitle": "VLAN 10",
+        "description": "",
+        "shape": "switch",
+        "color": "#9db4ee",
+        "position": [
+          -31,
+          0,
+          -13
+        ],
+        "icon": null
+      },
+      {
+        "id": "n111",
+        "label": "Printer",
+        "subtitle": "",
+        "description": "",
+        "shape": "printer",
+        "color": "#6b7280",
+        "position": [
+          -28,
+          0,
+          -13
+        ],
+        "icon": null
+      },
+      {
+        "id": "n112",
+        "label": "Laptop",
+        "subtitle": "",
+        "description": "",
+        "shape": "laptop",
+        "color": "#ef5b7b",
+        "position": [
+          -34,
+          0,
+          -10
+        ],
+        "icon": null
+      },
+      {
+        "id": "n113",
+        "label": "Laptop",
+        "subtitle": "",
+        "description": "",
+        "shape": "laptop",
+        "color": "#ef5b7b",
+        "position": [
+          -31,
+          0,
+          -10
+        ],
+        "icon": null
+      },
+      {
+        "id": "n114",
+        "label": "Laptop",
+        "subtitle": "",
+        "description": "",
+        "shape": "laptop",
+        "color": "#ef5b7b",
+        "position": [
+          -28,
+          0,
+          -10
+        ],
+        "icon": null
+      },
+      {
+        "id": "n124",
+        "label": "PC",
+        "subtitle": "",
+        "description": "",
+        "shape": "pc",
+        "color": "#64748b",
+        "position": [
+          -34,
+          0,
+          -4
+        ],
+        "icon": null
+      },
+      {
+        "id": "n125",
+        "label": "PC",
+        "subtitle": "",
+        "description": "",
+        "shape": "pc",
+        "color": "#64748b",
+        "position": [
+          -31,
+          0,
+          -4
+        ],
+        "icon": null
+      },
+      {
+        "id": "n126",
+        "label": "PC",
+        "subtitle": "",
+        "description": "",
+        "shape": "pc",
+        "color": "#64748b",
+        "position": [
+          -28,
+          0,
+          -4
+        ],
+        "icon": null
+      },
+      {
+        "id": "n127",
+        "label": "Wi-Fi AP",
+        "subtitle": "",
+        "description": "",
+        "shape": "accesspoint",
+        "color": "#22b8a6",
+        "position": [
+          -34,
+          0,
+          -1
+        ],
+        "icon": null
+      },
+      {
+        "id": "n128",
+        "label": "Access switch 2",
+        "subtitle": "VLAN 20",
+        "description": "",
+        "shape": "switch",
+        "color": "#9db4ee",
+        "position": [
+          -31,
+          0,
+          -1
+        ],
+        "icon": null
+      },
+      {
+        "id": "n129",
+        "label": "Wi-Fi AP",
+        "subtitle": "",
+        "description": "",
+        "shape": "accesspoint",
+        "color": "#22b8a6",
+        "position": [
+          -28,
+          0,
+          -1
+        ],
+        "icon": null
+      },
+      {
+        "id": "n130",
+        "label": "Laptop",
+        "subtitle": "",
+        "description": "",
+        "shape": "laptop",
+        "color": "#ef5b7b",
+        "position": [
+          -34,
+          0,
+          2
+        ],
+        "icon": null
+      },
+      {
+        "id": "n131",
+        "label": "Laptop",
+        "subtitle": "",
+        "description": "",
+        "shape": "laptop",
+        "color": "#ef5b7b",
+        "position": [
+          -31,
+          0,
+          2
+        ],
+        "icon": null
+      },
+      {
+        "id": "n132",
+        "label": "Laptop",
+        "subtitle": "",
+        "description": "",
+        "shape": "laptop",
+        "color": "#ef5b7b",
+        "position": [
+          -28,
+          0,
+          2
+        ],
+        "icon": null
+      },
+      {
+        "id": "n142",
+        "label": "Laptop",
+        "subtitle": "",
+        "description": "",
+        "shape": "laptop",
+        "color": "#ef5b7b",
+        "position": [
+          -34,
+          0,
+          8
+        ],
+        "icon": null
+      },
+      {
+        "id": "n143",
+        "label": "Laptop",
+        "subtitle": "",
+        "description": "",
+        "shape": "laptop",
+        "color": "#ef5b7b",
+        "position": [
+          -31,
+          0,
+          8
+        ],
+        "icon": null
+      },
+      {
+        "id": "n144",
+        "label": "Phone",
+        "subtitle": "",
+        "description": "",
+        "shape": "phone",
+        "color": "#4f8cff",
+        "position": [
+          -28,
+          0,
+          8
+        ],
+        "icon": null
+      },
+      {
+        "id": "n145",
+        "label": "Wi-Fi AP",
+        "subtitle": "",
+        "description": "",
+        "shape": "accesspoint",
+        "color": "#22b8a6",
+        "position": [
+          -34,
+          0,
+          11
+        ],
+        "icon": null
+      },
+      {
+        "id": "n146",
+        "label": "Access switch 3",
+        "subtitle": "VLAN 30",
+        "description": "",
+        "shape": "switch",
+        "color": "#9db4ee",
+        "position": [
+          -31,
+          0,
+          11
+        ],
+        "icon": null
+      },
+      {
+        "id": "n147",
+        "label": "Printer",
+        "subtitle": "",
+        "description": "",
+        "shape": "printer",
+        "color": "#6b7280",
+        "position": [
+          -28,
+          0,
+          11
+        ],
+        "icon": null
+      },
+      {
+        "id": "n148",
+        "label": "PC",
+        "subtitle": "",
+        "description": "",
+        "shape": "pc",
+        "color": "#64748b",
+        "position": [
+          -34,
+          0,
+          14
+        ],
+        "icon": null
+      },
+      {
+        "id": "n149",
+        "label": "Laptop",
+        "subtitle": "",
+        "description": "",
+        "shape": "laptop",
+        "color": "#ef5b7b",
+        "position": [
+          -31,
+          0,
+          14
+        ],
+        "icon": null
+      },
+      {
+        "id": "n150",
+        "label": "Phone",
+        "subtitle": "",
+        "description": "",
+        "shape": "phone",
+        "color": "#4f8cff",
+        "position": [
+          -28,
+          0,
+          14
+        ],
+        "icon": null
+      },
+      {
+        "id": "n163",
+        "label": "Printer",
+        "subtitle": "",
+        "description": "",
+        "shape": "printer",
+        "color": "#6b7280",
+        "position": [
+          -34,
+          0,
+          24
+        ],
+        "icon": null
+      },
+      {
+        "id": "n164",
+        "label": "Branch router",
+        "subtitle": "",
+        "description": "",
+        "shape": "router",
+        "color": "#8b6cf6",
+        "position": [
+          -31,
+          0,
+          24
+        ],
+        "icon": null
+      },
+      {
+        "id": "n165",
+        "label": "PC",
+        "subtitle": "",
+        "description": "",
+        "shape": "pc",
+        "color": "#64748b",
+        "position": [
+          -34,
+          0,
+          27
+        ],
+        "icon": null
+      },
+      {
+        "id": "n166",
+        "label": "Branch switch",
+        "subtitle": "",
+        "description": "",
+        "shape": "switch",
+        "color": "#9db4ee",
+        "position": [
+          -31,
+          0,
+          27
+        ],
+        "icon": null
+      },
+      {
+        "id": "n167",
+        "label": "PC",
+        "subtitle": "",
+        "description": "",
+        "shape": "pc",
+        "color": "#64748b",
+        "position": [
+          -28,
+          0,
+          27
+        ],
+        "icon": null
+      },
+      {
+        "id": "n168",
+        "label": "Wi-Fi AP",
+        "subtitle": "",
+        "description": "",
+        "shape": "accesspoint",
+        "color": "#22b8a6",
+        "position": [
+          -31,
+          0,
+          30
+        ],
+        "icon": null
+      },
+      {
+        "id": "n176",
+        "label": "Printer",
+        "subtitle": "",
+        "description": "",
+        "shape": "printer",
+        "color": "#6b7280",
+        "position": [
+          -22,
+          0,
+          24
+        ],
+        "icon": null
+      },
+      {
+        "id": "n177",
+        "label": "Branch router",
+        "subtitle": "",
+        "description": "",
+        "shape": "router",
+        "color": "#8b6cf6",
+        "position": [
+          -19,
+          0,
+          24
+        ],
+        "icon": null
+      },
+      {
+        "id": "n178",
+        "label": "PC",
+        "subtitle": "",
+        "description": "",
+        "shape": "pc",
+        "color": "#64748b",
+        "position": [
+          -22,
+          0,
+          27
+        ],
+        "icon": null
+      },
+      {
+        "id": "n179",
+        "label": "Branch switch",
+        "subtitle": "",
+        "description": "",
+        "shape": "switch",
+        "color": "#9db4ee",
+        "position": [
+          -19,
+          0,
+          27
+        ],
+        "icon": null
+      },
+      {
+        "id": "n180",
+        "label": "PC",
+        "subtitle": "",
+        "description": "",
+        "shape": "pc",
+        "color": "#64748b",
+        "position": [
+          -16,
+          0,
+          27
+        ],
+        "icon": null
+      },
+      {
+        "id": "n181",
+        "label": "Wi-Fi AP",
+        "subtitle": "",
+        "description": "",
+        "shape": "accesspoint",
+        "color": "#22b8a6",
+        "position": [
+          -19,
+          0,
+          30
+        ],
+        "icon": null
+      },
+      {
+        "id": "n189",
+        "label": "Printer",
+        "subtitle": "",
+        "description": "",
+        "shape": "printer",
+        "color": "#6b7280",
+        "position": [
+          -10,
+          0,
+          24
+        ],
+        "icon": null
+      },
+      {
+        "id": "n190",
+        "label": "Branch router",
+        "subtitle": "",
+        "description": "",
+        "shape": "router",
+        "color": "#8b6cf6",
+        "position": [
+          -7,
+          0,
+          24
+        ],
+        "icon": null
+      },
+      {
+        "id": "n191",
+        "label": "PC",
+        "subtitle": "",
+        "description": "",
+        "shape": "pc",
+        "color": "#64748b",
+        "position": [
+          -10,
+          0,
+          27
+        ],
+        "icon": null
+      },
+      {
+        "id": "n192",
+        "label": "Branch switch",
+        "subtitle": "",
+        "description": "",
+        "shape": "switch",
+        "color": "#9db4ee",
+        "position": [
+          -7,
+          0,
+          27
+        ],
+        "icon": null
+      },
+      {
+        "id": "n193",
+        "label": "PC",
+        "subtitle": "",
+        "description": "",
+        "shape": "pc",
+        "color": "#64748b",
+        "position": [
+          -4,
+          0,
+          27
+        ],
+        "icon": null
+      },
+      {
+        "id": "n194",
+        "label": "Wi-Fi AP",
+        "subtitle": "",
+        "description": "",
+        "shape": "accesspoint",
+        "color": "#22b8a6",
+        "position": [
+          -7,
+          0,
+          30
+        ],
+        "icon": null
+      },
+      {
+        "id": "n202",
+        "label": "Remote user",
+        "subtitle": "",
+        "description": "",
+        "shape": "user",
+        "color": "#64748b",
+        "position": [
+          16,
+          0,
+          -26
+        ],
+        "icon": null
+      },
+      {
+        "id": "n203",
+        "label": "Remote user",
+        "subtitle": "",
+        "description": "",
+        "shape": "user",
+        "color": "#64748b",
+        "position": [
+          19,
+          0,
+          -26
+        ],
+        "icon": null
+      },
+      {
+        "id": "n204",
+        "label": "Remote user",
+        "subtitle": "",
+        "description": "",
+        "shape": "user",
+        "color": "#64748b",
+        "position": [
+          22,
+          0,
+          -26
+        ],
+        "icon": null
+      },
+      {
+        "id": "n205",
+        "label": "Phone",
+        "subtitle": "",
+        "description": "",
+        "shape": "phone",
+        "color": "#4f8cff",
+        "position": [
+          25,
+          0,
+          -26
+        ],
+        "icon": null
+      },
+      {
+        "id": "n206",
+        "label": "Phone",
+        "subtitle": "",
+        "description": "",
+        "shape": "phone",
+        "color": "#4f8cff",
+        "position": [
+          28,
+          0,
+          -26
+        ],
+        "icon": null
+      }
+    ],
+    "connectors": [
+      {
+        "id": "c8",
+        "from": "n4",
+        "to": "n3",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c9",
+        "from": "n4",
+        "to": "n2",
+        "route": "curved",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c10",
+        "from": "n4",
+        "to": "n5",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c11",
+        "from": "n5",
+        "to": "n6",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0",
+        "flow": "forward"
+      },
+      {
+        "id": "c12",
+        "from": "n1",
+        "to": "n2",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c22",
+        "from": "n2",
+        "to": "n13",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": true,
+        "label": "",
+        "color": "#4f7be0",
+        "flow": "forward"
+      },
+      {
+        "id": "c23",
+        "from": "n3",
+        "to": "n14",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": true,
+        "label": "",
+        "color": "#4f7be0",
+        "flow": "forward"
+      },
+      {
+        "id": "c24",
+        "from": "n13",
+        "to": "n16",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c25",
+        "from": "n14",
+        "to": "n17",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c26",
+        "from": "n16",
+        "to": "n19",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0",
+        "flow": "forward"
+      },
+      {
+        "id": "c27",
+        "from": "n17",
+        "to": "n20",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c28",
+        "from": "n19",
+        "to": "n20",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#8b6cf6"
+      },
+      {
+        "id": "c29",
+        "from": "n18",
+        "to": "n17",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c30",
+        "from": "n15",
+        "to": "n17",
+        "route": "straight",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0",
+        "flow": "forward"
+      },
+      {
+        "id": "c31",
+        "from": "n13",
+        "to": "n14",
+        "route": "orthogonal",
+        "line": "dashed",
+        "arrow": false,
+        "label": "",
+        "color": "#64748b"
+      },
+      {
+        "id": "c42",
+        "from": "n19",
+        "to": "n32",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0",
+        "flow": "forward"
+      },
+      {
+        "id": "c43",
+        "from": "n20",
+        "to": "n33",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c44",
+        "from": "n33",
+        "to": "n34",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c45",
+        "from": "n32",
+        "to": "n35",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c46",
+        "from": "n35",
+        "to": "n38",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0",
+        "flow": "forward"
+      },
+      {
+        "id": "c47",
+        "from": "n33",
+        "to": "n36",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c48",
+        "from": "n36",
+        "to": "n39",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0",
+        "flow": "forward"
+      },
+      {
+        "id": "c49",
+        "from": "n33",
+        "to": "n37",
+        "route": "straight",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0",
+        "flow": "forward"
+      },
+      {
+        "id": "c50",
+        "from": "n37",
+        "to": "n40",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0",
+        "flow": "forward"
+      },
+      {
+        "id": "c80",
+        "from": "n20",
+        "to": "n65",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": true,
+        "label": "",
+        "color": "#8b6cf6",
+        "flow": "both",
+        "color2": "#f5a524"
+      },
+      {
+        "id": "c81",
+        "from": "n51",
+        "to": "n52",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": true,
+        "label": "",
+        "color": "#4f7be0",
+        "flow": "forward"
+      },
+      {
+        "id": "c82",
+        "from": "n52",
+        "to": "n53",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c83",
+        "from": "n53",
+        "to": "n54",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": true,
+        "label": "",
+        "color": "#4f7be0",
+        "flow": "forward"
+      },
+      {
+        "id": "c84",
+        "from": "n54",
+        "to": "n55",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c85",
+        "from": "n58",
+        "to": "n59",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": true,
+        "label": "",
+        "color": "#4f7be0",
+        "flow": "forward"
+      },
+      {
+        "id": "c86",
+        "from": "n59",
+        "to": "n60",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c87",
+        "from": "n60",
+        "to": "n61",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": true,
+        "label": "",
+        "color": "#4f7be0",
+        "flow": "forward"
+      },
+      {
+        "id": "c88",
+        "from": "n61",
+        "to": "n62",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0",
+        "flow": "forward"
+      },
+      {
+        "id": "c89",
+        "from": "n65",
+        "to": "n66",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": true,
+        "label": "",
+        "color": "#4f7be0",
+        "flow": "forward"
+      },
+      {
+        "id": "c90",
+        "from": "n66",
+        "to": "n67",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0",
+        "flow": "forward"
+      },
+      {
+        "id": "c91",
+        "from": "n67",
+        "to": "n68",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": true,
+        "label": "",
+        "color": "#4f7be0",
+        "flow": "forward"
+      },
+      {
+        "id": "c92",
+        "from": "n68",
+        "to": "n69",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c93",
+        "from": "n72",
+        "to": "n73",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": true,
+        "label": "",
+        "color": "#4f7be0",
+        "flow": "forward"
+      },
+      {
+        "id": "c94",
+        "from": "n73",
+        "to": "n74",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c95",
+        "from": "n74",
+        "to": "n75",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": true,
+        "label": "",
+        "color": "#4f7be0",
+        "flow": "forward"
+      },
+      {
+        "id": "c96",
+        "from": "n75",
+        "to": "n76",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c97",
+        "from": "n51",
+        "to": "n58",
+        "route": "orthogonal",
+        "line": "dashed",
+        "arrow": false,
+        "label": "",
+        "color": "#64748b"
+      },
+      {
+        "id": "c98",
+        "from": "n54",
+        "to": "n61",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0",
+        "flow": "forward"
+      },
+      {
+        "id": "c99",
+        "from": "n61",
+        "to": "n68",
+        "route": "orthogonal",
+        "line": "dashed",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c100",
+        "from": "n55",
+        "to": "n62",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0",
+        "flow": "forward"
+      },
+      {
+        "id": "c101",
+        "from": "n69",
+        "to": "n76",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0",
+        "flow": "forward"
+      },
+      {
+        "id": "c102",
+        "from": "n57",
+        "to": "n64",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c103",
+        "from": "n56",
+        "to": "n63",
+        "route": "orthogonal",
+        "line": "dashed",
+        "arrow": false,
+        "label": "",
+        "color": "#64748b"
+      },
+      {
+        "id": "c104",
+        "from": "n63",
+        "to": "n70",
+        "route": "orthogonal",
+        "line": "dashed",
+        "arrow": false,
+        "label": "",
+        "color": "#64748b"
+      },
+      {
+        "id": "c105",
+        "from": "n70",
+        "to": "n77",
+        "route": "orthogonal",
+        "line": "dashed",
+        "arrow": false,
+        "label": "",
+        "color": "#64748b"
+      },
+      {
+        "id": "c116",
+        "from": "n110",
+        "to": "n106",
+        "route": "straight",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c117",
+        "from": "n110",
+        "to": "n107",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c118",
+        "from": "n110",
+        "to": "n108",
+        "route": "straight",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c119",
+        "from": "n110",
+        "to": "n109",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0",
+        "flow": "forward"
+      },
+      {
+        "id": "c120",
+        "from": "n110",
+        "to": "n111",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c121",
+        "from": "n110",
+        "to": "n112",
+        "route": "straight",
+        "line": "dashed",
+        "arrow": false,
+        "label": "",
+        "color": "#22b8a6"
+      },
+      {
+        "id": "c122",
+        "from": "n110",
+        "to": "n113",
+        "route": "orthogonal",
+        "line": "dashed",
+        "arrow": false,
+        "label": "",
+        "color": "#22b8a6"
+      },
+      {
+        "id": "c123",
+        "from": "n110",
+        "to": "n114",
+        "route": "straight",
+        "line": "dashed",
+        "arrow": false,
+        "label": "",
+        "color": "#22b8a6"
+      },
+      {
+        "id": "c134",
+        "from": "n128",
+        "to": "n124",
+        "route": "straight",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c135",
+        "from": "n128",
+        "to": "n125",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c136",
+        "from": "n128",
+        "to": "n126",
+        "route": "straight",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c137",
+        "from": "n128",
+        "to": "n127",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0",
+        "flow": "forward"
+      },
+      {
+        "id": "c138",
+        "from": "n128",
+        "to": "n129",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c139",
+        "from": "n128",
+        "to": "n130",
+        "route": "straight",
+        "line": "dashed",
+        "arrow": false,
+        "label": "",
+        "color": "#22b8a6"
+      },
+      {
+        "id": "c140",
+        "from": "n128",
+        "to": "n131",
+        "route": "orthogonal",
+        "line": "dashed",
+        "arrow": false,
+        "label": "",
+        "color": "#22b8a6"
+      },
+      {
+        "id": "c141",
+        "from": "n128",
+        "to": "n132",
+        "route": "straight",
+        "line": "dashed",
+        "arrow": false,
+        "label": "",
+        "color": "#22b8a6"
+      },
+      {
+        "id": "c152",
+        "from": "n146",
+        "to": "n142",
+        "route": "straight",
+        "line": "dashed",
+        "arrow": false,
+        "label": "",
+        "color": "#22b8a6"
+      },
+      {
+        "id": "c153",
+        "from": "n146",
+        "to": "n143",
+        "route": "orthogonal",
+        "line": "dashed",
+        "arrow": false,
+        "label": "",
+        "color": "#22b8a6"
+      },
+      {
+        "id": "c154",
+        "from": "n146",
+        "to": "n144",
+        "route": "straight",
+        "line": "dashed",
+        "arrow": false,
+        "label": "",
+        "color": "#22b8a6"
+      },
+      {
+        "id": "c155",
+        "from": "n146",
+        "to": "n145",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c156",
+        "from": "n146",
+        "to": "n147",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0",
+        "flow": "forward"
+      },
+      {
+        "id": "c157",
+        "from": "n146",
+        "to": "n148",
+        "route": "straight",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c158",
+        "from": "n146",
+        "to": "n149",
+        "route": "orthogonal",
+        "line": "dashed",
+        "arrow": false,
+        "label": "",
+        "color": "#22b8a6"
+      },
+      {
+        "id": "c159",
+        "from": "n146",
+        "to": "n150",
+        "route": "straight",
+        "line": "dashed",
+        "arrow": false,
+        "label": "",
+        "color": "#22b8a6"
+      },
+      {
+        "id": "c160",
+        "from": "n110",
+        "to": "n19",
+        "route": "curved",
+        "line": "dashed",
+        "arrow": false,
+        "label": "",
+        "color": "#8b6cf6"
+      },
+      {
+        "id": "c161",
+        "from": "n128",
+        "to": "n19",
+        "route": "curved",
+        "line": "dashed",
+        "arrow": false,
+        "label": "",
+        "color": "#8b6cf6"
+      },
+      {
+        "id": "c162",
+        "from": "n146",
+        "to": "n20",
+        "route": "curved",
+        "line": "dashed",
+        "arrow": false,
+        "label": "",
+        "color": "#8b6cf6"
+      },
+      {
+        "id": "c170",
+        "from": "n166",
+        "to": "n163",
+        "route": "straight",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0",
+        "flow": "forward"
+      },
+      {
+        "id": "c171",
+        "from": "n166",
+        "to": "n164",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c172",
+        "from": "n166",
+        "to": "n165",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c173",
+        "from": "n166",
+        "to": "n167",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c174",
+        "from": "n166",
+        "to": "n168",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0",
+        "flow": "forward"
+      },
+      {
+        "id": "c175",
+        "from": "n164",
+        "to": "n15",
+        "route": "curved",
+        "line": "dashed",
+        "arrow": true,
+        "label": "IPsec VPN",
+        "color": "#22b8a6",
+        "flow": "both",
+        "color2": "#f5a524"
+      },
+      {
+        "id": "c183",
+        "from": "n179",
+        "to": "n176",
+        "route": "straight",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c184",
+        "from": "n179",
+        "to": "n177",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c185",
+        "from": "n179",
+        "to": "n178",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c186",
+        "from": "n179",
+        "to": "n180",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0",
+        "flow": "forward"
+      },
+      {
+        "id": "c187",
+        "from": "n179",
+        "to": "n181",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0",
+        "flow": "forward"
+      },
+      {
+        "id": "c188",
+        "from": "n177",
+        "to": "n15",
+        "route": "curved",
+        "line": "dashed",
+        "arrow": true,
+        "label": "",
+        "color": "#22b8a6",
+        "flow": "both",
+        "color2": "#f5a524"
+      },
+      {
+        "id": "c196",
+        "from": "n192",
+        "to": "n189",
+        "route": "straight",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c197",
+        "from": "n192",
+        "to": "n190",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c198",
+        "from": "n192",
+        "to": "n191",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c199",
+        "from": "n192",
+        "to": "n193",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c200",
+        "from": "n192",
+        "to": "n194",
+        "route": "orthogonal",
+        "line": "solid",
+        "arrow": false,
+        "label": "",
+        "color": "#4f7be0"
+      },
+      {
+        "id": "c201",
+        "from": "n190",
+        "to": "n15",
+        "route": "curved",
+        "line": "dashed",
+        "arrow": true,
+        "label": "",
+        "color": "#22b8a6",
+        "flow": "both",
+        "color2": "#f5a524"
+      },
+      {
+        "id": "c208",
+        "from": "n202",
+        "to": "n15",
+        "route": "curved",
+        "line": "dashed",
+        "arrow": false,
+        "label": "",
+        "color": "#22b8a6",
+        "flow": "both",
+        "color2": "#f5a524"
+      },
+      {
+        "id": "c209",
+        "from": "n203",
+        "to": "n15",
+        "route": "curved",
+        "line": "dashed",
+        "arrow": false,
+        "label": "",
+        "color": "#22b8a6",
+        "flow": "both",
+        "color2": "#f5a524"
+      },
+      {
+        "id": "c210",
+        "from": "n204",
+        "to": "n15",
+        "route": "curved",
+        "line": "dashed",
+        "arrow": false,
+        "label": "",
+        "color": "#22b8a6",
+        "flow": "both",
+        "color2": "#f5a524"
+      },
+      {
+        "id": "c211",
+        "from": "n205",
+        "to": "n15",
+        "route": "curved",
+        "line": "dashed",
+        "arrow": false,
+        "label": "",
+        "color": "#22b8a6",
+        "flow": "both",
+        "color2": "#f5a524"
+      },
+      {
+        "id": "c212",
+        "from": "n206",
+        "to": "n15",
+        "route": "curved",
+        "line": "dashed",
+        "arrow": false,
+        "label": "",
+        "color": "#22b8a6",
+        "flow": "both",
+        "color2": "#f5a524"
+      }
+    ],
+    "zones": [
+      {
+        "id": "z7",
+        "label": "Internet & SaaS",
+        "color": "#4f8cff",
+        "position": [
+          2,
+          0,
+          -24
+        ],
+        "size": [
+          25,
+          0,
+          5
+        ],
+        "labelMode": "edge",
+        "labelEdge": "back"
+      },
+      {
+        "id": "z21",
+        "label": "Edge & core",
+        "color": "#f5a524",
+        "position": [
+          0,
+          0,
+          -12
+        ],
+        "size": [
+          13,
+          0,
+          13
+        ],
+        "labelMode": "edge",
+        "labelEdge": "back"
+      },
+      {
+        "id": "z41",
+        "label": "DMZ",
+        "color": "#ef5b7b",
+        "position": [
+          0,
+          0,
+          1
+        ],
+        "size": [
+          13,
+          0,
+          13
+        ],
+        "labelMode": "edge",
+        "labelEdge": "back"
+      },
+      {
+        "id": "z79",
+        "label": "Data centre",
+        "color": "#22b8a6",
+        "position": [
+          26,
+          0,
+          -10
+        ],
+        "size": [
+          29,
+          0,
+          17
+        ],
+        "labelMode": "edge",
+        "labelEdge": "back"
+      },
+      {
+        "id": "z115",
+        "label": "HQ floor 1 · Sales",
+        "color": "#4f8cff",
+        "position": [
+          -31,
+          0,
+          -13
+        ],
+        "size": [
+          11,
+          0,
+          11
+        ],
+        "labelMode": "edge",
+        "labelEdge": "back"
+      },
+      {
+        "id": "z133",
+        "label": "HQ floor 2 · Engineering",
+        "color": "#8b6cf6",
+        "position": [
+          -31,
+          0,
+          -1
+        ],
+        "size": [
+          11,
+          0,
+          11
+        ],
+        "labelMode": "edge",
+        "labelEdge": "back"
+      },
+      {
+        "id": "z151",
+        "label": "HQ floor 3 · Executive",
+        "color": "#f5a524",
+        "position": [
+          -31,
+          0,
+          11
+        ],
+        "size": [
+          11,
+          0,
+          11
+        ],
+        "labelMode": "edge",
+        "labelEdge": "back"
+      },
+      {
+        "id": "z169",
+        "label": "Branch A · Leeds",
+        "color": "#64748b",
+        "position": [
+          -31,
+          0,
+          27
+        ],
+        "size": [
+          11,
+          0,
+          11
+        ],
+        "labelMode": "edge",
+        "labelEdge": "back"
+      },
+      {
+        "id": "z182",
+        "label": "Branch B · Cardiff",
+        "color": "#64748b",
+        "position": [
+          -19,
+          0,
+          27
+        ],
+        "size": [
+          11,
+          0,
+          11
+        ],
+        "labelMode": "edge",
+        "labelEdge": "back"
+      },
+      {
+        "id": "z195",
+        "label": "Branch C · Glasgow",
+        "color": "#64748b",
+        "position": [
+          -7,
+          0,
+          27
+        ],
+        "size": [
+          11,
+          0,
+          11
+        ],
+        "labelMode": "edge",
+        "labelEdge": "back"
+      },
+      {
+        "id": "z207",
+        "label": "Remote workers",
+        "color": "#64748b",
+        "position": [
+          22,
+          0,
+          -26
+        ],
+        "size": [
+          17,
+          0,
+          5
+        ],
+        "labelMode": "edge",
+        "labelEdge": "back"
+      }
+    ]
+  }
+}

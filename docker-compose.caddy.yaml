@@ -1,0 +1,21 @@
+# Optional HTTPS for plain Docker without Coolify (Coolify does this itself, don't use it there):
+#   docker compose -f docker-compose.yaml -f docker-compose.caddy.yaml up -d --build
+# Needs DOMAIN in .env pointing at this server, and ports 80/443 reachable. Caddy fetches the certificate.
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on: [strata]
+    environment:
+      DOMAIN: ${DOMAIN:?Set DOMAIN in .env (e.g. strata.example.com)}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  caddy-data:
+  caddy-config:
