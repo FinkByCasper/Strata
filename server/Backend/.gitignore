@@ -1,0 +1,27 @@
+# Build output
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+artifacts/
+
+# IDEs
+.idea/
+.vs/
+.vscode/
+*.user
+*.suo
+*.DotSettings.user
+
+# Local data and secrets
+data/
+*.db
+*.db-shm
+*.db-wal
+appsettings.*.local.json
+secrets.json
+
+# Test and tooling output
+TestResults/
+*.log
+*.nupkg
