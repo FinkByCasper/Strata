@@ -1,5 +1,11 @@
+using System.Text.Json;
+using API.CustomError;
 using API.Extensions;
+using Domain.Models;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.EntityFrameworkCore;
 using Services;
+using Services.Data;
 
 namespace API;
 
@@ -18,10 +24,31 @@ public class Program
             builder.WebHost.UseUrls($"http://*:{port}");
         }
 
-        builder.Services.AddStrataApi(dbFile);
+        if (dbFile != ":memory:")
+        {
+            var dir = Path.GetDirectoryName(Path.GetFullPath(dbFile));
+            if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+        }
+
+        builder.Services.AddControllers(options =>
+            {
+                // The models keep unknown fields as JsonElement; they are data, not something to validate.
+                options.ModelMetadataDetailsProviders.Add(new SuppressChildValidationMetadataProvider(typeof(JsonElement)));
+            })
+            .AddJsonOptions(options => DiagramJson.Configure(options.JsonSerializerOptions))
+            .ConfigureApiBehaviorOptions(options => options.InvalidModelStateResponseFactory = ValidationErrorResponse.Create);
+
+        builder.Services.AddOpenApi();
+        builder.Services.AddDbContext<StrataDbContext>(o => o.UseSqlite($"Data Source={dbFile}"));
+        builder.Services.AddScoped<IDiagramService, DiagramService>();
 
         var app = builder.Build();
-        app.Services.EnsureStrataDatabase();
+
+        // Creates the schema if missing (CREATE TABLE IF NOT EXISTS semantics, like the Node server).
+        using (var scope = app.Services.CreateScope())
+        {
+            scope.ServiceProvider.GetRequiredService<StrataDbContext>().Database.EnsureCreated();
+        }
 
         if (app.Environment.IsDevelopment())
         {
