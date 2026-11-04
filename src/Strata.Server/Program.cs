@@ -8,14 +8,14 @@ using Strata.Server.Storage;
 var builder = WebApplication.CreateBuilder(args);
 var settings = StrataSettings.From(builder.Configuration, builder.Environment, args);
 
-Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(settings.DatabasePath))!);
-
 builder.Logging.AddFilter("Microsoft.EntityFrameworkCore", LogLevel.Warning);
+// On first start EF probes a database that does not exist yet and logs the refused connection as an error; the real failure is the exception that follows.
+builder.Logging.AddFilter("Microsoft.EntityFrameworkCore.Database.Connection", LogLevel.None);
 builder.Logging.AddFilter("Microsoft.AspNetCore", LogLevel.Warning);
 builder.WebHost.UseUrls($"http://*:{settings.Port}");
 builder.WebHost.ConfigureKestrel(k => k.Limits.MaxRequestBodySize = 4 * 1024 * 1024);
 builder.Services.AddSingleton(settings);
-builder.Services.AddDbContext<StrataDbContext>(o => DatabaseConfiguration.Use(o, DatabaseProvider.Sqlite, settings.ConnectionString));
+builder.Services.AddDbContext<StrataDbContext>(o => DatabaseConfiguration.Use(o, settings.Provider, settings.ConnectionString));
 builder.Services.AddScoped<DiagramStore>();
 builder.Services.AddScoped<DiagramTransfer>();
 builder.Services.AddOpenApi();
@@ -46,7 +46,7 @@ if (!app.Environment.IsEnvironment("Testing"))
     app.Lifetime.ApplicationStarted.Register(() =>
     {
         if (settings.DistPath is not null && !settings.Dev)
-            Console.WriteLine(Banner.Box("Strata is running", "", $"Open the app:   http://localhost:{settings.Port}", $"Data:           {settings.DatabasePath}"));
+            Console.WriteLine(Banner.Box("Strata is running", "", $"Open the app:   http://localhost:{settings.Port}", $"Data:           {settings.DatabaseLabel}"));
         else
             Console.WriteLine($"[api] ready on http://localhost:{settings.Port}  (API only: the web app is on http://localhost:5173)");
     });
