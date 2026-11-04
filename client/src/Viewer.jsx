@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight, LayoutGrid } from 'lucide-react';
 import { Logo } from './Logo';
+import { Link } from './App';
 import { api } from './api';
 import { Scene } from './Scene';
 import { useStore } from './store';
@@ -27,25 +28,16 @@ function AutoHideBar({ children }) {
   );
 }
 
-export function Viewer({ token, embed = false }) {
-  const [state, setState] = useState({ status: 'loading' });
-  const intro = useIntro(!embed && state.status === 'ready');
-
-  useEffect(() => {
-    api.shared(token)
-      .then((d) => { useStore.getState().load(d.name, d.data, true); setState({ status: 'ready', name: d.name }); })
-      .catch(() => setState({ status: 'missing' }));
-  }, [token]);
-
-  if (state.status === 'loading') return <div className="grid h-full place-content-center text-muted-foreground">Loading…</div>;
-  if (state.status === 'missing') return <div className="grid h-full place-content-center gap-1 text-center"><h2 className="text-xl font-semibold">Diagram not found</h2><p className="text-muted-foreground">The link may have been revoked.</p></div>;
+export function ReadOnlyDiagram({ name, token, embed = false, home = false }) {
+  const intro = useIntro(!embed);
 
   const bar = (
     <header className="z-40 flex h-14 items-center justify-between gap-3 border-b bg-card px-3">
-      <div className="flex min-w-0 items-center gap-2.5"><Logo size={26} /><strong className="truncate text-[15px]">{state.name}</strong></div>
+      <div className="flex min-w-0 items-center gap-2.5"><Logo size={26} /><strong className="truncate text-[15px]">{name}</strong></div>
       <div className="flex items-center gap-2">
         <CameraTools />
         <ThemeToggle />
+        {home && <Button variant="outline" size="sm" asChild><Link to="/"><LayoutGrid /> All diagrams</Link></Button>}
         {embed && <Button variant="outline" size="sm" asChild><a href={`/v/${token}`} target="_blank" rel="noreferrer">Open <ArrowUpRight /></a></Button>}
       </div>
     </header>
@@ -61,4 +53,18 @@ export function Viewer({ token, embed = false }) {
       </div>
     </div>
   );
+}
+
+export function Viewer({ token, embed = false }) {
+  const [state, setState] = useState({ status: 'loading' });
+
+  useEffect(() => {
+    api.shared(token)
+      .then((d) => { useStore.getState().load(d.name, d.data, true); setState({ status: 'ready', name: d.name }); })
+      .catch(() => setState({ status: 'missing' }));
+  }, [token]);
+
+  if (state.status === 'loading') return <div className="grid h-full place-content-center text-muted-foreground">Loading…</div>;
+  if (state.status === 'missing') return <div className="grid h-full place-content-center gap-1 text-center"><h2 className="text-xl font-semibold">Diagram not found</h2><p className="text-muted-foreground">The link may have been revoked.</p></div>;
+  return <ReadOnlyDiagram name={state.name} token={token} embed={embed} />;
 }

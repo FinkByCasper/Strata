@@ -39,7 +39,7 @@ export function CameraTools() {
 
 const STATUS = { saved: ['bg-success', 'Saved'], saving: ['bg-warning', 'Saving…'], error: ['bg-destructive', 'Save failed'] };
 
-export function Topbar({ status, onShare, onExportJson, onExportPng, onImport, onTips }) {
+export function Topbar({ status, role = 'owner', onShare, onExportJson, onExportPng, onImport, onTips }) {
   const name = useStore((s) => s.name);
   const mode = useStore((s) => s.mode);
   const snap = useStore((s) => s.snap);
@@ -79,8 +79,7 @@ export function Topbar({ status, onShare, onExportJson, onExportPng, onImport, o
             <DropdownMenuTrigger asChild><Button size="icon" aria-label="Share & file"><Share2 /></Button></DropdownMenuTrigger>
           </Hint>
           <DropdownMenuContent>
-            <DropdownMenuItem onSelect={onShare} className="font-medium"><Share2 /> Share link &amp; embed…</DropdownMenuItem>
-            <DropdownMenuSeparator />
+            {role === 'owner' && <><DropdownMenuItem onSelect={onShare} className="font-medium"><Share2 /> Share &amp; embed…</DropdownMenuItem><DropdownMenuSeparator /></>}
             <DropdownMenuItem onSelect={onExportJson}><FileJson /> Export JSON</DropdownMenuItem>
             <DropdownMenuItem onSelect={onExportPng}><ImageDown /> Export PNG</DropdownMenuItem>
             <DropdownMenuItem onSelect={onImport}><Upload /> Import JSON…</DropdownMenuItem>
