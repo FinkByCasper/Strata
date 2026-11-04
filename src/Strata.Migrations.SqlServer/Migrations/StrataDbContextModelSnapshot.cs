@@ -54,6 +54,11 @@ namespace Strata.Migrations.SqlServer.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("updated_at");
 
+                    b.Property<string>("UpdatedById")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)")
+                        .HasColumnName("updated_by_id");
+
                     b.Property<string>("ViewToken")
                         .IsRequired()
                         .HasMaxLength(32)
@@ -102,6 +107,84 @@ namespace Strata.Migrations.SqlServer.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("diagram_shares", (string)null);
+                });
+
+            modelBuilder.Entity("Strata.Data.DiagramVersion", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)")
+                        .HasColumnName("id")
+                        .UseCollation("Latin1_General_100_BIN2");
+
+                    b.Property<string>("AuthorId")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)")
+                        .HasColumnName("author_id")
+                        .UseCollation("Latin1_General_100_BIN2");
+
+                    b.Property<int>("ConnectorCount")
+                        .HasColumnType("int")
+                        .HasColumnName("connector_count");
+
+                    b.Property<string>("ContentHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)")
+                        .HasColumnName("content_hash");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("bigint")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Data")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("data");
+
+                    b.Property<string>("DiagramId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)")
+                        .HasColumnName("diagram_id")
+                        .UseCollation("Latin1_General_100_BIN2");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("Label")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .HasColumnName("label");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .HasColumnName("name");
+
+                    b.Property<int>("NodeCount")
+                        .HasColumnType("int")
+                        .HasColumnName("node_count");
+
+                    b.Property<long>("SavedAt")
+                        .HasColumnType("bigint")
+                        .HasColumnName("saved_at");
+
+                    b.Property<int>("ZoneCount")
+                        .HasColumnType("int")
+                        .HasColumnName("zone_count");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorId");
+
+                    b.HasIndex("DiagramId", "SavedAt");
+
+                    b.ToTable("diagram_versions", (string)null);
                 });
 
             modelBuilder.Entity("Strata.Data.Session", b =>
@@ -193,6 +276,20 @@ namespace Strata.Migrations.SqlServer.Migrations
                     b.HasOne("Strata.Data.User", null)
                         .WithMany()
                         .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Strata.Data.DiagramVersion", b =>
+                {
+                    b.HasOne("Strata.Data.User", null)
+                        .WithMany()
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Strata.Data.Diagram", null)
+                        .WithMany()
+                        .HasForeignKey("DiagramId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

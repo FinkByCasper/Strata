@@ -23,6 +23,7 @@ as JSON, and can be shared through a view-only link or an embeddable iframe.
 - Node labels can carry a second "subtitle" line (IP, port...). Labels are real DOM text (crisp, upright, constant size) with a small safe-markdown description (`**bold**`, `*italic*`, `` `code` ``, `- lists`) shown when a node is selected
 - Autosave to the server, JSON export/import, PNG export of the 3D layer
 - **Share** dialog: view-only link (`/v/<token>`), embed snippet (`/embed/<token>`), and "regenerate" to revoke
+- **Version history**: Strata keeps a copy of the diagram before a save replaces it, you can save named versions, and any version can be restored (the replaced state is kept, so a restore can be undone)
 - **Accounts**: sign in with email and password, every diagram has an owner, and an owner can share a diagram with other accounts as viewer or editor
 
 ## Run it
@@ -75,6 +76,8 @@ Update with `git pull && docker compose up -d --build` (Coolify: Redeploy). Stra
 | `STRATA_ALLOW_SIGNUP` | `true` (default) or `false`. When `false`, only the very first account can be created |
 | `STRATA_ADMIN_EMAIL` | Optional. Diagrams made before accounts existed go to the first account created, or to this email if set |
 | `STRATA_SESSION_DAYS` | How long a sign-in lasts, default `30` |
+| `STRATA_HISTORY_INTERVAL_MINUTES` | At most one automatic version per diagram in this many minutes, default `10`; `0` keeps a version on every save that changed something |
+| `STRATA_HISTORY_MAX` | Automatic versions kept per diagram, default `100`; `0` turns automatic versions off. Versions you name are never removed |
 
 Config (env vars): `PORT` (default 3001), `STRATA_DB` (SQLite file, default `./data/strata.db`), `STRATA_DB_PROVIDER` and `STRATA_DB_CONNECTION` (see below), `STRATA_DIST` (folder with the built web app; found automatically next to the server).
 
@@ -95,6 +98,17 @@ STRATA_DB_CONNECTION="Server=db,1433;Database=strata;User Id=strata;Password=sec
 Tables are created and upgraded on start. The database is created too if the login is allowed to; otherwise create an empty one first. Each engine has its own migration project (`src/Strata.Migrations.*`). To copy diagrams from SQLite into a server database, start Strata once with the new settings and run `import-sqlite` on the old file (below).
 
 To run the tests against an engine, point them at a server that may create databases (each test class makes and drops its own): `STRATA_TEST_PROVIDER=postgres STRATA_TEST_CONNECTION="Host=localhost;Username=postgres;Password=postgres;Database=postgres" npm test`. CI runs all three.
+
+### Version history
+
+Every diagram has a history, kept in its own tables (`diagram_versions`) in the configured database, so it moves with the data and is included when you back the database up. The Share &amp; file menu has **Version history…**.
+
+- Before a save replaces the diagram, the server keeps the state being replaced, unless it already kept one within the last `STRATA_HISTORY_INTERVAL_MINUTES`, the content is unchanged, or the diagram is empty. Keeping the state *before* the save is what protects you when you open an old diagram and wipe it by mistake.
+- A version shows when its state was saved and by whom, not when the copy was made.
+- **Save version** names the diagram as it is now; those are kept until the owner deletes them. Automatic ones beyond `STRATA_HISTORY_MAX` are dropped, oldest first.
+- **Restore** keeps what is being replaced as a version first (labelled *Before a restore*), so restoring is itself undoable.
+- Viewers can read the history; owners and editors can save and restore; only the owner can delete versions.
+- Every version is a full copy, so a diagram near the 4 MB limit with a long history takes real space; lower `STRATA_HISTORY_MAX` for those.
 
 ### Backups, and moving over from the Node beta
 

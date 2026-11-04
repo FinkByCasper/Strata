@@ -12,6 +12,7 @@ public partial class StrataDbContext(DbContextOptions<StrataDbContext> options) 
     public DbSet<User> Users => Set<User>();
     public DbSet<Session> Sessions => Set<Session>();
     public DbSet<DiagramShare> Shares => Set<DiagramShare>();
+    public DbSet<DiagramVersion> Versions => Set<DiagramVersion>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -24,6 +25,7 @@ public partial class StrataDbContext(DbContextOptions<StrataDbContext> options) 
             e.Property(d => d.Name).HasMaxLength(200);
             e.HasIndex(d => d.ViewToken).IsUnique();
             e.Property(d => d.OwnerId).HasMaxLength(64);
+            e.Property(d => d.UpdatedById).HasMaxLength(64);
             e.HasIndex(d => d.UpdatedAt);
             e.HasIndex(d => d.OwnerId);
             e.HasOne<User>().WithMany().HasForeignKey(d => d.OwnerId).OnDelete(DeleteBehavior.Restrict);
@@ -60,6 +62,22 @@ public partial class StrataDbContext(DbContextOptions<StrataDbContext> options) 
             e.HasIndex(s => s.UserId);
             e.HasOne<Diagram>().WithMany().HasForeignKey(s => s.DiagramId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne<User>().WithMany().HasForeignKey(s => s.UserId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<DiagramVersion>(e =>
+        {
+            e.ToTable("diagram_versions");
+            e.HasKey(v => v.Id);
+            e.Property(v => v.Id).HasMaxLength(64);
+            e.Property(v => v.DiagramId).HasMaxLength(64);
+            e.Property(v => v.AuthorId).HasMaxLength(64);
+            e.Property(v => v.Name).HasMaxLength(200);
+            e.Property(v => v.Label).HasMaxLength(200);
+            e.Property(v => v.ContentHash).HasMaxLength(64);
+            e.Property(v => v.Kind).HasMaxLength(10).HasConversion(k => k.ToString().ToLowerInvariant(), k => Enum.Parse<VersionKind>(k, true));
+            e.HasIndex(v => new { v.DiagramId, v.SavedAt });
+            e.HasOne<Diagram>().WithMany().HasForeignKey(v => v.DiagramId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<User>().WithMany().HasForeignKey(v => v.AuthorId).OnDelete(DeleteBehavior.Restrict);
         });
 
         foreach (var entity in modelBuilder.Model.GetEntityTypes())

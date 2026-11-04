@@ -80,6 +80,10 @@ public sealed class StrataFactory : WebApplicationFactory<Program>
 
     public string? AdminEmail { get; init; }
 
+    public int? HistoryIntervalMinutes { get; init; }
+
+    public int? HistoryMax { get; init; }
+
     public string DatabasePath => Path.Combine(dir, "strata.db");
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -99,6 +103,8 @@ public sealed class StrataFactory : WebApplicationFactory<Program>
         builder.UseSetting("STRATA_AUTH", Auth ? "on" : "off");
         builder.UseSetting("STRATA_ALLOW_SIGNUP", AllowSignup ? "true" : "false");
         if (AdminEmail is not null) builder.UseSetting("STRATA_ADMIN_EMAIL", AdminEmail);
+        if (HistoryIntervalMinutes is { } minutes) builder.UseSetting("STRATA_HISTORY_INTERVAL_MINUTES", minutes.ToString());
+        if (HistoryMax is { } max) builder.UseSetting("STRATA_HISTORY_MAX", max.ToString());
     }
 
     private bool disposed;

@@ -60,6 +60,7 @@ public partial class DiagramTransfer(StrataDbContext db, Actor actor)
                     Name = item.Name,
                     Data = item.Data.GetRawText(),
                     OwnerId = ownerId,
+                    UpdatedById = ownerId,
                     CreatedAt = item.CreatedAt ?? now,
                     UpdatedAt = item.UpdatedAt ?? now,
                 });

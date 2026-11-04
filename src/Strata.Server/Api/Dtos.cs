@@ -86,3 +86,32 @@ public record ShareInput(string? Email, ShareRole? Role);
 
 /// <summary>One account a diagram is shared with.</summary>
 public record ShareResponse(string UserId, string Email, string DisplayName, ShareRole Role);
+
+/// <summary>One entry in a diagram's history. Carries no content, so the list stays small however large the diagrams are.</summary>
+/// <param name="Id">Id to restore, fetch or delete this version with.</param>
+/// <param name="SavedAt">Unix time in milliseconds of the state this version holds, not of when the copy was made: an automatic version of yesterday's work says yesterday.</param>
+/// <param name="Kind"><c>auto</c> taken by the server just before a save replaced the state, <c>manual</c> saved by a person and never pruned, <c>restore</c> taken just before a restore so the restore can be undone.</param>
+/// <param name="Label">Name given to a manual version; null otherwise.</param>
+/// <param name="AuthorName">Who saved the state this version holds; null when accounts are off.</param>
+/// <param name="Name">The diagram's name in that state.</param>
+/// <param name="Nodes">Number of nodes, to tell versions apart at a glance.</param>
+/// <param name="Connectors">Number of connectors.</param>
+/// <param name="Zones">Number of zones.</param>
+public record VersionSummary(string Id, long SavedAt, VersionKind Kind, string? Label, string? AuthorName, string Name, int Nodes, int Connectors, int Zones);
+
+/// <summary>A version with its content, for looking at it before restoring.</summary>
+/// <param name="Id">Id of the version.</param>
+/// <param name="SavedAt">Unix time in milliseconds of the state.</param>
+/// <param name="Kind">How the version came to be.</param>
+/// <param name="Label">Name of a manual version.</param>
+/// <param name="AuthorName">Who saved the state.</param>
+/// <param name="Name">The diagram's name in that state.</param>
+/// <param name="Nodes">Number of nodes.</param>
+/// <param name="Connectors">Number of connectors.</param>
+/// <param name="Zones">Number of zones.</param>
+/// <param name="Data">The diagram document exactly as it was saved.</param>
+public record VersionResponse(string Id, long SavedAt, VersionKind Kind, string? Label, string? AuthorName, string Name, int Nodes, int Connectors, int Zones, JsonElement Data);
+
+/// <summary>Request body for saving a named version of the diagram as it is now.</summary>
+/// <param name="Label">Optional name, at most 200 characters.</param>
+public record VersionInput(string? Label);

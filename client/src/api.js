@@ -24,5 +24,9 @@ export const api = {
   logout: () => req('/api/auth/logout', { method: 'POST' }),
   shares: (id) => req(`/api/diagrams/${id}/shares`),
   share: (id, email, role) => req(`/api/diagrams/${id}/shares`, { method: 'PUT', body: { email, role } }),
+  versions: (id) => req(`/api/diagrams/${id}/versions`),
+  saveVersion: (id, label) => req(`/api/diagrams/${id}/versions`, { method: 'POST', body: { label } }),
+  restoreVersion: (id, versionId) => req(`/api/diagrams/${id}/versions/${versionId}/restore`, { method: 'POST' }),
+  deleteVersion: (id, versionId) => req(`/api/diagrams/${id}/versions/${versionId}`, { method: 'DELETE' }),
   unshare: (id, userId) => req(`/api/diagrams/${id}/shares/${userId}`, { method: 'DELETE' }),
 };
