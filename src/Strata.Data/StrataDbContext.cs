@@ -5,6 +5,9 @@ namespace Strata.Data;
 
 public partial class StrataDbContext(DbContextOptions<StrataDbContext> options) : DbContext(options)
 {
+    // SQL Server compares text case-insensitively by default, which would make two view tokens that differ only in case the same token.
+    private const string CaseSensitive = "Latin1_General_100_BIN2";
+
     public DbSet<Diagram> Diagrams => Set<Diagram>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -18,6 +21,12 @@ public partial class StrataDbContext(DbContextOptions<StrataDbContext> options) 
             e.Property(d => d.Name).HasMaxLength(200);
             e.HasIndex(d => d.ViewToken).IsUnique();
             e.HasIndex(d => d.UpdatedAt);
+
+            if (Database.IsSqlServer())
+            {
+                e.Property(d => d.Id).UseCollation(CaseSensitive);
+                e.Property(d => d.ViewToken).UseCollation(CaseSensitive);
+            }
         });
 
         foreach (var entity in modelBuilder.Model.GetEntityTypes())

@@ -15,7 +15,7 @@ public sealed record StrataSettings(int Port, DatabaseProvider Provider, string 
     {
         var name = config["STRATA_DB_PROVIDER"];
         if (!DatabaseConfiguration.TryParse(name, out var provider))
-            throw new InvalidOperationException($"STRATA_DB_PROVIDER '{name}' is not supported. Use sqlite or postgres.");
+            throw new InvalidOperationException($"STRATA_DB_PROVIDER '{name}' is not supported. Use sqlite, postgres or sqlserver.");
 
         if (provider == DatabaseProvider.Sqlite)
         {

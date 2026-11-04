@@ -3,6 +3,7 @@
     <Project Path="src/Strata.Data/Strata.Data.csproj" />
     <Project Path="src/Strata.Migrations.Postgres/Strata.Migrations.Postgres.csproj" />
     <Project Path="src/Strata.Migrations.Sqlite/Strata.Migrations.Sqlite.csproj" />
+    <Project Path="src/Strata.Migrations.SqlServer/Strata.Migrations.SqlServer.csproj" />
     <Project Path="src/Strata.Server/Strata.Server.csproj" />
   </Folder>
   <Folder Name="/tests/">

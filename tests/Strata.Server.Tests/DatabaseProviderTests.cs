@@ -14,10 +14,11 @@ public class DatabaseProviderTests
     [Theory]
     [InlineData(DatabaseProvider.Sqlite)]
     [InlineData(DatabaseProvider.Postgres)]
+    [InlineData(DatabaseProvider.SqlServer)]
     public void Each_engine_has_migrations_that_match_the_model(DatabaseProvider provider)
     {
         var options = new DbContextOptionsBuilder<StrataDbContext>();
-        DatabaseConfiguration.Use(options, provider, provider == DatabaseProvider.Sqlite ? "Data Source=unused.db" : "Host=unused;Database=unused");
+        DatabaseConfiguration.Use(options, provider, provider switch { DatabaseProvider.Sqlite => "Data Source=unused.db", DatabaseProvider.Postgres => "Host=unused;Database=unused", _ => "Server=unused;Database=unused" });
         using var db = new StrataDbContext(options.Options);
 
         Assert.NotEmpty(db.Database.GetMigrations());
@@ -30,6 +31,8 @@ public class DatabaseProviderTests
     [InlineData("SQLite", DatabaseProvider.Sqlite)]
     [InlineData("postgres", DatabaseProvider.Postgres)]
     [InlineData("PostgreSQL", DatabaseProvider.Postgres)]
+    [InlineData("sqlserver", DatabaseProvider.SqlServer)]
+    [InlineData("MSSQL", DatabaseProvider.SqlServer)]
     public void Provider_names_are_forgiving(string? name, DatabaseProvider expected)
     {
         Assert.True(DatabaseConfiguration.TryParse(name, out var provider));

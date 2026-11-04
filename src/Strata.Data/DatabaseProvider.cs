@@ -6,6 +6,7 @@ public enum DatabaseProvider
 {
     Sqlite,
     Postgres,
+    SqlServer,
 }
 
 public static class DatabaseConfiguration
@@ -19,6 +20,9 @@ public static class DatabaseConfiguration
                 return true;
             case "postgres" or "postgresql" or "npgsql":
                 provider = DatabaseProvider.Postgres;
+                return true;
+            case "sqlserver" or "mssql":
+                provider = DatabaseProvider.SqlServer;
                 return true;
             default:
                 provider = default;
@@ -38,6 +42,9 @@ public static class DatabaseConfiguration
                 break;
             case DatabaseProvider.Postgres:
                 options.UseNpgsql(connectionString, o => o.MigrationsAssembly(migrations));
+                break;
+            case DatabaseProvider.SqlServer:
+                options.UseSqlServer(connectionString, o => o.MigrationsAssembly(migrations));
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(provider), provider, null);

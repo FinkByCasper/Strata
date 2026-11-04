@@ -16,6 +16,7 @@
     <ProjectReference Include="..\Strata.Data\Strata.Data.csproj" />
     <ProjectReference Include="..\Strata.Migrations.Sqlite\Strata.Migrations.Sqlite.csproj" />
     <ProjectReference Include="..\Strata.Migrations.Postgres\Strata.Migrations.Postgres.csproj" />
+    <ProjectReference Include="..\Strata.Migrations.SqlServer\Strata.Migrations.SqlServer.csproj" />
   </ItemGroup>
 
 </Project>

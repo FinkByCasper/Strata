@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
+using Microsoft.Data.SqlClient;
 using Npgsql;
 using Strata.Data;
 
@@ -14,7 +15,7 @@ public static class TestDatabase
     public static DatabaseProvider Provider { get; } =
         DatabaseConfiguration.TryParse(Environment.GetEnvironmentVariable("STRATA_TEST_PROVIDER"), out var provider)
             ? provider
-            : throw new InvalidOperationException("STRATA_TEST_PROVIDER must be sqlite or postgres");
+            : throw new InvalidOperationException("STRATA_TEST_PROVIDER must be sqlite, postgres or sqlserver");
 
     public static string AdminConnection { get; } = Environment.GetEnvironmentVariable("STRATA_TEST_CONNECTION") ?? "";
 
@@ -27,6 +28,9 @@ public static class TestDatabase
             case DatabaseProvider.Postgres:
                 Run(new NpgsqlConnection(AdminConnection), $"CREATE DATABASE \"{name}\"");
                 return new NpgsqlConnectionStringBuilder(AdminConnection) { Database = name, Pooling = false }.ConnectionString;
+            case DatabaseProvider.SqlServer:
+                Run(new SqlConnection(AdminConnection), $"CREATE DATABASE [{name}]");
+                return new SqlConnectionStringBuilder(AdminConnection) { InitialCatalog = name, Pooling = false }.ConnectionString;
             default:
                 throw new NotSupportedException();
         }
@@ -38,6 +42,9 @@ public static class TestDatabase
         {
             case DatabaseProvider.Postgres:
                 Run(new NpgsqlConnection(AdminConnection), $"DROP DATABASE IF EXISTS \"{name}\" WITH (FORCE)");
+                break;
+            case DatabaseProvider.SqlServer:
+                Run(new SqlConnection(AdminConnection), $"ALTER DATABASE [{name}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [{name}]");
                 break;
         }
     }
@@ -91,6 +98,7 @@ public sealed class StrataFactory : WebApplicationFactory<Program>
         if (!disposing) return;
         SqliteConnection.ClearAllPools();
         NpgsqlConnection.ClearAllPools();
+        SqlConnection.ClearAllPools();
         if (!TestDatabase.IsSqlite) TestDatabase.Drop(databaseName);
         try { Directory.Delete(dir, true); } catch (IOException) { }
     }

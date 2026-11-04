@@ -17,8 +17,55 @@ jobs:
       - run: npm ci
       - run: npm run build
 
-  server:
+  server-sqlite:
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - run: dotnet test --solution Strata.slnx
+
+  server-postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      STRATA_TEST_PROVIDER: postgres
+      STRATA_TEST_CONNECTION: Host=localhost;Username=postgres;Password=postgres;Database=postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - run: dotnet test --solution Strata.slnx
+
+  server-sqlserver:
+    runs-on: ubuntu-latest
+    services:
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: Y
+          MSSQL_SA_PASSWORD: Strata_Test_1234
+        ports: ["1433:1433"]
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P Strata_Test_1234 -Q 'SELECT 1'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      STRATA_TEST_PROVIDER: sqlserver
+      STRATA_TEST_CONNECTION: Server=localhost,1433;User Id=sa;Password=Strata_Test_1234;TrustServerCertificate=True
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
