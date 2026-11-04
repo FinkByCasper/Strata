@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Strata.Data/Strata.Data.csproj" />
+    <Project Path="src/Strata.Migrations.Sqlite/Strata.Migrations.Sqlite.csproj" />
+    <Project Path="src/Strata.Server/Strata.Server.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Strata.Server.Tests/Strata.Server.Tests.csproj" />
+  </Folder>
+</Solution>

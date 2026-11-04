@@ -4,7 +4,7 @@ Build diagrams with depth. Strata is a self-hosted 3D diagram builder, in the sp
 but with a **free orthographic camera** instead of a fixed 45° isometric view, and **labels that
 always face you** so text stays easy to read from any angle.
 
-One Node process serves the web app and the API. Diagrams are stored in SQLite, can be exported
+One ASP.NET Core process serves the web app and the API. Diagrams are stored in SQLite, can be exported
 as JSON, and can be shared through a view-only link or an embeddable iframe.
 
 ## What works today (prototype)
@@ -26,7 +26,7 @@ as JSON, and can be shared through a view-only link or an embeddable iframe.
 
 ## Run it
 
-You need **Node 22.13 or newer** (the server uses the built-in `node:sqlite`). `pnpm`, `npm` or `yarn` all work.
+You need the **.NET 10 SDK** (the server) and **Node 22 or newer** (builds the web app). `pnpm`, `npm` or `yarn` all work.
 
 **Development** (hot reload):
 
@@ -36,7 +36,7 @@ pnpm run dev
 ```
 
 Then open **http://localhost:5173**. That is the web app. Port 3001 is only the API behind it, so it won't show the
-app (it shows a short note pointing you to 5173 instead).
+app (it shows a short note pointing you to 5173 instead). Tests: `npm test`.
 
 **Run it as one server** (what you'd host):
 
@@ -72,11 +72,24 @@ Update with `git pull && docker compose up -d --build` (Coolify: Redeploy). Stra
 | `STRATA_PORT` | Plain Docker only: host port, default `3001` |
 | `DOMAIN` | Only for `docker-compose.caddy.yaml` |
 
-Config (env vars): `PORT` (default 3001), `STRATA_DB` (default `./data/strata.db`).
+Config (env vars): `PORT` (default 3001), `STRATA_DB` (default `./data/strata.db`), `STRATA_DIST` (folder with the built web app; found automatically next to the server).
+
+The API is described at `/openapi/v1.json`.
+
+### Backups, and moving over from the Node beta
+
+`GET /api/export` downloads every diagram as one JSON file; `POST /api/import` reads that file back (existing ids are skipped, add `?overwrite=true` to replace them). Ids and view tokens are kept, so share links survive.
+
+A `strata.db` written by the Node beta is picked up in place: point `STRATA_DB` at it and start the new server. To copy a beta file into another database instead, run the importer once:
+
+```bash
+dotnet run --project src/Strata.Server -- import-sqlite path/to/old/strata.db
+docker compose run --rm -v /path/to/old:/old strata import-sqlite /old/strata.db
+```
 
 Troubleshooting:
 - *"Cannot GET /"* or a blank page: you opened 3001 in dev mode; use 5173, or run `build` then `start`.
-- *Server crashes immediately*: check `node -v` is 22.13+.
+- *Server crashes immediately*: check `dotnet --version` is 10 or newer.
 - *Port in use*: set `PORT=3002` for the server (the dev proxy expects 3001, so for dev free that port instead).
 
 ## Access model
@@ -92,7 +105,10 @@ The Strata mark (three stacked isometric layers) lives in `brand/` as SVG and PN
 ## Layout
 
 ```
-server/                    Express API, SQLite store, diagram validation, tests (npm test)
+src/Strata.Server/         ASP.NET Core API, diagram validation, hosting of the web app
+src/Strata.Data/           EF Core model
+src/Strata.Migrations.*/   EF Core migrations, one project per database engine
+tests/Strata.Server.Tests/ xUnit tests (npm test)
 client/src/                React + react-three-fiber app (Scene.jsx is the 3D part)
 client/src/components/ui/  shadcn/ui-style components (Radix primitives + Tailwind), copied in so they can be edited
 client/src/index.css       Design tokens: light and dark themes (the `.dark` class on <html>)

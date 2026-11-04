@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { fileURLToPath } from 'node:url';
-import { banner } from './server/banner.js';
+import { banner } from './tools/banner.js';
 
 // Print one clear "open this" box once Vite is listening (the API process only prints a one-liner in dev).
 const strataBanner = () => ({
