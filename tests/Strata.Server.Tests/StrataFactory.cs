@@ -44,7 +44,7 @@ public static class TestDatabase
                 Run(new NpgsqlConnection(AdminConnection), $"DROP DATABASE IF EXISTS \"{name}\" WITH (FORCE)");
                 break;
             case DatabaseProvider.SqlServer:
-                Run(new SqlConnection(AdminConnection), $"ALTER DATABASE [{name}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [{name}]");
+                Run(new SqlConnection(AdminConnection), $"IF DB_ID(N'{name}') IS NOT NULL BEGIN ALTER DATABASE [{name}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [{name}]; END");
                 break;
         }
     }
@@ -92,10 +92,13 @@ public sealed class StrataFactory : WebApplicationFactory<Program>
         if (Dist is not null) builder.UseSetting("STRATA_DIST", Dist);
     }
 
+    private bool disposed;
+
     protected override void Dispose(bool disposing)
     {
         base.Dispose(disposing);
-        if (!disposing) return;
+        if (!disposing || disposed) return;
+        disposed = true;
         SqliteConnection.ClearAllPools();
         NpgsqlConnection.ClearAllPools();
         SqlConnection.ClearAllPools();
