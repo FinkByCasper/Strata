@@ -6,22 +6,21 @@
   "license": "MIT",
   "description": "Free-camera 3D diagram builder with readable labels, self-hosted with share links.",
   "engines": {
-    "node": ">=22.13"
+    "node": ">=22"
   },
   "scripts": {
-    "dev": "concurrently -k -n server,client \"node --watch server/index.js --dev\" \"vite\"",
-    "dev:server": "node --watch server/index.js",
+    "dev": "concurrently -k -n server,client \"dotnet watch run --project src/Strata.Server -- --dev\" \"vite\"",
+    "dev:server": "dotnet watch run --project src/Strata.Server",
     "dev:client": "vite",
     "build": "vite build",
-    "start": "node server/index.js",
-    "test": "node --test server/app.test.js"
+    "start": "dotnet run --project src/Strata.Server -c Release",
+    "test": "dotnet test --solution Strata.slnx"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",
     "@react-three/fiber": "^9.8.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "express": "^5.2.1",
     "lucide-react": "^1.52.0",
     "radix-ui": "^1.7.0",
     "react": "^19.3.0",
