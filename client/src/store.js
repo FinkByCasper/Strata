@@ -2,6 +2,7 @@ import { placed, pointerCell } from './hold';
 import { create } from 'zustand';
 import { EMPTY, flatten, freeSpot, newConnector, newNode, newZone, uid } from './model';
 import { zoneContents } from './highlight';
+import { applyOps, prepare } from './liveOps';
 import { buildClip, describe, freeOffset, materialize, snapAnchor } from './clipboard';
 
 // `rev` bumps on every user edit; the editor watches it to drive autosave.
@@ -38,6 +39,26 @@ export const useStore = create((set, get) => {
     past: [], future: [],
 
     load: (name, data, readOnly = false) => { lastKey = null; set({ name, data: flatten(data), readOnly, rev: 0, selection: null, mode: 'select', connectFrom: null, placing: false, view: null, past: [], future: [] }); },
+    // Changes made by other people arrive here: they are not edits of ours (no autosave, no undo step), but the undo history is
+    // patched too, so undoing one of our own changes does not bring back what someone else has since changed or deleted.
+    applyRemote: (ops) => set((s) => {
+      const patch = (snap) => ({ ...snap, data: applyOps(snap.data, ops) });
+      const name = ops.findLast((o) => o.op === 'name')?.name ?? s.name;
+      const data = applyOps(s.data, ops);
+      const sel = s.selection;
+      const gone = sel && !({ node: data.nodes, zone: data.zones, connector: data.connectors }[sel.type] ?? []).some((x) => x.id === sel.id);
+      return { data, name, past: s.past.map(patch), future: s.future.map(patch), selection: gone ? null : sel, connectFrom: s.connectFrom && !data.nodes.some((n) => n.id === s.connectFrom) ? null : s.connectFrom };
+    }),
+    // The server's copy (already flattened, so the caller can keep sharing its objects) replaces ours: first join, reconnect, or the diagram was restored or saved elsewhere. `keep` are our own
+    // changes that the server has not seen yet; they are laid back on top.
+    adoptServer: (name, data, keep = [], resetHistory = false) => set((s) => {
+      const base = { data, name };
+      const ops = prepare(keep);
+      const merged = { data: applyOps(base.data, ops), name: ops.findLast((o) => o.op === 'name')?.name ?? name };
+      const sel = s.selection;
+      const gone = sel && !({ node: merged.data.nodes, zone: merged.data.zones, connector: merged.data.connectors }[sel.type] ?? []).some((x) => x.id === sel.id);
+      return { ...merged, selection: gone ? null : sel, ...(resetHistory ? { past: [], future: [] } : {}) };
+    }),
     replaceData: (name, data) => edit(() => ({ data: flatten(data), name: name ?? get().name, selection: null })),
     setName: (name) => edit(() => ({ name }), 'name'),
 

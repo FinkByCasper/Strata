@@ -361,6 +361,25 @@ public class ModelTests
     }
 
     [Fact]
+    public async Task Live_editing_accepts_model_nodes_and_checks_them_like_a_save()
+    {
+        using var factory = new StrataFactory();
+        var http = factory.CreateClient();
+        var id = await NewDiagram(http);
+        var model = (await (await Upload(http, id, Glb.Make())).Body()).GetProperty("id").GetString()!;
+        await using var live = await LiveClient.Start(factory);
+        await live.Join(id);
+
+        await live.Apply("ok", new { op = "put", kind = "node", item = ModelNode("m", model) });
+        await Assert.ThrowsAsync<Microsoft.AspNetCore.SignalR.HubException>(() => live.Apply("bad", new { op = "put", kind = "node", item = new { id = "x", label = "x", shape = "model", color = "#fff", position = new[] { 0, 0, 0 } } }));
+
+        await using var look = await LiveClient.Start(factory);
+        var node = (await look.Join(id)).GetProperty("data").GetProperty("nodes")[0];
+        Assert.Equal(model, node.GetProperty("modelId").GetString());
+        Assert.Equal(1.5, node.GetProperty("modelScale").GetDouble());
+    }
+
+    [Fact]
     public async Task Older_export_files_without_models_still_import()
     {
         using var factory = new StrataFactory();

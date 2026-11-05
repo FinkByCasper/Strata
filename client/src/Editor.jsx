@@ -13,6 +13,7 @@ import { People } from './People';
 import { History } from './History';
 import { ModelPanel } from './ModelPanel';
 import { bundleFor, refreshModels, restoreBundle, uploadModel, useModelSource, useModels } from './models';
+import { startLive, useLive } from './live';
 import { useAuth } from './auth';
 import { ArrowLeft, ArrowLeftRight, ArrowRight, Ban, Check, Copy, ImagePlus, RefreshCw, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -350,6 +351,8 @@ export function Editor({ id }) {
   const importRef = useRef();
   const intro = useIntro(status !== 'loading' && status !== 'missing');
   useModelSource(`/api/diagrams/${id}/models`, id);
+  const live = useLive((l) => l.status);
+  const unsent = useLive((l) => l.unsent);
 
   useEffect(() => {
     api.get(id)
@@ -357,16 +360,26 @@ export function Editor({ id }) {
       .catch(() => setStatus('missing'));
   }, [id]);
 
-  // Debounced autosave whenever the document revision changes.
   useEffect(() => {
-    if (s.rev === 0 || status === 'loading' || status === 'missing') return;
+    if (status === 'loading' || status === 'missing') return undefined;
+    return startLive(id, {
+      onKicked: () => { useStore.getState().showToast('Your access to this diagram changed'); setTimeout(() => window.location.reload(), 1200); },
+      onClosed: () => { useStore.getState().showToast('This diagram was deleted'); setTimeout(() => { window.location.assign('/'); }, 1500); },
+      onReset: () => useStore.getState().showToast('The diagram was replaced by a saved or restored version'),
+      onRejected: (why) => useStore.getState().showToast(`A change could not be applied (${why}); reloaded the diagram`),
+    });
+  }, [id, status === 'loading' || status === 'missing']); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Without a live connection, a debounced autosave saves the whole diagram whenever the document revision changes.
+  useEffect(() => {
+    if (s.rev === 0 || status === 'loading' || status === 'missing' || (live !== 'off' && live !== 'unavailable')) return;
     setStatus('saving');
     const t = setTimeout(() => {
       const { name, data } = useStore.getState();
       api.save(id, name || 'Untitled diagram', data).then(() => setStatus('saved')).catch(() => setStatus('error'));
     }, 800);
     return () => clearTimeout(t);
-  }, [s.rev]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [s.rev, live]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const warn = (e) => { if (useStore.getState().rev && status !== 'saved') e.preventDefault(); };
@@ -439,7 +452,7 @@ export function Editor({ id }) {
 
   return (
     <div className="relative flex h-full flex-col">
-      <Topbar status={status} role={meta?.role} onShare={() => setSharing(true)} onExportJson={exportJson} onExportPng={exportPng}
+      <Topbar status={live === 'live' ? (unsent ? 'saving' : 'saved') : live === 'offline' ? 'offline' : status} role={meta?.role} onShare={() => setSharing(true)} onExportJson={exportJson} onExportPng={exportPng}
         onImport={() => importRef.current.click()} onTips={intro.replay} onHistory={openHistory} />
       <input ref={importRef} type="file" accept="application/json,.json" hidden onChange={(e) => { importJson(e.target.files[0]); e.target.value = ''; }} />
       <div className="stage relative min-h-0 flex-1">

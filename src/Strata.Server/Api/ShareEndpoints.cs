@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using Strata.Server.Auth;
+using Strata.Server.Live;
 using Strata.Server.Storage;
 
 namespace Strata.Server.Api;
@@ -17,22 +18,26 @@ public static class ShareEndpoints
             })
             .WithSummary("List the accounts a diagram is shared with (owner only)");
 
-        shares.MapPut("", async (string id, ShareInput input, AuthSettings settings, DiagramStore store, CancellationToken ct) =>
+        shares.MapPut("", async (string id, ShareInput input, AuthSettings settings, DiagramStore store, DiagramRooms rooms, CancellationToken ct) =>
             {
                 var access = await Owned(id, settings, store, ct);
                 var role = input.Role ?? throw new ApiException(400, "role must be viewer or editor");
-                return TypedResults.Ok(await store.ShareAsync(access.Diagram, input.Email, role, ct));
+                var shared = await store.ShareAsync(access.Diagram, input.Email, role, ct);
+                await rooms.KickAsync(id, shared.UserId);
+                return TypedResults.Ok(shared);
             })
             .WithSummary("Share a diagram with an account, or change that account's role (owner only)")
             .Produces<ErrorResponse>(StatusCodes.Status404NotFound);
 
-        shares.MapDelete("{userId}", async (string id, string userId, AuthSettings settings, Actor actor, DiagramStore store, CancellationToken ct) =>
+        shares.MapDelete("{userId}", async (string id, string userId, AuthSettings settings, Actor actor, DiagramStore store, DiagramRooms rooms, CancellationToken ct) =>
             {
                 if (!settings.Enabled) throw new ApiException(400, "sharing needs accounts");
                 var access = await store.FindAsync(id, ct) ?? throw new ApiException(404, "not found");
                 if (access.Level != AccessLevel.Owner && userId != actor.UserId)
                     throw new ApiException(403, "only the owner can remove other people");
-                return await store.UnshareAsync(access.Diagram.Id, userId, ct) ? Results.NoContent() : Results.NotFound(new ErrorResponse("not found"));
+                if (!await store.UnshareAsync(access.Diagram.Id, userId, ct)) return Results.NotFound(new ErrorResponse("not found"));
+                await rooms.KickAsync(id, userId);
+                return Results.NoContent();
             })
             .WithSummary("Stop sharing with an account; anyone can also remove themselves from a diagram shared with them");
     }

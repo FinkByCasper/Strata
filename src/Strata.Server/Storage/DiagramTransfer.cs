@@ -4,11 +4,12 @@ using Strata.Data;
 using Strata.Server.Api;
 using Strata.Server.Auth;
 using Strata.Server.Models;
+using Strata.Server.Live;
 using Strata.Server.Validation;
 
 namespace Strata.Server.Storage;
 
-public partial class DiagramTransfer(StrataDbContext db, Actor actor, ModelStore models)
+public partial class DiagramTransfer(StrataDbContext db, Actor actor, ModelStore models, DiagramRooms rooms)
 {
     public async Task<ExportFile> ExportAsync(CancellationToken ct)
     {
@@ -29,6 +30,7 @@ public partial class DiagramTransfer(StrataDbContext db, Actor actor, ModelStore
     public async Task<ImportResult> ImportAsync(IEnumerable<ExportedDiagram> items, bool overwrite, string? ownerId, bool ownedOnly, CancellationToken ct)
     {
         int imported = 0, replaced = 0, skipped = 0;
+        var overwritten = new List<string>();
         var rejected = new List<RejectedDiagram>();
 
         await using var tx = await db.Database.BeginTransactionAsync(ct);
@@ -69,6 +71,7 @@ public partial class DiagramTransfer(StrataDbContext db, Actor actor, ModelStore
                 await db.SaveChangesAsync(ct);
                 await StoreModelsAsync(item.Id, decoded, now, ct);
                 replaced++;
+                overwritten.Add(existing.Id);
             }
             else
             {
@@ -89,6 +92,7 @@ public partial class DiagramTransfer(StrataDbContext db, Actor actor, ModelStore
             }
         }
         await tx.CommitAsync(ct);
+        foreach (var id in overwritten) await rooms.ReloadAsync(id);
         return new ImportResult(imported, replaced, skipped, rejected);
     }
 

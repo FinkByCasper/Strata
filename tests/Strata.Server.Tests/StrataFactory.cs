@@ -89,6 +89,7 @@ public sealed class StrataFactory : WebApplicationFactory<Program>
     public int? ModelMaxCount { get; init; }
 
     public int? ModelDiagramMaxMb { get; init; }
+    public int LiveSaveDelayMs { get; init; } = 100;
 
     public string DatabasePath => Path.Combine(dir, "strata.db");
 
@@ -113,6 +114,7 @@ public sealed class StrataFactory : WebApplicationFactory<Program>
         if (ModelMaxMb is { } modelMb) builder.UseSetting("STRATA_MODEL_MAX_MB", modelMb.ToString());
         if (ModelMaxCount is { } modelCount) builder.UseSetting("STRATA_MODEL_MAX_COUNT", modelCount.ToString());
         if (ModelDiagramMaxMb is { } diagramMb) builder.UseSetting("STRATA_MODEL_DIAGRAM_MAX_MB", diagramMb.ToString());
+        builder.UseSetting("STRATA_LIVE_SAVE_DELAY_MS", LiveSaveDelayMs.ToString());
         if (HistoryMax is { } max) builder.UseSetting("STRATA_HISTORY_MAX", max.ToString());
     }
 

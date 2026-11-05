@@ -6,7 +6,7 @@ import { useStore } from './store';
 export const camState = { azimuth: 0, zoom: 1 };
 
 // The grid square under the mouse while it is over the canvas (null otherwise); paste drops things there.
-export const pointerCell = { x: 0, z: 0, over: false };
+export const pointerCell = { x: 0, z: 0, fx: 0, fz: 0, over: false };
 // When something was last placed from the clipboard (the click that did it must not also clear the selection).
 export const placed = { at: -1e9 };
 // Did the current mouse press land on a node? (A press on a node selects it, which swaps the node's drawing for another object, so the

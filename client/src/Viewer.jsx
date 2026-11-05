@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ArrowUpRight, LayoutGrid } from 'lucide-react';
 import { Logo } from './Logo';
 import { Link } from './App';
+import { Presence } from './presence';
 import { api } from './api';
 import { useModelSource } from './models';
 import { Scene } from './Scene';
@@ -36,6 +37,7 @@ export function ReadOnlyDiagram({ name, token, embed = false, home = false }) {
     <header className="z-40 flex h-14 items-center justify-between gap-3 border-b bg-card px-3">
       <div className="flex min-w-0 items-center gap-2.5"><Logo size={26} /><strong className="truncate text-[15px]">{name}</strong></div>
       <div className="flex items-center gap-2">
+        {home && <Presence />}
         <CameraTools />
         <ThemeToggle />
         {home && <Button variant="outline" size="sm" asChild><Link to="/"><LayoutGrid /> All diagrams</Link></Button>}

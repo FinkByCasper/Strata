@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Strata.Server.Live;
 using Strata.Server.Storage;
 using Strata.Server.Validation;
 
@@ -56,7 +57,7 @@ public static class DiagramEndpoints
     private static async Task<Results<Ok<DiagramResponse>, NotFound<ErrorResponse>>> Get(string id, DiagramStore store, CancellationToken ct) =>
         await store.FindAsync(id, ct) is { } access ? TypedResults.Ok(DiagramStore.ToResponse(access)) : Missing;
 
-    private static async Task<Results<Ok<DiagramResponse>, NotFound<ErrorResponse>, BadRequest<ErrorResponse>>> Save(string id, HttpRequest request, DiagramStore store, CancellationToken ct)
+    private static async Task<Results<Ok<DiagramResponse>, NotFound<ErrorResponse>, BadRequest<ErrorResponse>>> Save(string id, HttpRequest request, DiagramStore store, DiagramRooms rooms, CancellationToken ct)
     {
         var body = await JsonBody.ReadObjectAsync(request, ct);
         body.TryGetProperty("name", out var name);
@@ -67,6 +68,7 @@ public static class DiagramEndpoints
         if (Reject(name, data) is { } error) return TypedResults.BadRequest(new ErrorResponse(error));
 
         await store.SaveAsync(access.Diagram, name.GetString()!, data.GetRawText(), ct);
+        await rooms.ReloadAsync(id);
         return TypedResults.Ok(DiagramStore.ToResponse(access));
     }
 
@@ -77,11 +79,12 @@ public static class DiagramEndpoints
         return TypedResults.Ok(new ViewTokenResponse(await store.RotateTokenAsync(access.Diagram, ct)));
     }
 
-    private static async Task<Results<NoContent, NotFound<ErrorResponse>>> Remove(string id, DiagramStore store, CancellationToken ct)
+    private static async Task<Results<NoContent, NotFound<ErrorResponse>>> Remove(string id, DiagramStore store, DiagramRooms rooms, CancellationToken ct)
     {
         if (await store.FindAsync(id, ct) is not { } access) return Missing;
         access.Require(AccessLevel.Owner, "only the owner can delete this diagram");
         await store.RemoveAsync(access.Diagram, ct);
+        await rooms.CloseAsync(id);
         return TypedResults.NoContent();
     }
 

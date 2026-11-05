@@ -24,6 +24,7 @@ as JSON, and can be shared through a view-only link or an embeddable iframe.
 - Autosave to the server, JSON export/import, PNG export of the 3D layer
 - **Share** dialog: view-only link (`/v/<token>`), embed snippet (`/embed/<token>`), and "regenerate" to revoke
 - **Your own 3D models**: upload a `.glb` or `.gltf` and use it for a node instead of a built-in shape, with its own size and rotation
+- **Real-time editing**: several people can have the same diagram open at once; changes show up live for everyone, with each person's name, colour and cursor
 - **Version history**: Strata keeps a copy of the diagram before a save replaces it, you can save named versions, and any version can be restored (the replaced state is kept, so a restore can be undone)
 - **Accounts**: sign in with email and password, every diagram has an owner, and an owner can share a diagram with other accounts as viewer or editor
 
@@ -81,6 +82,7 @@ Update with `git pull && docker compose up -d --build` (Coolify: Redeploy). Stra
 | `STRATA_MODEL_MAX_MB` | Largest uploaded model file, default `25` |
 | `STRATA_MODEL_MAX_COUNT` | Models per diagram, default `50` |
 | `STRATA_MODEL_DIAGRAM_MAX_MB` | Total size of a diagram's models, default `250` |
+| `STRATA_LIVE_SAVE_DELAY_MS` | How long after a live change the server writes the diagram to the database, default `1500`. The last person leaving saves at once |
 | `STRATA_HISTORY_MAX` | Automatic versions kept per diagram, default `100`; `0` turns automatic versions off. Versions you name are never removed |
 
 Config (env vars): `PORT` (default 3001), `STRATA_DB` (SQLite file, default `./data/strata.db`), `STRATA_DB_PROVIDER` and `STRATA_DB_CONNECTION` (see below), `STRATA_DIST` (folder with the built web app; found automatically next to the server).
@@ -113,6 +115,18 @@ Select a node, choose **Your 3D model** under *Model*, and upload a file. Models
 - A model can only be deleted while neither the diagram nor any saved version uses it, so restoring a version never loses a model.
 - The per-diagram **Export JSON** and `GET /api/export` bundle the models they use. Importing uploads them again, with new ids that the nodes are switched to.
 - Who may see a model follows the diagram: owner, editor and viewer can read; owner and editor can upload and delete; a view link can read the models of its own diagram.
+### Real-time editing
+
+Opening a diagram joins its live room. Changes are sent as small operations on whole entities (a node, a connector, a zone, or the name), not as the whole diagram, so two people changing different things never collide. If two change the same entity, the one the server received last wins, and everyone ends up with the same result. Everyone sees who is there (avatars next to the save status) and where their pointer is on the floor. Viewers watch live too but cannot change anything.
+
+- The server keeps the diagram of an open room in memory and writes it to the database a moment after changes (`STRATA_LIVE_SAVE_DELAY_MS`), and immediately when the last person leaves or the server stops. Authorship and version history keep working because those writes go through the normal save.
+- Every operation is checked with the same rules as saving; a batch is applied completely or not at all. Deleting a node removes its connectors for everyone.
+- Your own undo only undoes your own changes: edits from others are also applied to your undo history.
+- If the connection drops, the page keeps working, shows "Offline, reconnecting…", and sends what you changed when it is back. If live editing cannot be set up at all, the page falls back to the plain autosave it had before.
+- Saving through the normal API, restoring a version, or an import that overwrites a diagram replaces the room's copy for everyone and says so; deleting a diagram closes the room; changing someone's role or removing them from a diagram sends them out of the room so they rejoin with their new access.
+- Without accounts, people appear as *Guest 1*, *Guest 2*, … in the order they joined. With accounts, as their display name.
+- The hub is at `/hubs/diagram` (SignalR). Behind a reverse proxy, WebSockets must be allowed; if they are not, SignalR falls back to long polling.
+- A connection keeps the access it had when it joined until it is closed or the access is changed through Strata. Signing out reloads the page and closes it.
 
 ### Version history
 
