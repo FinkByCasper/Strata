@@ -19,6 +19,6 @@ export default defineConfig({
   define: { __BUILD__: JSON.stringify(new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC') },
   plugins: [react(), tailwindcss(), strataBanner()],
   resolve: { alias: { '@': fileURLToPath(new URL('./client/src', import.meta.url)) } },
-  server: { port: 5173, proxy: { '/api': 'http://localhost:3001' } },
+  server: { port: 5173, proxy: { '/api': 'http://localhost:3001', '/hubs': { target: 'http://localhost:3001', ws: true } } },
   build: { outDir: 'dist', chunkSizeWarningLimit: 1500 },
 });
