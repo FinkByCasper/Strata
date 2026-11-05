@@ -10,6 +10,7 @@ import { Topbar } from './Topbar';
 import { Intro, useIntro } from './Intro';
 import { ReadOnlyDiagram } from './Viewer';
 import { People } from './People';
+import { History } from './History';
 import { useAuth } from './auth';
 import { ArrowLeft, ArrowLeftRight, ArrowRight, Ban, Check, Copy, ImagePlus, RefreshCw, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -321,6 +322,7 @@ export function Editor({ id }) {
   const [meta, setMeta] = useState(null); // { viewToken }
   const [status, setStatus] = useState('loading'); // loading | saved | saving | error | missing
   const [sharing, setSharing] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [pendingImport, setPendingImport] = useState(null);   // a parsed file waiting for the "replace?" confirmation
   const importRef = useRef();
   const intro = useIntro(status !== 'loading' && status !== 'missing');
@@ -383,6 +385,17 @@ export function Editor({ id }) {
   if (status === 'loading') return <div className="grid h-full place-content-center text-muted-foreground">Loading…</div>;
   if (meta?.role === 'viewer') return <ReadOnlyDiagram name={s.name} home />;
 
+  const openHistory = async () => {
+    const { rev, name, data } = useStore.getState();
+    if (rev > 0 && status === 'saving') await api.save(id, name || 'Untitled diagram', data).then(() => setStatus('saved'), () => {});
+    setHistoryOpen(true);
+  };
+  const restored = (d) => {
+    useStore.getState().load(d.name, d.data, false);
+    useStore.getState().setView('fit');
+    setStatus('saved');
+  };
+
   const exportJson = () => download(`${slug(s.name)}.strata.json`, JSON.stringify({ name: s.name, data: s.data }, null, 2), 'application/json');
   const exportPng = () => {
     const c = document.querySelector('canvas');
@@ -400,7 +413,7 @@ export function Editor({ id }) {
   return (
     <div className="relative flex h-full flex-col">
       <Topbar status={status} role={meta?.role} onShare={() => setSharing(true)} onExportJson={exportJson} onExportPng={exportPng}
-        onImport={() => importRef.current.click()} onTips={intro.replay} />
+        onImport={() => importRef.current.click()} onTips={intro.replay} onHistory={openHistory} />
       <input ref={importRef} type="file" accept="application/json,.json" hidden onChange={(e) => { importJson(e.target.files[0]); e.target.value = ''; }} />
       <div className="stage relative min-h-0 flex-1">
         <Scene />
@@ -417,6 +430,7 @@ export function Editor({ id }) {
             <AlertDialogAction onClick={() => { s.replaceData(pendingImport.name, pendingImport.data); s.setView('fit'); setPendingImport(null); }}>Replace</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {historyOpen && <History id={id} canDelete={meta?.role === 'owner'} onRestored={restored} onClose={() => setHistoryOpen(false)} />}
       {sharing && meta?.role === 'owner' && (
         <ShareDialog id={id} viewToken={meta.viewToken} onClose={() => setSharing(false)}
           onRotate={async (i) => setMeta({ viewToken: (await api.rotate(i)).viewToken })} />

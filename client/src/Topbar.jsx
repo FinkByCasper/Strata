@@ -1,5 +1,5 @@
 import React from 'react';
-import { CircleHelp, Download, FileJson, Grid3x3, ImageDown, LayoutGrid, MousePointer2, Orbit, Spline, Redo2, RotateCcw, RotateCw, Scan, Share2, Undo2, Upload } from 'lucide-react';
+import { CircleHelp, Download, FileJson, History, Grid3x3, ImageDown, LayoutGrid, MousePointer2, Orbit, Spline, Redo2, RotateCcw, RotateCw, Scan, Share2, Undo2, Upload } from 'lucide-react';
 import { Logo } from './Logo';
 import { Link, navigate } from './App';
 import { useStore } from './store';
@@ -39,7 +39,7 @@ export function CameraTools() {
 
 const STATUS = { saved: ['bg-success', 'Saved'], saving: ['bg-warning', 'Saving…'], error: ['bg-destructive', 'Save failed'] };
 
-export function Topbar({ status, role = 'owner', onShare, onExportJson, onExportPng, onImport, onTips }) {
+export function Topbar({ status, role = 'owner', onHistory, onShare, onExportJson, onExportPng, onImport, onTips }) {
   const name = useStore((s) => s.name);
   const mode = useStore((s) => s.mode);
   const snap = useStore((s) => s.snap);
@@ -80,6 +80,7 @@ export function Topbar({ status, role = 'owner', onShare, onExportJson, onExport
           </Hint>
           <DropdownMenuContent>
             {role === 'owner' && <><DropdownMenuItem onSelect={onShare} className="font-medium"><Share2 /> Share &amp; embed…</DropdownMenuItem><DropdownMenuSeparator /></>}
+            <DropdownMenuItem onSelect={onHistory}><History /> Version history…</DropdownMenuItem>
             <DropdownMenuItem onSelect={onExportJson}><FileJson /> Export JSON</DropdownMenuItem>
             <DropdownMenuItem onSelect={onExportPng}><ImageDown /> Export PNG</DropdownMenuItem>
             <DropdownMenuItem onSelect={onImport}><Upload /> Import JSON…</DropdownMenuItem>

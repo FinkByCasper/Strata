@@ -30,7 +30,7 @@ export function People({ id }) {
     <div className="grid gap-2">
       <Label>People</Label>
       {people?.length === 0 && <p className="text-sm text-muted-foreground">Only you can open this diagram. Add someone by the email they signed up with.</p>}
-      <ul className="grid gap-1.5">
+      <ul className="grid grid-cols-[minmax(0,1fr)] gap-1.5">
         {people?.map((p) => (
           <li key={p.userId} className="flex items-center gap-2">
             <span className="min-w-0 flex-1 truncate text-sm">{p.displayName} <span className="text-muted-foreground">{p.email}</span></span>

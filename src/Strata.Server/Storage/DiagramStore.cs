@@ -26,7 +26,7 @@ public sealed record Access(Diagram Diagram, AccessLevel Level)
     }
 }
 
-public class DiagramStore(StrataDbContext db, Actor actor)
+public class DiagramStore(StrataDbContext db, Actor actor, VersionStore versions)
 {
     public static string NewToken() => Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(16));
 
@@ -85,6 +85,7 @@ public class DiagramStore(StrataDbContext db, Actor actor)
             Name = name,
             Data = data,
             OwnerId = actor.UserId,
+            UpdatedById = actor.UserId,
             CreatedAt = now,
             UpdatedAt = now,
         };
@@ -95,10 +96,13 @@ public class DiagramStore(StrataDbContext db, Actor actor)
 
     public async Task SaveAsync(Diagram diagram, string name, string data, CancellationToken ct)
     {
+        await versions.CaptureBeforeOverwriteAsync(diagram, name, data, ct);
         diagram.Name = name;
         diagram.Data = data;
         diagram.UpdatedAt = Now();
+        diagram.UpdatedById = actor.UserId;
         await db.SaveChangesAsync(ct);
+        await versions.PruneAsync(diagram.Id, ct);
     }
 
     public async Task<string> RotateTokenAsync(Diagram diagram, CancellationToken ct)
