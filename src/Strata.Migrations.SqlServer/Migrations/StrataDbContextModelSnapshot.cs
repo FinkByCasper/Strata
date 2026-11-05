@@ -187,6 +187,58 @@ namespace Strata.Migrations.SqlServer.Migrations
                     b.ToTable("diagram_versions", (string)null);
                 });
 
+            modelBuilder.Entity("Strata.Data.ModelAsset", b =>
+                {
+                    b.Property<string>("DiagramId")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)")
+                        .HasColumnName("diagram_id")
+                        .UseCollation("Latin1_General_100_BIN2");
+
+                    b.Property<string>("Id")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)")
+                        .HasColumnName("id")
+                        .UseCollation("Latin1_General_100_BIN2");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("bigint")
+                        .HasColumnName("created_at");
+
+                    b.Property<byte[]>("Data")
+                        .IsRequired()
+                        .HasColumnType("varbinary(max)")
+                        .HasColumnName("data");
+
+                    b.Property<string>("Format")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)")
+                        .HasColumnName("format");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("Sha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)")
+                        .HasColumnName("sha256");
+
+                    b.Property<long>("Size")
+                        .HasColumnType("bigint")
+                        .HasColumnName("size");
+
+                    b.HasKey("DiagramId", "Id");
+
+                    b.HasIndex("DiagramId", "Sha256");
+
+                    b.ToTable("model_assets", (string)null);
+                });
+
             modelBuilder.Entity("Strata.Data.Session", b =>
                 {
                     b.Property<string>("TokenHash")
@@ -287,6 +339,15 @@ namespace Strata.Migrations.SqlServer.Migrations
                         .HasForeignKey("AuthorId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("Strata.Data.Diagram", null)
+                        .WithMany()
+                        .HasForeignKey("DiagramId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Strata.Data.ModelAsset", b =>
+                {
                     b.HasOne("Strata.Data.Diagram", null)
                         .WithMany()
                         .HasForeignKey("DiagramId")

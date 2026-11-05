@@ -10,6 +10,7 @@ using Strata.Server;
 using Strata.Server.Api;
 using Strata.Server.Auth;
 using Strata.Server.Commands;
+using Strata.Server.Models;
 using Strata.Server.Storage;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -32,6 +33,8 @@ builder.Services.AddScoped(sp => Actor.From(sp.GetRequiredService<IHttpContextAc
 builder.Services.AddScoped<AccountService>();
 builder.Services.AddSingleton(HistorySettings.From(builder.Configuration));
 builder.Services.AddScoped<VersionStore>();
+builder.Services.AddSingleton(ModelSettings.From(builder.Configuration));
+builder.Services.AddScoped<ModelStore>();
 builder.Services.AddScoped<DiagramStore>();
 builder.Services.AddScoped<DiagramTransfer>();
 builder.Services.AddOpenApi();
@@ -73,9 +76,11 @@ app.MapGet("/healthz", () => Results.Text("ok")).ExcludeFromDescription();
 app.MapOpenApi();
 open.MapAuthApi();
 open.MapSharedApi();
+open.MapSharedModelApi();
 secured.MapDiagramApi();
 secured.MapShareApi();
 secured.MapVersionApi();
+secured.MapModelApi();
 secured.MapTransferApi();
 open.Map("/{**rest}", () => Results.NotFound(new ErrorResponse("not found"))).ExcludeFromDescription();
 app.MapWebApp(settings.DistPath);

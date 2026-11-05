@@ -27,6 +27,7 @@ export function ShapeIcon({ shape }) {
     cloud: <><path d="M7 18h10a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.2 9.2 4.4 4.4 0 0 0 7 18z" /></>,
     container: <><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z" /><path d="M8 11l4 2 4-2M8 14.2l4 2 4-2" /></>,
     pyramid: <><path d="M12 4l8 14H4z" /><path d="M12 4v14" /></>,
+    model: <><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z" /><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5" strokeDasharray="2 2" /><path d="M17.5 3.5v3M16 5h3" /></>,
     cache: <><rect x="7" y="7" width="10" height="10" rx="1.5" /><path d="M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4" /></>,
   };
   return <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden><g {...p}>{glyph[shape]}</g></svg>;
@@ -56,7 +57,7 @@ export function ShapePicker({ value, onPick }) {
       </div>
     </div>
   );
-  return <div className="flex flex-col gap-3">{group('Devices', DEVICE_SHAPES)}{group('Basic shapes', BASIC_SHAPES)}</div>;
+  return <div className="flex flex-col gap-3">{group('Devices', DEVICE_SHAPES)}{group('Basic shapes', BASIC_SHAPES)}{group('Your own', ['model'])}</div>;
 }
 
 export function Swatches({ value, onPick, custom = true }) {

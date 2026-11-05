@@ -14,7 +14,8 @@
     "dev:client": "vite",
     "build": "vite build",
     "start": "dotnet run --project src/Strata.Server -c Release",
-    "test": "dotnet test --solution Strata.slnx"
+    "test": "dotnet test --solution Strata.slnx",
+    "test:client": "node --test client/src/*.test.js"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",

@@ -84,6 +84,12 @@ public sealed class StrataFactory : WebApplicationFactory<Program>
 
     public int? HistoryMax { get; init; }
 
+    public int? ModelMaxMb { get; init; }
+
+    public int? ModelMaxCount { get; init; }
+
+    public int? ModelDiagramMaxMb { get; init; }
+
     public string DatabasePath => Path.Combine(dir, "strata.db");
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -104,6 +110,9 @@ public sealed class StrataFactory : WebApplicationFactory<Program>
         builder.UseSetting("STRATA_ALLOW_SIGNUP", AllowSignup ? "true" : "false");
         if (AdminEmail is not null) builder.UseSetting("STRATA_ADMIN_EMAIL", AdminEmail);
         if (HistoryIntervalMinutes is { } minutes) builder.UseSetting("STRATA_HISTORY_INTERVAL_MINUTES", minutes.ToString());
+        if (ModelMaxMb is { } modelMb) builder.UseSetting("STRATA_MODEL_MAX_MB", modelMb.ToString());
+        if (ModelMaxCount is { } modelCount) builder.UseSetting("STRATA_MODEL_MAX_COUNT", modelCount.ToString());
+        if (ModelDiagramMaxMb is { } diagramMb) builder.UseSetting("STRATA_MODEL_DIAGRAM_MAX_MB", diagramMb.ToString());
         if (HistoryMax is { } max) builder.UseSetting("STRATA_HISTORY_MAX", max.ToString());
     }
 

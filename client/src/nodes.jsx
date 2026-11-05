@@ -9,6 +9,8 @@ import { IconGlyph, Label, lodFor, usePortal } from './labels';
 import { RichText } from './richtext';
 import { useHighlight } from './highlight';
 import { useTheme } from './theme';
+import { ModelNode } from './modelNodes';
+import { modelLabelHeight, useModels } from './models';
 
 // Connect-mode click, or plain selection. Returns whether a press-and-hold pick-up may start.
 export function pickNode(id) {
@@ -19,7 +21,7 @@ export function pickNode(id) {
   return !s.readOnly;
 }
 
-const setHover = (on) => {
+export const setHover = (on) => {
   const s = useStore.getState();
   // Orbit must already be off by pointer-down (OrbitControls reads it first), so key off hover.
   if (!s.readOnly) s.setHovering(on);
@@ -114,11 +116,13 @@ export function NodesLayer() {
   const focus = useMemo(() => (hl ? new Set([...core, ...hl.nodes]) : core), [core, hl]);
   const byKind = useMemo(() => {
     const m = new Map();
-    for (const n of nodes) (m.get(n.shape) ?? m.set(n.shape, []).get(n.shape)).push(n);
+    for (const n of nodes) if (n.shape !== 'model') (m.get(n.shape) ?? m.set(n.shape, []).get(n.shape)).push(n);
     return m;
   }, [nodes]);
   const h = {
     move: hold.move,
+    over: () => setHover(true),
+    out: () => setHover(false),
     onDown: (node, e) => {
       e.stopPropagation();
       if (e.nativeEvent.button !== 0) return;
@@ -131,9 +135,12 @@ export function NodesLayer() {
       {[...byKind].map(([kind, list]) => partsFor(kind).map((part) => (
         <PartInstances key={`${kind}-${part.role}`} kind={kind} part={part} list={list} focus={focus} h={h} dim={!!hl} />
       )))}
+      {nodes.filter((n) => n.shape === 'model').map((n) => (
+        <ModelNode key={n.id} node={n} lifted={n.id === liftedId} glow={n.id === selId || n.id === connectFrom} dim={!!hl && !focus.has(n.id)} h={h} />
+      ))}
       {nodes.filter((n) => focus.has(n.id)).map((n) => (
         <React.Fragment key={n.id}>
-          <FocusNode node={n} lifted={n.id === liftedId} glow={n.id === selId || n.id === connectFrom} h={h} />
+          {n.shape !== 'model' && <FocusNode node={n} lifted={n.id === liftedId} glow={n.id === selId || n.id === connectFrom} h={h} />}
           {!core.has(n.id) ? null : n.id === liftedId
             ? <CellMarker position={n.position} size={1} color={n.color} fill={0.45} />
             : <CellMarker position={n.position} size={1} color={n.id === connectFrom ? '#f5a524' : '#4f8cff'} fill={0.22} outline />}
@@ -223,6 +230,7 @@ export function NodeLabels() {
   const connectFrom = useStore((s) => s.connectFrom);
   const liftedId = useStore((s) => s.liftedId);
   const hl = useHighlight();
+  useModels((m) => m.loaded);
   const { camera, size } = useThree();
   const [vis, setVis] = useState({ ids: new Set(), lod: 'full' });
   const prev = useRef('');
@@ -267,7 +275,7 @@ export function NodeLabels() {
               </Html>
             )}
             <Label
-              position={[n.position[0], lift + labelY(n.shape), n.position[2]]} target={[n.position[0], lift + 0.1, n.position[2]]}
+              position={[n.position[0], lift + (n.shape === 'model' ? modelLabelHeight(n) ?? labelY('model') : labelY(n.shape)), n.position[2]]} target={[n.position[0], lift + 0.1, n.position[2]]}
               className={`${selected ? 'selected' : ''} ${full ? '' : 'small'} ${spot ? '' : 'dim'}`} priority={selected ? 3 : hl && spot ? 2.5 : MINOR.has(n.shape) ? 1.8 : 2}
               onClick={() => pickNode(n.id)}
             >

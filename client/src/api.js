@@ -1,14 +1,15 @@
-async function req(path, opts) {
-  const res = await fetch(path, {
-    headers: { 'content-type': 'application/json' }, ...opts,
-    body: opts?.body ? JSON.stringify(opts.body) : undefined,
-  });
+async function answer(res, path) {
   if (!res.ok) {
     if (res.status === 401 && !path.startsWith('/api/auth/')) window.dispatchEvent(new Event('strata:signed-out'));
     throw new Error((await res.json().catch(() => ({}))).error || res.statusText);
   }
   return res.status === 204 ? null : res.json();
 }
+
+const req = async (path, opts) => answer(await fetch(path, {
+  headers: { 'content-type': 'application/json' }, ...opts,
+  body: opts?.body ? JSON.stringify(opts.body) : undefined,
+}), path);
 
 export const api = {
   list: () => req('/api/diagrams'),
@@ -28,5 +29,11 @@ export const api = {
   saveVersion: (id, label) => req(`/api/diagrams/${id}/versions`, { method: 'POST', body: { label } }),
   restoreVersion: (id, versionId) => req(`/api/diagrams/${id}/versions/${versionId}/restore`, { method: 'POST' }),
   deleteVersion: (id, versionId) => req(`/api/diagrams/${id}/versions/${versionId}`, { method: 'DELETE' }),
+  models: (id) => req(`/api/diagrams/${id}/models`),
+  uploadModel: async (id, file) => {
+    const path = `/api/diagrams/${id}/models?name=${encodeURIComponent(file.name)}`;
+    return answer(await fetch(path, { method: 'POST', headers: { 'content-type': file.type || 'application/octet-stream' }, body: file }), path);
+  },
+  deleteModel: (id, modelId) => req(`/api/diagrams/${id}/models/${modelId}`, { method: 'DELETE' }),
   unshare: (id, userId) => req(`/api/diagrams/${id}/shares/${userId}`, { method: 'DELETE' }),
 };

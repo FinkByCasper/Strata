@@ -23,6 +23,7 @@ as JSON, and can be shared through a view-only link or an embeddable iframe.
 - Node labels can carry a second "subtitle" line (IP, port...). Labels are real DOM text (crisp, upright, constant size) with a small safe-markdown description (`**bold**`, `*italic*`, `` `code` ``, `- lists`) shown when a node is selected
 - Autosave to the server, JSON export/import, PNG export of the 3D layer
 - **Share** dialog: view-only link (`/v/<token>`), embed snippet (`/embed/<token>`), and "regenerate" to revoke
+- **Your own 3D models**: upload a `.glb` or `.gltf` and use it for a node instead of a built-in shape, with its own size and rotation
 - **Version history**: Strata keeps a copy of the diagram before a save replaces it, you can save named versions, and any version can be restored (the replaced state is kept, so a restore can be undone)
 - **Accounts**: sign in with email and password, every diagram has an owner, and an owner can share a diagram with other accounts as viewer or editor
 
@@ -77,6 +78,9 @@ Update with `git pull && docker compose up -d --build` (Coolify: Redeploy). Stra
 | `STRATA_ADMIN_EMAIL` | Optional. Diagrams made before accounts existed go to the first account created, or to this email if set |
 | `STRATA_SESSION_DAYS` | How long a sign-in lasts, default `30` |
 | `STRATA_HISTORY_INTERVAL_MINUTES` | At most one automatic version per diagram in this many minutes, default `10`; `0` keeps a version on every save that changed something |
+| `STRATA_MODEL_MAX_MB` | Largest uploaded model file, default `25` |
+| `STRATA_MODEL_MAX_COUNT` | Models per diagram, default `50` |
+| `STRATA_MODEL_DIAGRAM_MAX_MB` | Total size of a diagram's models, default `250` |
 | `STRATA_HISTORY_MAX` | Automatic versions kept per diagram, default `100`; `0` turns automatic versions off. Versions you name are never removed |
 
 Config (env vars): `PORT` (default 3001), `STRATA_DB` (SQLite file, default `./data/strata.db`), `STRATA_DB_PROVIDER` and `STRATA_DB_CONNECTION` (see below), `STRATA_DIST` (folder with the built web app; found automatically next to the server).
@@ -99,6 +103,17 @@ Tables are created and upgraded on start. The database is created too if the log
 
 To run the tests against an engine, point them at a server that may create databases (each test class makes and drops its own): `STRATA_TEST_PROVIDER=postgres STRATA_TEST_CONNECTION="Host=localhost;Username=postgres;Password=postgres;Database=postgres" npm test`. CI runs all three.
 
+### 3D models
+
+Select a node, choose **Your 3D model** under *Model*, and upload a file. Models are kept next to the diagram in the database (not inside the diagram, which is limited to 4 MB), so every node can refer to one by id, view links and embeds can show them, and the diagram's version history stays small.
+
+- Accepted: glTF 2.0 as `.glb`, or `.gltf` with its data embedded. Models that need Draco, KTX2 or Meshopt decoding are refused with a hint to re-export without compression.
+- Checked on upload, not trusted: the file must really be glTF, must not point at any file or URL, images must really be PNG, JPEG or WebP, the structure must be consistent, and there are caps on size, vertex count and number of parts. Uploading the same file twice to one diagram stores it once.
+- An unscaled model is fitted so its longest side is one grid cell, whatever unit it was made in, and stands on the floor. *Size* scales that and *Rotation* turns it (degrees).
+- A model can only be deleted while neither the diagram nor any saved version uses it, so restoring a version never loses a model.
+- The per-diagram **Export JSON** and `GET /api/export` bundle the models they use. Importing uploads them again, with new ids that the nodes are switched to.
+- Who may see a model follows the diagram: owner, editor and viewer can read; owner and editor can upload and delete; a view link can read the models of its own diagram.
+
 ### Version history
 
 Every diagram has a history, kept in its own tables (`diagram_versions`) in the configured database, so it moves with the data and is included when you back the database up. The Share &amp; file menu has **Version history…**.
@@ -112,7 +127,7 @@ Every diagram has a history, kept in its own tables (`diagram_versions`) in the 
 
 ### Backups, and moving over from the Node beta
 
-`GET /api/export` downloads every diagram as one JSON file; `POST /api/import` reads that file back (existing ids are skipped, add `?overwrite=true` to replace them). Ids and view tokens are kept, so share links survive.
+`GET /api/export` downloads every diagram, with its 3D models, as one JSON file; `POST /api/import` reads that file back (existing ids are skipped, add `?overwrite=true` to replace them). Ids and view tokens are kept, so share links survive.
 
 A `strata.db` written by the Node beta is picked up in place: point `STRATA_DB` at it and start the new server. To copy a beta file into another database instead, run the importer once:
 

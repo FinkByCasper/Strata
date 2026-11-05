@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ChevronRight, LogOut, Plus, Trash2, Upload } from 'lucide-react';
 import { Logo } from './Logo';
 import { api } from './api';
+import { restoreBundle } from './models';
 import { Link, navigate } from './App';
 import { EMPTY, parseDiagram } from './model';
 import { Button } from '@/components/ui/button';
@@ -29,8 +30,12 @@ export function Home() {
   const importFile = async (f) => {
     if (!f) return;
     try {
-      const { name, data } = parseDiagram(await f.text());
-      await create(name ?? f.name.replace(/\.json$/i, ''), data);
+      const { name, data, models } = parseDiagram(await f.text());
+      const title = name ?? f.name.replace(/\.json$/i, '');
+      if (!models.length) return await create(title, data);
+      const made = await api.create(title, EMPTY());
+      await api.save(made.id, made.name, await restoreBundle(made.id, models, data));
+      navigate(`/d/${made.id}`);
     } catch (e) { setError(`Import failed: ${e.message}`); }
   };
 

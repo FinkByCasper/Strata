@@ -9,7 +9,7 @@ public static class DiagramValidator
     private static readonly HashSet<string> Shapes =
     [
         "box", "cylinder", "sphere", "slab", "user", "server", "router", "accesspoint", "pc", "laptop", "phone",
-        "database", "cache", "switch", "firewall", "antenna", "printer", "cloud", "container", "pyramid",
+        "database", "cache", "switch", "firewall", "antenna", "printer", "cloud", "container", "pyramid", "model",
     ];
     private static readonly HashSet<string> Routes = ["orthogonal", "orthogonal-z", "straight", "curved"];
     private static readonly HashSet<string> Flows = ["none", "forward", "both"];
@@ -36,6 +36,8 @@ public static class DiagramValidator
                 return "bad node";
             if (!OneOf(n, "shape", Shapes) || !Vector(n, "position") || !Text(n, "color", 32))
                 return "bad node";
+
+            if (n.GetProperty("shape").GetString() == "model" && !Model(n)) return "bad model";
 
             if (Present(n, "icon", out var icon))
             {
@@ -66,6 +68,14 @@ public static class DiagramValidator
                 return "bad zone label";
         }
         return null;
+    }
+
+    private static bool Model(JsonElement node)
+    {
+        if (!Text(node, "modelId", 64) || node.GetProperty("modelId").GetString() is not { Length: > 0 } modelId || !modelId.All(c => char.IsAsciiLetterOrDigit(c) || c is '_' or '-')) return false;
+        if (Present(node, "modelScale", out var scale) && (scale.ValueKind != JsonValueKind.Number || !scale.TryGetDouble(out var s) || !(s is >= 0.01 and <= 100))) return false;
+        if (Present(node, "modelRotation", out _) && (!Vector(node, "modelRotation") || node.GetProperty("modelRotation").EnumerateArray().Any(a => Math.Abs(a.GetDouble()) > 3600))) return false;
+        return true;
     }
 
     private static bool TryGetArray(JsonElement parent, string name, out JsonElement array)

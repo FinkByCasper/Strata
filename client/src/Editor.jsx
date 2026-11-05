@@ -11,6 +11,8 @@ import { Intro, useIntro } from './Intro';
 import { ReadOnlyDiagram } from './Viewer';
 import { People } from './People';
 import { History } from './History';
+import { ModelPanel } from './ModelPanel';
+import { bundleFor, refreshModels, restoreBundle, uploadModel, useModelSource, useModels } from './models';
 import { useAuth } from './auth';
 import { ArrowLeft, ArrowLeftRight, ArrowRight, Ban, Check, Copy, ImagePlus, RefreshCw, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -144,6 +146,19 @@ function Inspector({ sel }) {
   const { data } = s;
   const fileRef = useRef();
   const [iconError, setIconError] = useState('');
+  const modelFile = useRef();
+  const [modelState, setModelState] = useState({ busy: false, error: '' });
+  const models = useModels((m) => m.list);
+
+  const sendModel = async (f, id) => {
+    if (!f) return;
+    setModelState({ busy: true, error: '' });
+    try {
+      const model = await uploadModel(f);
+      s.updateNode(id, { shape: 'model', modelId: model.id });
+      setModelState({ busy: false, error: '' });
+    } catch (e) { setModelState({ busy: false, error: e.message }); }
+  };
 
   const pair = (arr, labels, idx, set) => (
     <div className="grid grid-cols-2 gap-2">
@@ -170,7 +185,15 @@ function Inspector({ sel }) {
         <Field label="Label"><LabelInput id={n.id} value={n.label} onChange={(e) => s.updateNode(n.id, { label: e.target.value })} /></Field>
         <Field label="Subtitle" hint=" · second line, e.g. an IP"><Input value={n.subtitle ?? ''} onChange={(e) => s.updateNode(n.id, { subtitle: e.target.value })} /></Field>
         <Field label="Description" hint=" · **bold**, *italic*, `code`, - lists"><Textarea rows={5} value={n.description} onChange={(e) => s.updateNode(n.id, { description: e.target.value })} /></Field>
-        <Field label="Model"><ShapePicker value={n.shape} onPick={(shape) => s.updateNode(n.id, { shape })} /></Field>
+        <Field label="Model">
+          <ShapePicker value={n.shape} onPick={(shape) => {
+            if (shape !== 'model') return s.updateNode(n.id, { shape });
+            if (models.length) s.updateNode(n.id, { shape, modelId: n.modelId ?? models[0].id }); else modelFile.current.click();
+          }} />
+          <input ref={modelFile} type="file" accept=".glb,.gltf,model/gltf-binary,model/gltf+json" hidden onChange={(e) => { sendModel(e.target.files[0], n.id); e.target.value = ''; }} />
+          {n.shape !== 'model' && modelState.error && <p className="text-xs text-destructive">{modelState.error}</p>}
+        </Field>
+        {n.shape === 'model' && <ModelPanel node={n} Field={Field} busy={modelState.busy} error={modelState.error} onUpload={() => modelFile.current.click()} onError={(error) => setModelState((m) => ({ ...m, error }))} />}
         <Field label="Colour"><Swatches value={n.color} onPick={(color) => s.updateNode(n.id, { color })} /></Field>
         <Field label="Icon">
           <div className="flex flex-wrap gap-1.5">
@@ -326,6 +349,7 @@ export function Editor({ id }) {
   const [pendingImport, setPendingImport] = useState(null);   // a parsed file waiting for the "replace?" confirmation
   const importRef = useRef();
   const intro = useIntro(status !== 'loading' && status !== 'missing');
+  useModelSource(`/api/diagrams/${id}/models`, id);
 
   useEffect(() => {
     api.get(id)
@@ -396,7 +420,10 @@ export function Editor({ id }) {
     setStatus('saved');
   };
 
-  const exportJson = () => download(`${slug(s.name)}.strata.json`, JSON.stringify({ name: s.name, data: s.data }, null, 2), 'application/json');
+  const exportJson = async () => {
+    const models = await bundleFor(s.data).catch(() => []);
+    download(`${slug(s.name)}.strata.json`, JSON.stringify({ name: s.name, data: s.data, ...(models.length ? { models } : {}) }, null, 2), 'application/json');
+  };
   const exportPng = () => {
     const c = document.querySelector('canvas');
     // Only the WebGL layer is captured; DOM labels are not part of the image.
@@ -405,8 +432,8 @@ export function Editor({ id }) {
   const importJson = async (f) => {
     if (!f) return;
     try {
-      const { name, data } = parseDiagram(await f.text());
-      setPendingImport({ name, data });
+      const { name, data, models: bundled } = parseDiagram(await f.text());
+      setPendingImport({ name, data, models: bundled });
     } catch (e) { s.showToast(`Import failed: ${e.message}`); }
   };
 
@@ -427,7 +454,15 @@ export function Editor({ id }) {
         <AlertDialogContent>
           <AlertDialogHeader><AlertDialogTitle>Replace this diagram?</AlertDialogTitle><AlertDialogDescription>The imported file replaces everything in “{s.name || 'this diagram'}”. You can undo it with Ctrl/Cmd+Z.</AlertDialogDescription></AlertDialogHeader>
           <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => { s.replaceData(pendingImport.name, pendingImport.data); s.setView('fit'); setPendingImport(null); }}>Replace</AlertDialogAction></AlertDialogFooter>
+            <AlertDialogAction onClick={async () => {
+              const file = pendingImport;
+              setPendingImport(null);
+              try {
+                const data = await restoreBundle(id, file.models, file.data);
+                await refreshModels();
+                s.replaceData(file.name, data); s.setView('fit');
+              } catch (e) { s.showToast(`Import failed: ${e.message}`); }
+            }}>Replace</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
       {historyOpen && <History id={id} canDelete={meta?.role === 'owner'} onRestored={restored} onClose={() => setHistoryOpen(false)} />}

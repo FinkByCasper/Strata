@@ -6,7 +6,7 @@ namespace Strata.Server.Api;
 
 public static class TransferEndpoints
 {
-    private const long ImportLimit = 128L * 1024 * 1024;
+    private const long ImportLimit = 256L * 1024 * 1024;
 
     public static void MapTransferApi(this RouteGroupBuilder api)
     {
