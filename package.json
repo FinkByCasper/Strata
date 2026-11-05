@@ -15,7 +15,7 @@
     "build": "vite build",
     "start": "dotnet run --project src/Strata.Server -c Release",
     "test": "dotnet test --solution Strata.slnx",
-    "test:client": "node --test client/src/"
+    "test:client": "node --test client/src/*.test.js"
   },
   "dependencies": {
     "@microsoft/signalr": "^10.0.11",
