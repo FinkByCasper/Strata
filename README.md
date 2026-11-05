@@ -4,7 +4,7 @@ Build diagrams with depth. Strata is a self-hosted 3D diagram builder, in the sp
 but with a **free orthographic camera** instead of a fixed 45° isometric view, and **labels that
 always face you** so text stays easy to read from any angle.
 
-One ASP.NET Core process serves the web app and the API. Diagrams are stored in SQLite, can be exported
+One ASP.NET Core process serves the web app and the API. Diagrams are stored in SQLite by default (PostgreSQL and SQL Server are optional), can be exported
 as JSON, and can be shared through a view-only link or an embeddable iframe.
 
 ## What works today (prototype)
@@ -72,9 +72,25 @@ Update with `git pull && docker compose up -d --build` (Coolify: Redeploy). Stra
 | `STRATA_PORT` | Plain Docker only: host port, default `3001` |
 | `DOMAIN` | Only for `docker-compose.caddy.yaml` |
 
-Config (env vars): `PORT` (default 3001), `STRATA_DB` (default `./data/strata.db`), `STRATA_DIST` (folder with the built web app; found automatically next to the server).
+Config (env vars): `PORT` (default 3001), `STRATA_DB` (SQLite file, default `./data/strata.db`), `STRATA_DB_PROVIDER` and `STRATA_DB_CONNECTION` (see below), `STRATA_DIST` (folder with the built web app; found automatically next to the server).
 
 The API is described at `/openapi/v1.json`.
+
+### Choosing a database
+
+SQLite (the local file) is the default and needs no setup. To use PostgreSQL or SQL Server instead, set a provider and a connection string:
+
+```bash
+STRATA_DB_PROVIDER=postgres
+STRATA_DB_CONNECTION="Host=db;Database=strata;Username=strata;Password=secret"
+
+STRATA_DB_PROVIDER=sqlserver
+STRATA_DB_CONNECTION="Server=db,1433;Database=strata;User Id=strata;Password=secret;TrustServerCertificate=True"
+```
+
+Tables are created and upgraded on start. The database is created too if the login is allowed to; otherwise create an empty one first. Each engine has its own migration project (`src/Strata.Migrations.*`). To copy diagrams from SQLite into a server database, start Strata once with the new settings and run `import-sqlite` on the old file (below).
+
+To run the tests against an engine, point them at a server that may create databases (each test class makes and drops its own): `STRATA_TEST_PROVIDER=postgres STRATA_TEST_CONNECTION="Host=localhost;Username=postgres;Password=postgres;Database=postgres" npm test`. CI runs all three.
 
 ### Backups, and moving over from the Node beta
 
