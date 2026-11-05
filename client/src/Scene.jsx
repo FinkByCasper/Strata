@@ -11,6 +11,7 @@ import { zoneContents } from './highlight';
 import { LabelLayout, openAddMenu } from './labels';
 import { FloorTiles, NodeLabels, NodesLayer } from './nodes';
 import { ConnectorsLayer } from './connectors';
+import { RemoteCursors } from './presence';
 
 // Keeps `pointerCell` up to date: which ground square the mouse is over (for pasting at the cursor).
 function PointerTracker() {
@@ -27,7 +28,7 @@ function PointerTracker() {
         const r = el.getBoundingClientRect();
         v.set(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1);
         ray.setFromCamera(v, camera);
-        if (ray.ray.intersectPlane(plane, hit)) { pointerCell.x = Math.round(hit.x); pointerCell.z = Math.round(hit.z); pointerCell.over = true; }
+        if (ray.ray.intersectPlane(plane, hit)) { pointerCell.x = Math.round(hit.x); pointerCell.z = Math.round(hit.z); pointerCell.fx = hit.x; pointerCell.fz = hit.z; pointerCell.over = true; }
       });
     };
     const leave = () => { pointerCell.over = false; };
@@ -591,6 +592,7 @@ export function Scene() {
       <ConnectorsLayer />
       <NodesLayer />
       <NodeLabels />
+      <RemoteCursors />
     </Canvas>
   );
 }

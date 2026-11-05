@@ -1,6 +1,7 @@
 import React from 'react';
 import { CircleHelp, Download, FileJson, History, Grid3x3, ImageDown, LayoutGrid, MousePointer2, Orbit, Spline, Redo2, RotateCcw, RotateCw, Scan, Share2, Undo2, Upload } from 'lucide-react';
 import { Logo } from './Logo';
+import { Presence } from './presence';
 import { Link, navigate } from './App';
 import { useStore } from './store';
 import { Button } from '@/components/ui/button';
@@ -37,7 +38,7 @@ export function CameraTools() {
   );
 }
 
-const STATUS = { saved: ['bg-success', 'Saved'], saving: ['bg-warning', 'Saving…'], error: ['bg-destructive', 'Save failed'] };
+const STATUS = { saved: ['bg-success', 'Saved'], saving: ['bg-warning', 'Saving…'], error: ['bg-destructive', 'Save failed'], offline: ['bg-destructive', 'Offline, reconnecting…'] };
 
 export function Topbar({ status, role = 'owner', onHistory, onShare, onExportJson, onExportPng, onImport, onTips }) {
   const name = useStore((s) => s.name);
@@ -57,6 +58,7 @@ export function Topbar({ status, role = 'owner', onHistory, onShare, onExportJso
         <span className="inline-flex items-center gap-1.5 text-xs whitespace-nowrap text-muted-foreground max-sm:hidden" role="status">
           <i className={cn('size-1.5 rounded-full', dot)} />{text}
         </span>
+        <Presence />
       </div>
 
       <div className="flex items-center gap-2 max-[900px]:order-3 max-[900px]:col-span-full max-[900px]:justify-center">

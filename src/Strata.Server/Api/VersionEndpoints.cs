@@ -1,4 +1,5 @@
 using Strata.Data;
+using Strata.Server.Live;
 using Strata.Server.Storage;
 
 namespace Strata.Server.Api;
@@ -38,11 +39,12 @@ public static class VersionEndpoints
             .Produces<ErrorResponse>(StatusCodes.Status403Forbidden)
             .WithSummary("Save a named version of the diagram as it is now (owner or editor)");
 
-        versions.MapPost("{versionId}/restore", async (string id, string versionId, DiagramStore store, VersionStore history, CancellationToken ct) =>
+        versions.MapPost("{versionId}/restore", async (string id, string versionId, DiagramStore store, VersionStore history, DiagramRooms rooms, CancellationToken ct) =>
             {
                 var access = (await store.FindAsync(id, ct) ?? throw NotFound()).Require(AccessLevel.Editor, "read-only access");
                 var version = await history.GetAsync(access.Diagram.Id, versionId, ct) ?? throw NotFound();
                 await history.RestoreAsync(access.Diagram, version, ct);
+                await rooms.ReloadAsync(id);
                 return TypedResults.Ok(DiagramStore.ToResponse(access));
             })
             .Produces<ErrorResponse>(StatusCodes.Status403Forbidden)

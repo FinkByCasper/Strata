@@ -7,7 +7,8 @@ public sealed class OriginCheckMiddleware(RequestDelegate next, AuthSettings aut
     public async Task Invoke(HttpContext ctx)
     {
         var request = ctx.Request;
-        var unsafeMethod = !HttpMethods.IsGet(request.Method) && !HttpMethods.IsHead(request.Method) && !HttpMethods.IsOptions(request.Method);
+        var unsafeMethod = !HttpMethods.IsGet(request.Method) && !HttpMethods.IsHead(request.Method) && !HttpMethods.IsOptions(request.Method)
+            || ctx.WebSockets.IsWebSocketRequest;
         if (auth.Enabled && unsafeMethod && request.Headers.Origin.ToString() is { Length: > 0 } origin && !SameOrigin(origin, request))
             throw new ApiException(403, "cross-site request refused");
         await next(ctx);

@@ -10,6 +10,7 @@ using Strata.Server;
 using Strata.Server.Api;
 using Strata.Server.Auth;
 using Strata.Server.Commands;
+using Strata.Server.Live;
 using Strata.Server.Storage;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -28,8 +29,13 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<LoginThrottle>();
 builder.Services.AddSingleton<PasswordHasher<User>>();
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped(sp => Actor.From(sp.GetRequiredService<IHttpContextAccessor>().HttpContext, sp.GetRequiredService<AuthSettings>()));
+builder.Services.AddScoped<ActorOverride>();
+builder.Services.AddScoped(sp => sp.GetRequiredService<ActorOverride>().Value ?? Actor.From(sp.GetRequiredService<IHttpContextAccessor>().HttpContext, sp.GetRequiredService<AuthSettings>()));
 builder.Services.AddScoped<AccountService>();
+builder.Services.AddSingleton(LiveSettings.From(builder.Configuration));
+builder.Services.AddSingleton<DiagramRooms>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<DiagramRooms>());
+builder.Services.AddSignalR(o => o.MaximumReceiveMessageSize = LiveSettings.MaxMessageBytes);
 builder.Services.AddSingleton(HistorySettings.From(builder.Configuration));
 builder.Services.AddScoped<VersionStore>();
 builder.Services.AddScoped<DiagramStore>();
@@ -71,6 +77,8 @@ if (settings.Auth.Enabled) secured.RequireAuthorization().WithMetadata(new Produ
 
 app.MapGet("/healthz", () => Results.Text("ok")).ExcludeFromDescription();
 app.MapOpenApi();
+var hubs = app.MapHub<DiagramHub>("/hubs/diagram");
+if (settings.Auth.Enabled) hubs.RequireAuthorization();
 open.MapAuthApi();
 open.MapSharedApi();
 secured.MapDiagramApi();
