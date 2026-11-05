@@ -8,16 +8,14 @@ public static class TransferEndpoints
 {
     private const long ImportLimit = 128L * 1024 * 1024;
 
-    public static void MapTransferApi(this IEndpointRouteBuilder routes)
+    public static void MapTransferApi(this RouteGroupBuilder api)
     {
-        var api = routes.MapGroup("/api").WithTags("Backup");
-
         api.MapGet("/export", async (DiagramTransfer transfer, HttpResponse response, CancellationToken ct) =>
             {
                 response.Headers.ContentDisposition = $"attachment; filename=\"strata-export-{DateTime.UtcNow:yyyy-MM-dd}.json\"";
                 return TypedResults.Ok(await transfer.ExportAsync(ct));
             })
-            .WithSummary("Download every diagram as one backup file");
+            .WithTags("Backup").WithSummary("Download the caller's diagrams (all of them when accounts are off) as one backup file");
 
         api.MapPost("/import", async (HttpRequest request, DiagramTransfer transfer, bool? overwrite, CancellationToken ct) =>
             {
@@ -27,7 +25,7 @@ public static class TransferEndpoints
                 return TypedResults.Ok(await transfer.ImportAsync(file.Diagrams, overwrite ?? false, ct));
             })
             .Accepts<ExportFile>("application/json")
-            .WithSummary("Import a backup file produced by export")
+            .WithTags("Backup").WithSummary("Import a backup file produced by export; imported diagrams belong to the caller")
             .WithDescription("Diagrams whose id already exists are skipped unless overwrite=true. Invalid diagrams are reported in the result and do not stop the rest.");
     }
 

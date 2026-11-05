@@ -23,6 +23,7 @@ as JSON, and can be shared through a view-only link or an embeddable iframe.
 - Node labels can carry a second "subtitle" line (IP, port...). Labels are real DOM text (crisp, upright, constant size) with a small safe-markdown description (`**bold**`, `*italic*`, `` `code` ``, `- lists`) shown when a node is selected
 - Autosave to the server, JSON export/import, PNG export of the 3D layer
 - **Share** dialog: view-only link (`/v/<token>`), embed snippet (`/embed/<token>`), and "regenerate" to revoke
+- **Accounts**: sign in with email and password, every diagram has an owner, and an owner can share a diagram with other accounts as viewer or editor
 
 ## Run it
 
@@ -50,8 +51,7 @@ or with Docker: `docker build -t strata . && docker run -p 3001:3001 -v strata-d
 
 ### Hosting it online
 
-**There is no login.** Anyone who can open the URL can edit and delete diagrams, so only expose it where that is fine (a private network, a VPN,
-or a reverse proxy that does its own authentication). **Share links (`/v/…`) and embeds (`/embed/…`) are read-only.**
+**Accounts are on by default.** The first person to open the site creates the first account; everything after that needs a sign-in. Set `STRATA_ALLOW_SIGNUP=false` to stop anyone else from creating accounts. **Share links (`/v/…`) and embeds (`/embed/…`) never need an account.** Details are under *Access model*.
 
 **Coolify**: New resource → Docker Compose → pick this repo (compose file `/docker-compose.yaml`). Put your domain on the `strata` service
 (port 3001); Coolify handles HTTPS. The data lives in the `strata-data` volume.
@@ -71,6 +71,10 @@ Update with `git pull && docker compose up -d --build` (Coolify: Redeploy). Stra
 | --- | --- |
 | `STRATA_PORT` | Plain Docker only: host port, default `3001` |
 | `DOMAIN` | Only for `docker-compose.caddy.yaml` |
+| `STRATA_AUTH` | `on` (default) or `off`. `off` is the old behaviour: no login, everyone who can reach the server can edit |
+| `STRATA_ALLOW_SIGNUP` | `true` (default) or `false`. When `false`, only the very first account can be created |
+| `STRATA_ADMIN_EMAIL` | Optional. Diagrams made before accounts existed go to the first account created, or to this email if set |
+| `STRATA_SESSION_DAYS` | How long a sign-in lasts, default `30` |
 
 Config (env vars): `PORT` (default 3001), `STRATA_DB` (SQLite file, default `./data/strata.db`), `STRATA_DB_PROVIDER` and `STRATA_DB_CONNECTION` (see below), `STRATA_DIST` (folder with the built web app; found automatically next to the server).
 
@@ -110,9 +114,13 @@ Troubleshooting:
 
 ## Access model
 
-There are no accounts. Anyone who can reach the server can list and edit diagrams, so put it behind
-your VPN or a reverse proxy with auth if it is exposed. Viewers only ever get the read-only
-`/api/shared/:token` endpoint, which never reveals the editing id. Embedding is allowed only on `/embed/*`.
+- **Accounts** use an email and a password (10+ characters, stored as a salted hash). A sign-in is a random token in an HTTP-only, same-site cookie; the server keeps only its hash, so signing out really ends it. Ten wrong passwords for an email, or from an address, lock it for 15 minutes. Requests with an `Origin` from another site are refused.
+- **Roles per diagram**: the *owner* can do everything, including sharing, regenerating the view link and deleting; an *editor* can open and save; a *viewer* can open it read-only. People see only the diagrams they own or that were shared with them. Anything else answers "not found".
+- **View links and embeds** are separate and public: `/api/shared/:token` returns the name and content, never the editing id.
+- **Diagrams from before accounts** (the Node beta or `STRATA_AUTH=off`) belong to nobody until an account claims them: the first account created, or `STRATA_ADMIN_EMAIL` if you set it. Set it before the first start if the site is on the internet, so a stranger cannot be first.
+- Behind a reverse proxy, Strata trusts `X-Forwarded-For`, `-Proto` and `-Host`, as it expects to be reached through one. Do not publish the container port directly if you rely on the lockout by address.
+- Embedding is allowed only on `/embed/*`.
+- With `STRATA_AUTH=off` there are no accounts: anyone who can reach the server can list, edit and delete everything, so keep it on a private network or behind your own proxy login.
 
 ## Brand
 
@@ -140,8 +148,8 @@ into `client/src/components/ui/` and import it with `@/components/ui/<name>`.
 
 ## Status
 
-Strata is a beta. Known limits today: the editor has no login (share links and embeds are read-only), two people editing the same diagram at
-once overwrite each other, and PNG export does not include the text labels. Each diagram is limited to 2000 nodes, 4000 connectors, 500 zones and 4 MB.
+Strata is a beta. Known limits today: two people editing the same diagram at
+once overwrite each other (last save wins), and PNG export does not include the text labels. Each diagram is limited to 2000 nodes, 4000 connectors, 500 zones and 4 MB.
 
 ## License
 

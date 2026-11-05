@@ -2,7 +2,8 @@
 # HTTPS, so nothing is published on the host here.
 #
 #   Coolify:  New resource -> Docker Compose -> this repo. Put your domain on the "strata" service (port 3001).
-#             There is no login: anyone who can open the URL can edit. Share links (/v/...) and embeds are read-only.
+#             Sign-in is on: the first person to open the site creates the first account (STRATA_AUTH, STRATA_ALLOW_SIGNUP and
+#             STRATA_ADMIN_EMAIL are in the README). Share links (/v/...) and embeds are read-only and need no account.
 #   Plain Docker (no Coolify):  see README ("Hosting it online"); docker-compose.override.yaml publishes the port.
 services:
   strata:

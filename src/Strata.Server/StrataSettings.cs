@@ -1,14 +1,15 @@
 using Strata.Data;
+using Strata.Server.Auth;
 
 namespace Strata.Server;
 
-public sealed record StrataSettings(int Port, DatabaseProvider Provider, string ConnectionString, string DatabaseLabel, string? DistPath, bool Dev)
+public sealed record StrataSettings(int Port, DatabaseProvider Provider, string ConnectionString, string DatabaseLabel, string? DistPath, bool Dev, AuthSettings Auth)
 {
     public static StrataSettings From(IConfiguration config, IHostEnvironment env, string[] args)
     {
         var port = int.TryParse(config["PORT"], out var p) ? p : 3001;
         var (provider, connection, label) = ReadDatabase(config);
-        return new StrataSettings(port, provider, connection, label, FindDist(config, env), args.Contains("--dev"));
+        return new StrataSettings(port, provider, connection, label, FindDist(config, env), args.Contains("--dev"), AuthSettings.From(config));
     }
 
     private static (DatabaseProvider, string, string) ReadDatabase(IConfiguration config)
