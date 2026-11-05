@@ -49,7 +49,14 @@ public record ExportFile(string Format, int Version, long ExportedAt, IReadOnlyL
 /// <param name="Data">The diagram document; validated with the same rules as saving.</param>
 /// <param name="CreatedAt">Unix time in milliseconds; filled in with the import time when missing.</param>
 /// <param name="UpdatedAt">Unix time in milliseconds; filled in with the import time when missing.</param>
-public record ExportedDiagram(string Id, string? ViewToken, string Name, JsonElement Data, long? CreatedAt, long? UpdatedAt);
+/// <param name="Models">Models the diagram's nodes use. Optional: files made before models existed have none.</param>
+public record ExportedDiagram(string Id, string? ViewToken, string Name, JsonElement Data, long? CreatedAt, long? UpdatedAt, IReadOnlyList<ExportedModel>? Models = null);
+
+/// <summary>A 3D model bundled into an export, so the diagram still shows it after a move.</summary>
+/// <param name="Id">The id nodes refer to with <c>modelId</c>; letters, digits, <c>_</c> and <c>-</c>.</param>
+/// <param name="Name">Original file name.</param>
+/// <param name="Data">The file, base64 encoded. It is checked on import exactly like an upload.</param>
+public record ExportedModel(string Id, string Name, string Data);
 
 /// <summary>Outcome of an import. A rejected diagram never stops the others from being imported.</summary>
 /// <param name="Imported">New diagrams created.</param>
@@ -115,3 +122,12 @@ public record VersionResponse(string Id, long SavedAt, VersionKind Kind, string?
 /// <summary>Request body for saving a named version of the diagram as it is now.</summary>
 /// <param name="Label">Optional name, at most 200 characters.</param>
 public record VersionInput(string? Label);
+
+/// <summary>A 3D model stored with a diagram. Nodes use it through <c>modelId</c>; the file itself comes from the download endpoint.</summary>
+/// <param name="Id">Identifies the model within its diagram.</param>
+/// <param name="Name">Original file name, for display.</param>
+/// <param name="Format"><c>glb</c> (binary) or <c>gltf</c> (JSON with everything embedded).</param>
+/// <param name="Size">Bytes.</param>
+/// <param name="Sha256">Hex digest of the file; uploading the same file twice to one diagram returns the existing model.</param>
+/// <param name="CreatedAt">Unix time in milliseconds.</param>
+public record ModelResponse(string Id, string Name, ModelFormat Format, long Size, string Sha256, long CreatedAt);

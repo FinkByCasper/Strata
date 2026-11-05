@@ -3,19 +3,23 @@ using Microsoft.EntityFrameworkCore;
 using Strata.Data;
 using Strata.Server.Api;
 using Strata.Server.Auth;
+using Strata.Server.Models;
 using Strata.Server.Live;
 using Strata.Server.Validation;
 
 namespace Strata.Server.Storage;
 
-public partial class DiagramTransfer(StrataDbContext db, Actor actor, DiagramRooms rooms)
+public partial class DiagramTransfer(StrataDbContext db, Actor actor, ModelStore models, DiagramRooms rooms)
 {
     public async Task<ExportFile> ExportAsync(CancellationToken ct)
     {
         var mine = actor.Enforced ? db.Diagrams.Where(d => d.OwnerId == actor.UserId && actor.UserId != null) : db.Diagrams;
         var rows = await mine.AsNoTracking().OrderBy(d => d.CreatedAt).ToListAsync(ct);
+        var ids = rows.Select(d => d.Id).ToList();
+        var files = (await db.Models.AsNoTracking().Where(m => ids.Contains(m.DiagramId)).OrderBy(m => m.CreatedAt).ThenBy(m => m.Id).ToListAsync(ct))
+            .ToLookup(m => m.DiagramId, m => new ExportedModel(m.Id, m.Name, Convert.ToBase64String(m.Data)));
         var items = rows
-            .Select(d => new ExportedDiagram(d.Id, d.ViewToken, d.Name, DiagramStore.ParseData(d.Data), d.CreatedAt, d.UpdatedAt))
+            .Select(d => new ExportedDiagram(d.Id, d.ViewToken, d.Name, DiagramStore.ParseData(d.Data), d.CreatedAt, d.UpdatedAt, files[d.Id].ToList()))
             .ToList();
         return new ExportFile("strata-export", 1, DiagramStore.Now(), items);
     }
@@ -40,6 +44,19 @@ public partial class DiagramTransfer(StrataDbContext db, Actor actor, DiagramRoo
 
             var now = DiagramStore.Now();
             var existing = await db.Diagrams.FirstOrDefaultAsync(d => d.Id == item.Id, ct);
+            List<(ExportedModel Item, byte[] File, ModelFormat Format, string Sha)> decoded = [];
+            if (item.Models is { Count: > 0 } bundle)
+            {
+                var kept = existing is null || !overwrite
+                    ? (Bytes: 0L, Count: 0)
+                    : (Bytes: await db.Models.Where(m => m.DiagramId == item.Id && !bundle.Select(b => b.Id).Contains(m.Id)).SumAsync(m => m.Size, ct),
+                       Count: await db.Models.CountAsync(m => m.DiagramId == item.Id && !bundle.Select(b => b.Id).Contains(m.Id), ct));
+                if (models.CheckBundle(bundle, kept.Bytes, kept.Count, out decoded) is { } modelError)
+                {
+                    rejected.Add(new RejectedDiagram(item.Id, item.Name, modelError));
+                    continue;
+                }
+            }
             if (existing is not null)
             {
                 if (ownedOnly && existing.OwnerId != ownerId)
@@ -51,6 +68,8 @@ public partial class DiagramTransfer(StrataDbContext db, Actor actor, DiagramRoo
                 existing.Name = item.Name;
                 existing.Data = item.Data.GetRawText();
                 existing.UpdatedAt = item.UpdatedAt ?? now;
+                await db.SaveChangesAsync(ct);
+                await StoreModelsAsync(item.Id, decoded, now, ct);
                 replaced++;
                 overwritten.Add(existing.Id);
             }
@@ -67,13 +86,24 @@ public partial class DiagramTransfer(StrataDbContext db, Actor actor, DiagramRoo
                     CreatedAt = item.CreatedAt ?? now,
                     UpdatedAt = item.UpdatedAt ?? now,
                 });
+                await db.SaveChangesAsync(ct);
+                await StoreModelsAsync(item.Id, decoded, now, ct);
                 imported++;
             }
-            await db.SaveChangesAsync(ct);
         }
         await tx.CommitAsync(ct);
         foreach (var id in overwritten) await rooms.ReloadAsync(id);
         return new ImportResult(imported, replaced, skipped, rejected);
+    }
+
+    private async Task StoreModelsAsync(string diagramId, List<(ExportedModel Item, byte[] File, ModelFormat Format, string Sha)> decoded, long now, CancellationToken ct)
+    {
+        foreach (var (item, file, format, sha) in decoded)
+        {
+            await db.Models.Where(m => m.DiagramId == diagramId && m.Id == item.Id).ExecuteDeleteAsync(ct);
+            db.Models.Add(ModelStore.Build(diagramId, item.Id, item.Name, file, format, sha, now));
+        }
+        await db.SaveChangesAsync(ct);
     }
 
     private static string? Check(ExportedDiagram item)

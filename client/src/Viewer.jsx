@@ -4,6 +4,7 @@ import { Logo } from './Logo';
 import { Link } from './App';
 import { Presence } from './presence';
 import { api } from './api';
+import { useModelSource } from './models';
 import { Scene } from './Scene';
 import { useStore } from './store';
 import { Details } from './Editor';
@@ -58,6 +59,7 @@ export function ReadOnlyDiagram({ name, token, embed = false, home = false }) {
 }
 
 export function Viewer({ token, embed = false }) {
+  useModelSource(`/api/shared/${token}/models`, null);
   const [state, setState] = useState({ status: 'loading' });
 
   useEffect(() => {

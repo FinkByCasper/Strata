@@ -174,6 +174,56 @@ namespace Strata.Migrations.Sqlite.Migrations
                     b.ToTable("diagram_versions", (string)null);
                 });
 
+            modelBuilder.Entity("Strata.Data.ModelAsset", b =>
+                {
+                    b.Property<string>("DiagramId")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("diagram_id");
+
+                    b.Property<string>("Id")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("created_at");
+
+                    b.Property<byte[]>("Data")
+                        .IsRequired()
+                        .HasColumnType("BLOB")
+                        .HasColumnName("data");
+
+                    b.Property<string>("Format")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("format");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("name");
+
+                    b.Property<string>("Sha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("sha256");
+
+                    b.Property<long>("Size")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("size");
+
+                    b.HasKey("DiagramId", "Id");
+
+                    b.HasIndex("DiagramId", "Sha256");
+
+                    b.ToTable("model_assets", (string)null);
+                });
+
             modelBuilder.Entity("Strata.Data.Session", b =>
                 {
                     b.Property<string>("TokenHash")
@@ -271,6 +321,15 @@ namespace Strata.Migrations.Sqlite.Migrations
                         .HasForeignKey("AuthorId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("Strata.Data.Diagram", null)
+                        .WithMany()
+                        .HasForeignKey("DiagramId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Strata.Data.ModelAsset", b =>
+                {
                     b.HasOne("Strata.Data.Diagram", null)
                         .WithMany()
                         .HasForeignKey("DiagramId")

@@ -13,6 +13,7 @@ public partial class StrataDbContext(DbContextOptions<StrataDbContext> options) 
     public DbSet<Session> Sessions => Set<Session>();
     public DbSet<DiagramShare> Shares => Set<DiagramShare>();
     public DbSet<DiagramVersion> Versions => Set<DiagramVersion>();
+    public DbSet<ModelAsset> Models => Set<ModelAsset>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -78,6 +79,19 @@ public partial class StrataDbContext(DbContextOptions<StrataDbContext> options) 
             e.HasIndex(v => new { v.DiagramId, v.SavedAt });
             e.HasOne<Diagram>().WithMany().HasForeignKey(v => v.DiagramId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne<User>().WithMany().HasForeignKey(v => v.AuthorId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ModelAsset>(e =>
+        {
+            e.ToTable("model_assets");
+            e.HasKey(m => new { m.DiagramId, m.Id });
+            e.Property(m => m.DiagramId).HasMaxLength(64);
+            e.Property(m => m.Id).HasMaxLength(64);
+            e.Property(m => m.Name).HasMaxLength(120);
+            e.Property(m => m.Sha256).HasMaxLength(64);
+            e.Property(m => m.Format).HasMaxLength(10).HasConversion(f => f.ToString().ToLowerInvariant(), f => Enum.Parse<ModelFormat>(f, true));
+            e.HasIndex(m => new { m.DiagramId, m.Sha256 });
+            e.HasOne<Diagram>().WithMany().HasForeignKey(m => m.DiagramId).OnDelete(DeleteBehavior.Cascade);
         });
 
         foreach (var entity in modelBuilder.Model.GetEntityTypes())

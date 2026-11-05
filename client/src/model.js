@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { cleanBundle } from './modelBundle';
 
 // Short random id. crypto.randomUUID() only exists on HTTPS / localhost, and Strata is often served over plain http
 // (a LAN address, an IP behind a proxy), where it is undefined, so fall back to getRandomValues (works everywhere).
@@ -11,8 +12,8 @@ export const EMPTY = () => ({ nodes: [], connectors: [], zones: [] });
 
 export const BASIC_SHAPES = ['box', 'cylinder', 'sphere', 'slab'];
 export const DEVICE_SHAPES = ['user', 'server', 'router', 'switch', 'firewall', 'accesspoint', 'antenna', 'pc', 'laptop', 'phone', 'printer', 'database', 'cache', 'cloud', 'container', 'pyramid'];
-export const SHAPES = [...BASIC_SHAPES, ...DEVICE_SHAPES];
-export const SHAPE_NAMES = { accesspoint: 'access point', router: 'router / relay', pc: 'PC', antenna: 'antenna tower', container: 'container', pyramid: 'hub' };
+export const SHAPES = [...BASIC_SHAPES, ...DEVICE_SHAPES, 'model'];
+export const SHAPE_NAMES = { accesspoint: 'access point', router: 'router / relay', pc: 'PC', antenna: 'antenna tower', container: 'container', pyramid: 'hub', model: 'your 3D model' };
 export const shapeName = (s) => SHAPE_NAMES[s] ?? s;
 export const LABEL_EDGES = ['back', 'front', 'left', 'right'];
 export const ROUTES = ['orthogonal', 'orthogonal-z', 'straight', 'curved'];
@@ -115,5 +116,5 @@ export function parseDiagram(raw) {
   if (!data || ![data.nodes, data.connectors, data.zones].every(Array.isArray)) {
     throw new Error('Not a Strata diagram file');
   }
-  return { name: typeof d.name === 'string' ? d.name : null, data };
+  return { name: typeof d.name === 'string' ? d.name : null, data, models: cleanBundle(d.models) };
 }
