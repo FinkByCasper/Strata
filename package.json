@@ -14,9 +14,11 @@
     "dev:client": "vite",
     "build": "vite build",
     "start": "dotnet run --project src/Strata.Server -c Release",
-    "test": "dotnet test --solution Strata.slnx"
+    "test": "dotnet test --solution Strata.slnx",
+    "test:client": "node --test client/src/"
   },
   "dependencies": {
+    "@microsoft/signalr": "^10.0.11",
     "@react-three/drei": "^10.7.9",
     "@react-three/fiber": "^9.8.1",
     "class-variance-authority": "^0.7.1",

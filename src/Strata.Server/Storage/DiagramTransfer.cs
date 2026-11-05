@@ -3,11 +3,12 @@ using Microsoft.EntityFrameworkCore;
 using Strata.Data;
 using Strata.Server.Api;
 using Strata.Server.Auth;
+using Strata.Server.Live;
 using Strata.Server.Validation;
 
 namespace Strata.Server.Storage;
 
-public partial class DiagramTransfer(StrataDbContext db, Actor actor)
+public partial class DiagramTransfer(StrataDbContext db, Actor actor, DiagramRooms rooms)
 {
     public async Task<ExportFile> ExportAsync(CancellationToken ct)
     {
@@ -25,6 +26,7 @@ public partial class DiagramTransfer(StrataDbContext db, Actor actor)
     public async Task<ImportResult> ImportAsync(IEnumerable<ExportedDiagram> items, bool overwrite, string? ownerId, bool ownedOnly, CancellationToken ct)
     {
         int imported = 0, replaced = 0, skipped = 0;
+        var overwritten = new List<string>();
         var rejected = new List<RejectedDiagram>();
 
         await using var tx = await db.Database.BeginTransactionAsync(ct);
@@ -50,6 +52,7 @@ public partial class DiagramTransfer(StrataDbContext db, Actor actor)
                 existing.Data = item.Data.GetRawText();
                 existing.UpdatedAt = item.UpdatedAt ?? now;
                 replaced++;
+                overwritten.Add(existing.Id);
             }
             else
             {
@@ -69,6 +72,7 @@ public partial class DiagramTransfer(StrataDbContext db, Actor actor)
             await db.SaveChangesAsync(ct);
         }
         await tx.CommitAsync(ct);
+        foreach (var id in overwritten) await rooms.ReloadAsync(id);
         return new ImportResult(imported, replaced, skipped, rejected);
     }
 

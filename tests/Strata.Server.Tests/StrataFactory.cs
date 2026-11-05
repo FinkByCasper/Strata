@@ -84,6 +84,8 @@ public sealed class StrataFactory : WebApplicationFactory<Program>
 
     public int? HistoryMax { get; init; }
 
+    public int LiveSaveDelayMs { get; init; } = 100;
+
     public string DatabasePath => Path.Combine(dir, "strata.db");
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -104,6 +106,7 @@ public sealed class StrataFactory : WebApplicationFactory<Program>
         builder.UseSetting("STRATA_ALLOW_SIGNUP", AllowSignup ? "true" : "false");
         if (AdminEmail is not null) builder.UseSetting("STRATA_ADMIN_EMAIL", AdminEmail);
         if (HistoryIntervalMinutes is { } minutes) builder.UseSetting("STRATA_HISTORY_INTERVAL_MINUTES", minutes.ToString());
+        builder.UseSetting("STRATA_LIVE_SAVE_DELAY_MS", LiveSaveDelayMs.ToString());
         if (HistoryMax is { } max) builder.UseSetting("STRATA_HISTORY_MAX", max.ToString());
     }
 
