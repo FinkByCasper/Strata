@@ -4,7 +4,7 @@ Build diagrams with depth. Strata is a self-hosted 3D diagram builder, in the sp
 but with a **free orthographic camera** instead of a fixed 45° isometric view, and **labels that
 always face you** so text stays easy to read from any angle.
 
-One ASP.NET Core process serves the web app and the API. Diagrams are stored in SQLite, can be exported
+One ASP.NET Core process serves the web app and the API. Diagrams are stored in SQLite by default (PostgreSQL and SQL Server are optional), can be exported
 as JSON, and can be shared through a view-only link or an embeddable iframe.
 
 ## What works today (prototype)
@@ -23,6 +23,8 @@ as JSON, and can be shared through a view-only link or an embeddable iframe.
 - Node labels can carry a second "subtitle" line (IP, port...). Labels are real DOM text (crisp, upright, constant size) with a small safe-markdown description (`**bold**`, `*italic*`, `` `code` ``, `- lists`) shown when a node is selected
 - Autosave to the server, JSON export/import, PNG export of the 3D layer
 - **Share** dialog: view-only link (`/v/<token>`), embed snippet (`/embed/<token>`), and "regenerate" to revoke
+- **Version history**: Strata keeps a copy of the diagram before a save replaces it, you can save named versions, and any version can be restored (the replaced state is kept, so a restore can be undone)
+- **Accounts**: sign in with email and password, every diagram has an owner, and an owner can share a diagram with other accounts as viewer or editor
 
 ## Run it
 
@@ -50,8 +52,7 @@ or with Docker: `docker build -t strata . && docker run -p 3001:3001 -v strata-d
 
 ### Hosting it online
 
-**There is no login.** Anyone who can open the URL can edit and delete diagrams, so only expose it where that is fine (a private network, a VPN,
-or a reverse proxy that does its own authentication). **Share links (`/v/…`) and embeds (`/embed/…`) are read-only.**
+**Accounts are on by default.** The first person to open the site creates the first account; everything after that needs a sign-in. Set `STRATA_ALLOW_SIGNUP=false` to stop anyone else from creating accounts. **Share links (`/v/…`) and embeds (`/embed/…`) never need an account.** Details are under *Access model*.
 
 **Coolify**: New resource → Docker Compose → pick this repo (compose file `/docker-compose.yaml`). Put your domain on the `strata` service
 (port 3001); Coolify handles HTTPS. The data lives in the `strata-data` volume.
@@ -71,10 +72,43 @@ Update with `git pull && docker compose up -d --build` (Coolify: Redeploy). Stra
 | --- | --- |
 | `STRATA_PORT` | Plain Docker only: host port, default `3001` |
 | `DOMAIN` | Only for `docker-compose.caddy.yaml` |
+| `STRATA_AUTH` | `on` (default) or `off`. `off` is the old behaviour: no login, everyone who can reach the server can edit |
+| `STRATA_ALLOW_SIGNUP` | `true` (default) or `false`. When `false`, only the very first account can be created |
+| `STRATA_ADMIN_EMAIL` | Optional. Diagrams made before accounts existed go to the first account created, or to this email if set |
+| `STRATA_SESSION_DAYS` | How long a sign-in lasts, default `30` |
+| `STRATA_HISTORY_INTERVAL_MINUTES` | At most one automatic version per diagram in this many minutes, default `10`; `0` keeps a version on every save that changed something |
+| `STRATA_HISTORY_MAX` | Automatic versions kept per diagram, default `100`; `0` turns automatic versions off. Versions you name are never removed |
 
-Config (env vars): `PORT` (default 3001), `STRATA_DB` (default `./data/strata.db`), `STRATA_DIST` (folder with the built web app; found automatically next to the server).
+Config (env vars): `PORT` (default 3001), `STRATA_DB` (SQLite file, default `./data/strata.db`), `STRATA_DB_PROVIDER` and `STRATA_DB_CONNECTION` (see below), `STRATA_DIST` (folder with the built web app; found automatically next to the server).
 
 The API is described at `/openapi/v1.json`.
+
+### Choosing a database
+
+SQLite (the local file) is the default and needs no setup. To use PostgreSQL or SQL Server instead, set a provider and a connection string:
+
+```bash
+STRATA_DB_PROVIDER=postgres
+STRATA_DB_CONNECTION="Host=db;Database=strata;Username=strata;Password=secret"
+
+STRATA_DB_PROVIDER=sqlserver
+STRATA_DB_CONNECTION="Server=db,1433;Database=strata;User Id=strata;Password=secret;TrustServerCertificate=True"
+```
+
+Tables are created and upgraded on start. The database is created too if the login is allowed to; otherwise create an empty one first. Each engine has its own migration project (`src/Strata.Migrations.*`). To copy diagrams from SQLite into a server database, start Strata once with the new settings and run `import-sqlite` on the old file (below).
+
+To run the tests against an engine, point them at a server that may create databases (each test class makes and drops its own): `STRATA_TEST_PROVIDER=postgres STRATA_TEST_CONNECTION="Host=localhost;Username=postgres;Password=postgres;Database=postgres" npm test`. CI runs all three.
+
+### Version history
+
+Every diagram has a history, kept in its own tables (`diagram_versions`) in the configured database, so it moves with the data and is included when you back the database up. The Share &amp; file menu has **Version history…**.
+
+- Before a save replaces the diagram, the server keeps the state being replaced, unless it already kept one within the last `STRATA_HISTORY_INTERVAL_MINUTES`, the content is unchanged, or the diagram is empty. Keeping the state *before* the save is what protects you when you open an old diagram and wipe it by mistake.
+- A version shows when its state was saved and by whom, not when the copy was made.
+- **Save version** names the diagram as it is now; those are kept until the owner deletes them. Automatic ones beyond `STRATA_HISTORY_MAX` are dropped, oldest first.
+- **Restore** keeps what is being replaced as a version first (labelled *Before a restore*), so restoring is itself undoable.
+- Viewers can read the history; owners and editors can save and restore; only the owner can delete versions.
+- Every version is a full copy, so a diagram near the 4 MB limit with a long history takes real space; lower `STRATA_HISTORY_MAX` for those.
 
 ### Backups, and moving over from the Node beta
 
@@ -94,9 +128,13 @@ Troubleshooting:
 
 ## Access model
 
-There are no accounts. Anyone who can reach the server can list and edit diagrams, so put it behind
-your VPN or a reverse proxy with auth if it is exposed. Viewers only ever get the read-only
-`/api/shared/:token` endpoint, which never reveals the editing id. Embedding is allowed only on `/embed/*`.
+- **Accounts** use an email and a password (10+ characters, stored as a salted hash). A sign-in is a random token in an HTTP-only, same-site cookie; the server keeps only its hash, so signing out really ends it. Ten wrong passwords for an email, or from an address, lock it for 15 minutes. Requests with an `Origin` from another site are refused.
+- **Roles per diagram**: the *owner* can do everything, including sharing, regenerating the view link and deleting; an *editor* can open and save; a *viewer* can open it read-only. People see only the diagrams they own or that were shared with them. Anything else answers "not found".
+- **View links and embeds** are separate and public: `/api/shared/:token` returns the name and content, never the editing id.
+- **Diagrams from before accounts** (the Node beta or `STRATA_AUTH=off`) belong to nobody until an account claims them: the first account created, or `STRATA_ADMIN_EMAIL` if you set it. Set it before the first start if the site is on the internet, so a stranger cannot be first.
+- Behind a reverse proxy, Strata trusts `X-Forwarded-For`, `-Proto` and `-Host`, as it expects to be reached through one. Do not publish the container port directly if you rely on the lockout by address.
+- Embedding is allowed only on `/embed/*`.
+- With `STRATA_AUTH=off` there are no accounts: anyone who can reach the server can list, edit and delete everything, so keep it on a private network or behind your own proxy login.
 
 ## Brand
 
@@ -124,8 +162,8 @@ into `client/src/components/ui/` and import it with `@/components/ui/<name>`.
 
 ## Status
 
-Strata is a beta. Known limits today: the editor has no login (share links and embeds are read-only), two people editing the same diagram at
-once overwrite each other, and PNG export does not include the text labels. Each diagram is limited to 2000 nodes, 4000 connectors, 500 zones and 4 MB.
+Strata is a beta. Known limits today: two people editing the same diagram at
+once overwrite each other (last save wins), and PNG export does not include the text labels. Each diagram is limited to 2000 nodes, 4000 connectors, 500 zones and 4 MB.
 
 ## License
 

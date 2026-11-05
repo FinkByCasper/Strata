@@ -8,6 +8,10 @@ import { RichText } from './richtext';
 import { ContextMenu, ShapePicker, Swatches } from './Menu';
 import { Topbar } from './Topbar';
 import { Intro, useIntro } from './Intro';
+import { ReadOnlyDiagram } from './Viewer';
+import { People } from './People';
+import { History } from './History';
+import { useAuth } from './auth';
 import { ArrowLeft, ArrowLeftRight, ArrowRight, Ban, Check, Copy, ImagePlus, RefreshCw, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -239,6 +243,7 @@ function ShareDialog({ id, viewToken, onClose, onRotate }) {
   const embed = `<iframe src="${origin}/embed/${viewToken}" width="800" height="500" style="border:0" allowfullscreen></iframe>`;
   const [copied, setCopied] = useState('');
   const [revoke, setRevoke] = useState(false);
+  const accounts = useAuth((a) => a.authEnabled);
   // navigator.clipboard only exists on HTTPS / localhost; on plain http fall back to a hidden textarea.
   const copy = (key, t) => {
     const done = () => { setCopied(key); setTimeout(() => setCopied(''), 1600); };
@@ -262,10 +267,11 @@ function ShareDialog({ id, viewToken, onClose, onRotate }) {
       <Dialog open onOpenChange={(o) => !o && onClose()}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Share (view-only)</DialogTitle>
-            <DialogDescription>Anyone with the link can view but not edit. Regenerate it to revoke the old link and embeds.</DialogDescription>
+            <DialogTitle>Share</DialogTitle>
+            <DialogDescription>{accounts ? 'Give people with an account access, or send the view-only link to anyone.' : 'Anyone with the link can view but not edit.'} Regenerate the link to revoke it and every embed.</DialogDescription>
           </DialogHeader>
-          {row('link', 'Link', link)}
+          {accounts && <People id={id} />}
+          {row('link', 'View-only link', link)}
           {row('embed', 'Embed', embed)}
           <DialogFooter className="sm:justify-between">
             <Button variant="outline" className="text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setRevoke(true)}><RefreshCw /> Regenerate link</Button>
@@ -316,13 +322,14 @@ export function Editor({ id }) {
   const [meta, setMeta] = useState(null); // { viewToken }
   const [status, setStatus] = useState('loading'); // loading | saved | saving | error | missing
   const [sharing, setSharing] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [pendingImport, setPendingImport] = useState(null);   // a parsed file waiting for the "replace?" confirmation
   const importRef = useRef();
   const intro = useIntro(status !== 'loading' && status !== 'missing');
 
   useEffect(() => {
     api.get(id)
-      .then((d) => { useStore.getState().load(d.name, d.data, false); setMeta({ viewToken: d.viewToken }); setStatus('saved'); })
+      .then((d) => { useStore.getState().load(d.name, d.data, d.role === 'viewer'); setMeta({ viewToken: d.viewToken, role: d.role }); setStatus('saved'); })
       .catch(() => setStatus('missing'));
   }, [id]);
 
@@ -340,6 +347,7 @@ export function Editor({ id }) {
   useEffect(() => {
     const warn = (e) => { if (useStore.getState().rev && status !== 'saved') e.preventDefault(); };
     const key = (e) => {
+      if (useStore.getState().readOnly) return;
       const t = e.target;   // let real text fields keep their own copy/paste/undo (checkboxes, sliders and buttons are not text fields)
       if (t.isContentEditable || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || (t.tagName === 'INPUT' && !/^(checkbox|radio|range|button|color|file|submit)$/.test(t.type))) return;
       if ((e.ctrlKey || e.metaKey) && !e.altKey) {
@@ -375,6 +383,18 @@ export function Editor({ id }) {
 
   if (status === 'missing') return <div className="grid h-full place-content-center gap-2 text-center"><h2 className="text-xl font-semibold">Diagram not found</h2><Link to="/">Back to diagrams</Link></div>;
   if (status === 'loading') return <div className="grid h-full place-content-center text-muted-foreground">Loading…</div>;
+  if (meta?.role === 'viewer') return <ReadOnlyDiagram name={s.name} home />;
+
+  const openHistory = async () => {
+    const { rev, name, data } = useStore.getState();
+    if (rev > 0 && status === 'saving') await api.save(id, name || 'Untitled diagram', data).then(() => setStatus('saved'), () => {});
+    setHistoryOpen(true);
+  };
+  const restored = (d) => {
+    useStore.getState().load(d.name, d.data, false);
+    useStore.getState().setView('fit');
+    setStatus('saved');
+  };
 
   const exportJson = () => download(`${slug(s.name)}.strata.json`, JSON.stringify({ name: s.name, data: s.data }, null, 2), 'application/json');
   const exportPng = () => {
@@ -392,8 +412,8 @@ export function Editor({ id }) {
 
   return (
     <div className="relative flex h-full flex-col">
-      <Topbar status={status} onShare={() => setSharing(true)} onExportJson={exportJson} onExportPng={exportPng}
-        onImport={() => importRef.current.click()} onTips={intro.replay} />
+      <Topbar status={status} role={meta?.role} onShare={() => setSharing(true)} onExportJson={exportJson} onExportPng={exportPng}
+        onImport={() => importRef.current.click()} onTips={intro.replay} onHistory={openHistory} />
       <input ref={importRef} type="file" accept="application/json,.json" hidden onChange={(e) => { importJson(e.target.files[0]); e.target.value = ''; }} />
       <div className="stage relative min-h-0 flex-1">
         <Scene />
@@ -410,7 +430,8 @@ export function Editor({ id }) {
             <AlertDialogAction onClick={() => { s.replaceData(pendingImport.name, pendingImport.data); s.setView('fit'); setPendingImport(null); }}>Replace</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      {sharing && meta && (
+      {historyOpen && <History id={id} canDelete={meta?.role === 'owner'} onRestored={restored} onClose={() => setHistoryOpen(false)} />}
+      {sharing && meta?.role === 'owner' && (
         <ShareDialog id={id} viewToken={meta.viewToken} onClose={() => setSharing(false)}
           onRotate={async (i) => setMeta({ viewToken: (await api.rotate(i)).viewToken })} />
       )}

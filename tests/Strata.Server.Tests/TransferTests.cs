@@ -160,6 +160,7 @@ public class UpgradeTests
     [Fact]
     public async Task A_beta_database_file_is_adopted_in_place_and_keeps_working()
     {
+        Assert.SkipUnless(TestDatabase.IsSqlite, "Beta files are SQLite files; other engines get them through import-sqlite.");
         using var factory = new StrataFactory();
         using (var connection = new SqliteConnection($"Data Source={factory.DatabasePath}"))
         {
