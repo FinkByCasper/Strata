@@ -23,6 +23,7 @@ as JSON, and can be shared through a view-only link or an embeddable iframe.
 - Node labels can carry a second "subtitle" line (IP, port...). Labels are real DOM text (crisp, upright, constant size) with a small safe-markdown description (`**bold**`, `*italic*`, `` `code` ``, `- lists`) shown when a node is selected
 - Autosave to the server, JSON export/import, PNG export of the 3D layer
 - **Share** dialog: view-only link (`/v/<token>`), embed snippet (`/embed/<token>`), and "regenerate" to revoke
+- **Connector routing**: right-angle connectors go around nodes instead of through them, and connectors that would lie on top of each other are spread into parallel lanes
 - **Your own 3D models**: upload a `.glb` or `.gltf` and use it for a node instead of a built-in shape, with its own size and rotation
 - **Real-time editing**: several people can have the same diagram open at once; changes show up live for everyone, with each person's name, colour and cursor
 - **Version history**: Strata keeps a copy of the diagram before a save replaces it, you can save named versions, and any version can be restored (the replaced state is kept, so a restore can be undone)

@@ -98,6 +98,9 @@ export function routePoints(a, b, route) {
   return trimEnds(pts);
 }
 
+// A route from the router (ground points) turned into the 3D points the scene draws, with both ends pulled back to the node surface.
+export const routedPoints = (ground, y = 0) => trimEnds(ground.map(([x, z]) => new THREE.Vector3(x, y, z)));
+
 export function polylineMidpoint(points) {
   const total = points.reduce((s, p, i) => s + (i ? p.distanceTo(points[i - 1]) : 0), 0);
   let walk = total / 2;
