@@ -1,6 +1,10 @@
 /* Things that live inside / on top of the 3D scene (DOM labels, leader lines, tour animations). They read the theme
    tokens from index.css, so they follow light / dark automatically. Everything else is Tailwind in the components. */
 
+@media (pointer: coarse) {
+  .stage canvas, .stage .label { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+  body { overscroll-behavior: none; }
+}
 .passthrough, .passthrough * { pointer-events: none !important; }
 .stage canvas { display: block; }
 

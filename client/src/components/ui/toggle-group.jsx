@@ -12,8 +12,8 @@ const ToggleGroupItem = ({ className, variant = 'segment', ...props }) => (
     className={cn(
       'inline-flex items-center justify-center gap-1.5 whitespace-nowrap text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40 disabled:pointer-events-none disabled:opacity-40 [&_svg]:size-4',
       variant === 'tool'
-        ? 'size-8 rounded-md hover:bg-card aria-checked:bg-primary/15 aria-checked:text-primary aria-checked:ring-1 aria-checked:ring-primary/60 aria-checked:hover:bg-primary/20'
-        : 'h-7 min-w-8 flex-1 rounded-md px-2.5 text-xs font-medium aria-checked:bg-card aria-checked:text-foreground aria-checked:shadow-sm',
+        ? 'size-8 pointer-coarse:size-10 rounded-md hover:bg-card aria-checked:bg-primary/15 aria-checked:text-primary aria-checked:ring-1 aria-checked:ring-primary/60 aria-checked:hover:bg-primary/20'
+        : 'h-7 pointer-coarse:h-9 min-w-8 flex-1 rounded-md px-2.5 text-xs font-medium aria-checked:bg-card aria-checked:text-foreground aria-checked:shadow-sm',
       className,
     )} {...props} />
 );

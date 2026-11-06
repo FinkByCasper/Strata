@@ -34,6 +34,16 @@ const STEPS = {
   details: { mouse: 'click', title: 'Click to read more', text: 'Left-click a node or line to see its details.', watch: 'select' },
   move: { mouse: 'hold', title: 'Hold to move', text: 'Press and hold a node for a moment, drag it to another square and let go.', watch: 'lift' },
 };
+// What the same steps say on a touch screen.
+const TOUCH = {
+  zoom: ['Pinch to zoom', 'Spread two fingers to get closer, bring them together to move away. Dragging with two fingers moves the view.'],
+  rotate: ['Twist to rotate', 'Put two fingers on the screen and turn them like a dial. One finger on empty space drags the view.'],
+  add: ['Press and hold to add', 'Press and hold on empty floor, or tap + at the top, and choose Node or Zone.'],
+  select: ['Tap to select', 'Tap a node, zone or line to see and edit it in the panel.'],
+  details: ['Tap to read more', 'Tap a node or line to see its details.'],
+  move: ['Hold to move', 'Press and hold a node until it lifts, drag it to another square and let go.'],
+};
+const touchScreen = () => typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches;
 export const EDITOR_TOUR = ['zoom', 'rotate', 'add', 'select', 'move'];
 export const VIEWER_TOUR = ['zoom', 'rotate', 'details'];
 
@@ -98,7 +108,9 @@ function useStepWatcher(watch, done) {
 export function Intro({ onDone, steps = EDITOR_TOUR }) {
   const [i, setI] = useState(0);
   const finished = i >= steps.length;
-  const step = STEPS[steps[Math.min(i, steps.length - 1)]];
+  const key = steps[Math.min(i, steps.length - 1)];
+  const touch = touchScreen();
+  const step = touch ? { ...STEPS[key], title: TOUCH[key][0], text: TOUCH[key][1] } : STEPS[key];
   const next = useCallback(() => setI((n) => n + 1), []);
   useStepWatcher(finished ? null : step.watch, next);
   useEffect(() => {
@@ -114,7 +126,7 @@ export function Intro({ onDone, steps = EDITOR_TOUR }) {
       ) : (
         <>
           <div className="flex items-center gap-3.5">
-            <Mouse mode={step.mouse} />
+            {!touch && <Mouse mode={step.mouse} />}
             <Demo mode={step.mouse} />
           </div>
           <div className="flex min-w-[180px] max-w-[250px] flex-col gap-0.5">
