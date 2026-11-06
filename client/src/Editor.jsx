@@ -27,6 +27,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { zoneMembers } from './highlight';
+import { shared, summary } from './selection.js';
 
 const download = (name, text, type) => {
   const url = URL.createObjectURL(new Blob([text], { type }));
@@ -74,10 +75,56 @@ const DeleteButton = ({ children, onClick }) => (
   <Button variant="outline" className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={onClick}><Trash2 /> {children}</Button>
 );
 
+const Chips = ({ items, value, onPick }) => (
+  <div className="flex flex-wrap gap-1.5">{items.map(([v, l]) => (
+    <Button key={v} variant="outline" size="xs" aria-pressed={value === v} className={cn(value === v && 'border-primary bg-primary/10 text-primary')} onClick={() => onPick(v)}>{l}</Button>
+  ))}</div>
+);
+
+// The panel for a group: only what every kind of chosen thing can share is offered, and a change applies to all of them in one undo step.
+function MultiPanel() {
+  const s = useStore();
+  const { data, picked } = s;
+  const nodes = data.nodes.filter((n) => picked.node.has(n.id));
+  const zones = data.zones.filter((z) => picked.zone.has(z.id));
+  const lines = data.connectors.filter((c) => picked.connector.has(c.id));
+  const colourOf = (list, fallback) => list.map((x) => x.color || fallback);
+  const colours = [...colourOf(nodes), ...colourOf(zones), ...colourOf(lines, '#475569')];
+  const commonColour = colours.length && colours.every((c) => c === colours[0]) ? colours[0] : null;
+  const setColour = (color) => s.updateSelected({ node: { color }, zone: { color }, connector: { color } });
+  const total = nodes.length + zones.length + lines.length;
+  return (
+    <Panel title={`${total} selected`} subtitle={summary(picked)}>
+      <Field label="Colour" hint={commonColour ? undefined : ' · they differ now'}><Swatches value={commonColour} onPick={setColour} /></Field>
+      {nodes.length > 0 && (
+        <Field label="Model"><ShapePicker value={shared(nodes, 'shape')} exclude={['model']} onPick={(shape) => s.updateSelected({ node: { shape } })} /></Field>
+      )}
+      {lines.length > 0 && (
+        <>
+          <Field label="Routing">
+            <Select value={shared(lines, 'route') ?? ''} onValueChange={(route) => s.updateSelected({ connector: { route } })}>
+              <SelectTrigger><SelectValue placeholder="Mixed" /></SelectTrigger>
+              <SelectContent>{ROUTES.map((x) => <SelectItem key={x} value={x}>{ROUTE_NAMES[x] ?? x}</SelectItem>)}</SelectContent>
+            </Select>
+          </Field>
+          <Field label="Line"><Chips items={[['solid', 'Solid'], ['dashed', 'Dashed']]} value={shared(lines, 'line')} onPick={(line) => s.updateSelected({ connector: { line } })} /></Field>
+        </>
+      )}
+      <div className="grid grid-cols-2 gap-2">
+        <Button variant="outline" onClick={s.duplicateSelection}><Copy /> Duplicate</Button>
+        <Button variant="outline" onClick={() => s.select(null)}>Clear</Button>
+      </div>
+      <DeleteButton onClick={s.removeSelection}>Delete {total} items</DeleteButton>
+    </Panel>
+  );
+}
+
 export function Details({ readOnly }) {
   const sel = useStore((s) => s.selection);
+  const grouped = useStore((s) => s.multi.length > 1);
   const data = useStore((s) => s.data);
   if (!sel) return null;
+  if (grouped && !readOnly) return <MultiPanel />;
   const node = sel.type === 'node' && data.nodes.find((n) => n.id === sel.id);
   const conn = sel.type === 'connector' && data.connectors.find((c) => c.id === sel.id);
   if (readOnly) {
@@ -392,6 +439,7 @@ export function Editor({ id }) {
         const is = (letter) => key === letter || e.code === `Key${letter.toUpperCase()}`;   // `code` covers other keyboard layouts
         if (key === 'z') { e.preventDefault(); e.shiftKey ? useStore.getState().redo() : useStore.getState().undo(); return; }
         if (key === 'y') { e.preventDefault(); useStore.getState().redo(); return; }
+        if (is('a')) { e.preventDefault(); useStore.getState().selectAll(); return; }
         if (is('c') && useStore.getState().selection) { e.preventDefault(); useStore.getState().copySelection(); return; }
         if (is('v')) { e.preventDefault(); useStore.getState().pasteClipboard(); return; }
         if (is('d')) { e.preventDefault(); useStore.getState().duplicateSelection(); return; }   // Ctrl/Cmd+D would bookmark the page
@@ -408,6 +456,7 @@ export function Editor({ id }) {
       if (k === 'd') st.duplicateSelection();
       else if (k === 'v') st.setMode('select');
       else if (k === 'c') st.setMode('connect');
+      else if (k === 'b') st.setMode('box');
       else if (k === 'g') st.setSnap(!st.snap);
       else if (k === 'q') st.setView('rotL');
       else if (k === 'e') st.setView('rotR');

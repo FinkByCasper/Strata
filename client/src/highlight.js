@@ -1,19 +1,9 @@
 import { useMemo } from 'react';
 import { useStore } from './store';
 
-// A node belongs to a zone when its cell lies inside the zone's rectangle.
-export const inZone = (z, n) =>
-  Math.abs(n.position[0] - z.position[0]) <= z.size[0] / 2 && Math.abs(n.position[2] - z.position[2]) <= z.size[2] / 2;
-export const zoneMembers = (z, nodes) => nodes.filter((n) => inZone(z, n));
+import { zoneMembers } from './zones.js';
 
-// Everything that belongs to a zone: the nodes inside it and any other zone lying wholly within it.
-export function zoneContents(z, data) {
-  const nodes = new Set(zoneMembers(z, data.nodes).map((n) => n.id));
-  const zones = new Set(data.zones.filter((o) => o.id !== z.id
-    && Math.abs(o.position[0] - z.position[0]) + o.size[0] / 2 <= z.size[0] / 2
-    && Math.abs(o.position[2] - z.position[2]) + o.size[2] / 2 <= z.size[2] / 2).map((o) => o.id));
-  return { nodes, zones };
-}
+export { inZone, zoneContents, zoneMembers } from './zones.js';
 
 // What to spotlight for the current selection (everything else is dimmed), or null for "no spotlight":
 //  - a zone: the nodes inside it, every connection touching them, and the nodes on the far end of those
@@ -21,10 +11,11 @@ export function zoneContents(z, data) {
 //  - a node, in the read-only view: the node, every connection it has, and the nodes on their far ends
 export function useHighlight() {
   const sel = useStore((s) => s.selection);
+  const grouped = useStore((s) => s.multi.length > 1);
   const data = useStore((s) => s.data);
   const readOnly = useStore((s) => s.readOnly);
   return useMemo(() => {
-    if (!sel) return null;
+    if (!sel || grouped) return null;
     if (sel.type === 'node') {
       if (!readOnly) return null;   // while editing, a selected node is not spotlighted (it would get in the way)
       const mine = data.connectors.filter((c) => c.from === sel.id || c.to === sel.id);
@@ -45,5 +36,5 @@ export function useHighlight() {
       return { nodes, connectors, inside };
     }
     return null;
-  }, [sel, data, readOnly]);
+  }, [sel, grouped, data, readOnly]);
 }

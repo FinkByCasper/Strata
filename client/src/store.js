@@ -1,7 +1,8 @@
 import { placed, pointerCell } from './hold';
 import { create } from 'zustand';
 import { EMPTY, flatten, freeSpot, newConnector, newNode, newZone, uid } from './model';
-import { zoneContents } from './highlight';
+import { zoneContents } from './zones.js';
+import { NOTHING, everything, groupContents, pruned, refsOf, selectionState, toggled } from './selection.js';
 import { applyOps, prepare } from './liveOps';
 import { buildClip, describe, freeOffset, materialize, snapAnchor } from './clipboard';
 
@@ -16,8 +17,10 @@ export const useStore = create((set, get) => {
     const now = Date.now();
     const merge = key != null && key === lastKey && (now - lastAt < COALESCE_MS || s.dragging);   // a whole drag is one step, however slow
     lastKey = key ?? null; lastAt = now;
+    const patch = fn(s);
+    if ('selection' in patch && !('multi' in patch)) Object.assign(patch, selectionState(patch.selection ? [patch.selection] : []));
     return {
-      ...fn(s), rev: s.rev + 1,
+      ...patch, rev: s.rev + 1,
       past: merge ? s.past : [...s.past, { data: s.data, name: s.name }].slice(-MAX_HISTORY),
       future: merge ? s.future : [],
     };
@@ -26,28 +29,22 @@ export const useStore = create((set, get) => {
     data: { ...s.data, [key]: s.data[key].map((x) => (x.id === id ? { ...x, ...patch } : x)) },
   }), `${key}:${id}:${Object.keys(patch).join(',')}`);
   // After restoring a snapshot, drop a selection that points at something that no longer exists.
-  const restore = (snap, s) => {
-    const sel = s.selection;
-    const list = sel && { node: snap.data.nodes, zone: snap.data.zones, connector: snap.data.connectors }[sel.type];
-    return { data: snap.data, name: snap.name, selection: list?.some((x) => x.id === sel.id) ? sel : null, connectFrom: null, rev: s.rev + 1 };
-  };
+  const restore = (snap, s) => ({ data: snap.data, name: snap.name, ...selectionState(pruned(refsOf(s), snap.data)), connectFrom: null, rev: s.rev + 1 });
 
   return {
     name: '', data: EMPTY(), readOnly: false, rev: 0,
-    selection: null, mode: 'select', connectFrom: null,
+    selection: null, multi: [], picked: NOTHING, mode: 'select', connectFrom: null,
     toast: null, clip: null, placing: false, snap: true, dragging: false, hovering: false, view: null, menu: null, fresh: null, liftedId: null,
     past: [], future: [],
 
-    load: (name, data, readOnly = false) => { lastKey = null; set({ name, data: flatten(data), readOnly, rev: 0, selection: null, mode: 'select', connectFrom: null, placing: false, view: null, past: [], future: [] }); },
+    load: (name, data, readOnly = false) => { lastKey = null; set({ name, data: flatten(data), readOnly, rev: 0, ...selectionState([]), mode: 'select', connectFrom: null, placing: false, view: null, past: [], future: [] }); },
     // Changes made by other people arrive here: they are not edits of ours (no autosave, no undo step), but the undo history is
     // patched too, so undoing one of our own changes does not bring back what someone else has since changed or deleted.
     applyRemote: (ops) => set((s) => {
       const patch = (snap) => ({ ...snap, data: applyOps(snap.data, ops) });
       const name = ops.findLast((o) => o.op === 'name')?.name ?? s.name;
       const data = applyOps(s.data, ops);
-      const sel = s.selection;
-      const gone = sel && !({ node: data.nodes, zone: data.zones, connector: data.connectors }[sel.type] ?? []).some((x) => x.id === sel.id);
-      return { data, name, past: s.past.map(patch), future: s.future.map(patch), selection: gone ? null : sel, connectFrom: s.connectFrom && !data.nodes.some((n) => n.id === s.connectFrom) ? null : s.connectFrom };
+      return { data, name, past: s.past.map(patch), future: s.future.map(patch), ...selectionState(pruned(refsOf(s), data)), connectFrom: s.connectFrom && !data.nodes.some((n) => n.id === s.connectFrom) ? null : s.connectFrom };
     }),
     // The server's copy (already flattened, so the caller can keep sharing its objects) replaces ours: first join, reconnect, or the diagram was restored or saved elsewhere. `keep` are our own
     // changes that the server has not seen yet; they are laid back on top.
@@ -55,9 +52,7 @@ export const useStore = create((set, get) => {
       const base = { data, name };
       const ops = prepare(keep);
       const merged = { data: applyOps(base.data, ops), name: ops.findLast((o) => o.op === 'name')?.name ?? name };
-      const sel = s.selection;
-      const gone = sel && !({ node: merged.data.nodes, zone: merged.data.zones, connector: merged.data.connectors }[sel.type] ?? []).some((x) => x.id === sel.id);
-      return { ...merged, selection: gone ? null : sel, ...(resetHistory ? { past: [], future: [] } : {}) };
+      return { ...merged, ...selectionState(pruned(refsOf(s), merged.data)), ...(resetHistory ? { past: [], future: [] } : {}) };
     }),
     replaceData: (name, data) => edit(() => ({ data: flatten(data), name: name ?? get().name, selection: null })),
     setName: (name) => edit(() => ({ name }), 'name'),
@@ -75,7 +70,11 @@ export const useStore = create((set, get) => {
       set((s) => ({ ...restore(future[future.length - 1], s), future: future.slice(0, -1), past: [...past, { data, name }] }));
     },
 
-    select: (selection) => set({ selection }),
+    select: (selection) => set(selectionState(selection ? [selection] : [])),
+    selectMany: (refs) => set(selectionState(refs)),
+    // Shift-click: add to or take out of the group. Only for editing; the read-only view has no groups.
+    toggleSelect: (ref) => { if (!get().readOnly) set(selectionState(toggled(refsOf(get()), ref))); },
+    selectAll: () => { if (!get().readOnly) set(selectionState(everything(get().data))); },
     setMode: (mode) => set({ mode, connectFrom: null }),
     setSnap: (snap) => set({ snap }),
     setDragging: (dragging) => { if (dragging) lastKey = null; set({ dragging }); },
@@ -91,6 +90,24 @@ export const useStore = create((set, get) => {
     addZoneAt: (position) => {
       const zone = newZone(position);
       edit((s) => ({ data: { ...s.data, zones: [...s.data.zones, zone] }, selection: { type: 'zone', id: zone.id }, fresh: zone.id }));
+    },
+    // Move everything in a dragged group by the amount the grabbed item moved. `carry` ({nodes, zones} id sets) is fixed when the group is picked up,
+    // so it does not scoop up things it passes over.
+    moveGroup: (grabbed, x, z, carry) => {
+      const { data } = get();
+      const item = (grabbed.type === 'zone' ? data.zones : data.nodes).find((q) => q.id === grabbed.id);
+      if (!item) return;
+      const dx = x - item.position[0], dz = z - item.position[2];
+      if (!dx && !dz) return;
+      const shift = (o) => ({ ...o, position: [o.position[0] + dx, o.position[1], o.position[2] + dz] });
+      edit((s) => ({ data: { ...s.data, nodes: s.data.nodes.map((n) => (carry.nodes.has(n.id) ? shift(n) : n)), zones: s.data.zones.map((q) => (carry.zones.has(q.id) ? shift(q) : q)) } }), `groupmove:${grabbed.id}`);
+    },
+    // One edit, one undo step, for something every chosen item has in common (a colour, a shape, a line style).
+    updateSelected: (patches) => {
+      const { picked } = get();
+      const apply = (list, ids, patch) => (patch && ids.size ? list.map((x) => (ids.has(x.id) ? { ...x, ...patch } : x)) : list);
+      edit((s) => ({ data: { ...s.data, nodes: apply(s.data.nodes, picked.node, patches.node), zones: apply(s.data.zones, picked.zone, patches.zone), connectors: apply(s.data.connectors, picked.connector, patches.connector) } }),
+        `selected:${Object.entries(patches).map(([k, p]) => `${k}.${Object.keys(p).join(',')}`).join('|')}`);
     },
     // Copy / paste / duplicate for nodes and zones (Ctrl/Cmd+C, Ctrl/Cmd+V, D). A paste lands one square down-right
     // of where the last copy or paste was, so repeated pastes fan out instead of stacking.
@@ -120,7 +137,7 @@ export const useStore = create((set, get) => {
     // Copy / paste / duplicate (Ctrl/Cmd+C, Ctrl/Cmd+V, D). Copying a zone takes everything in it with it. After a copy a
     // ghost follows the mouse (`placing`); the next click, or V, puts the copy there. Duplicate drops it right beside.
     copySelection: (ghost = true) => {
-      const clip = buildClip(get().data, get().selection);
+      const clip = buildClip(get().data, refsOf(get()).filter((r) => r.type !== 'connector' || get().multi.length === 0));
       if (!clip) { get().showToast('Select a node or zone first'); return false; }
       set({ clip, placing: ghost && !get().readOnly });
       get().showToast(ghost ? `Copied ${describe(clip)}: click to place it (or press V), Esc to cancel` : `Copied ${describe(clip)}`);
@@ -132,14 +149,14 @@ export const useStore = create((set, get) => {
       if (get().readOnly) return;
       if (!clip) { get().showToast('Nothing copied yet: select something and press Ctrl/Cmd+C'); return; }
       let target;   // where the anchor should land
-      if (beside) target = clip.type === 'zone' ? [clip.anchor[0] + clip.main.size[0] + 1, clip.anchor[1]] : [clip.anchor[0] + 1, clip.anchor[1]];
+      if (beside) target = clip.type === 'zone' ? [clip.anchor[0] + clip.main.size[0] + 1, clip.anchor[1]] : clip.type === 'group' ? [clip.anchor[0] + Math.ceil(clip.span[0]) + 2, clip.anchor[1]] : [clip.anchor[0] + 1, clip.anchor[1]];
       else if (pointerCell.over) target = snapAnchor(clip, pointerCell.x, pointerCell.z);
       else { clip.pasted += 1; target = [clip.anchor[0] + clip.pasted, clip.anchor[1] + clip.pasted]; }
       const [dx, dz] = freeOffset(clip, data.nodes, target[0] - clip.anchor[0], target[1] - clip.anchor[1]);
       const made = materialize(clip, dx, dz);
       edit((s) => ({
         data: { ...s.data, nodes: [...s.data.nodes, ...made.nodes], zones: [...s.data.zones, ...made.zones], connectors: [...s.data.connectors, ...made.connectors] },
-        selection: made.main, placing: false,
+        ...selectionState(made.main ? [made.main] : made.all), placing: false,
       }));
       placed.at = performance.now();
       get().showToast(`${beside ? 'Duplicated' : 'Pasted'} ${describe(clip)}`);
@@ -177,18 +194,19 @@ export const useStore = create((set, get) => {
     },
 
     removeSelection: () => {
-      const { selection: sel } = get();
-      if (!sel) return;
+      const { picked } = get();
+      if (!picked.node.size && !picked.zone.size && !picked.connector.size) return;
       edit((s) => {
         const d = s.data;
-        if (sel.type === 'node') {
-          return { selection: null, data: {
-            ...d, nodes: d.nodes.filter((n) => n.id !== sel.id),
-            connectors: d.connectors.filter((c) => c.from !== sel.id && c.to !== sel.id),
-          } };
-        }
-        if (sel.type === 'zone') return { selection: null, data: { ...d, zones: d.zones.filter((z) => z.id !== sel.id) } };
-        return { selection: null, data: { ...d, connectors: d.connectors.filter((c) => c.id !== sel.id) } };
+        return {
+          ...selectionState([]),
+          data: {
+            ...d,
+            nodes: d.nodes.filter((n) => !picked.node.has(n.id)),
+            zones: d.zones.filter((z) => !picked.zone.has(z.id)),
+            connectors: d.connectors.filter((c) => !picked.connector.has(c.id) && !picked.node.has(c.from) && !picked.node.has(c.to)),
+          },
+        };
       });
     },
   };

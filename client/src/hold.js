@@ -20,7 +20,7 @@ const HOLD_MS = 250;   // press and hold this long to pick an object up (a quick
 const SLOP = 6;        // px of movement during the hold that cancels it (user meant to orbit/click)
 
 // Hold to lift, drag across the floor, release to drop on that grid cell. A quick click only selects.
-export function useHoldMove(getPos, setPos, snapAxis) {
+export function useHoldMove(getPos, setPos, snapAxis, onLift) {
   const [lifted, setLifted] = useState(false);
   const st = useRef(null);
 
@@ -49,6 +49,7 @@ export function useHoldMove(getPos, setPos, snapAxis) {
       lifted: false, target: e.target, pid: e.pointerId,
     };
     s.timer = setTimeout(() => {
+      onLift?.();
       s.lifted = true;
       setLifted(true);
       useStore.getState().setDragging(true);

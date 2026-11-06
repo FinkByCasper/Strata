@@ -1,5 +1,5 @@
 import React from 'react';
-import { CircleHelp, Download, FileJson, History, Grid3x3, ImageDown, LayoutGrid, MousePointer2, Orbit, Spline, Redo2, RotateCcw, RotateCw, Scan, Share2, Undo2, Upload } from 'lucide-react';
+import { CircleHelp, Download, FileJson, History, Grid3x3, ImageDown, LayoutGrid, MousePointer2, Orbit, SquareDashedMousePointer, Spline, Redo2, RotateCcw, RotateCw, Scan, Share2, Undo2, Upload } from 'lucide-react';
 import { Logo } from './Logo';
 import { Presence } from './presence';
 import { Link, navigate } from './App';
@@ -64,6 +64,7 @@ export function Topbar({ status, role = 'owner', onHistory, onShare, onExportJso
       <div className="flex items-center gap-2 max-[900px]:order-3 max-[900px]:col-span-full max-[900px]:justify-center">
         <ToggleGroup type="single" value={mode} onValueChange={(v) => v && st.setMode(v)} aria-label="Tool" className="gap-0.5 p-0.5">
           <Hint label="Select" keys="V"><ToggleGroupItem variant="tool" value="select" aria-label="Select"><MousePointer2 /></ToggleGroupItem></Hint>
+          <Hint label="Box select" keys="B"><ToggleGroupItem variant="tool" value="box" aria-label="Box select"><SquareDashedMousePointer /></ToggleGroupItem></Hint>
           <Hint label="Connect" keys="C"><ToggleGroupItem variant="tool" value="connect" aria-label="Connect"><Spline /></ToggleGroupItem></Hint>
         </ToggleGroup>
         <Strip role="group" aria-label="History">

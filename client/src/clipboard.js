@@ -1,5 +1,5 @@
-import { inZone } from './highlight';
-import { uid } from './model';
+import { inZone, zoneContents } from './zones.js';
+import { uid } from './model.js';
 
 // What gets copied:
 //  - a node: just the node
@@ -7,6 +7,7 @@ import { uid } from './model';
 //    inside it, all keeping their distances to each other (everything is stored with its original position).
 // `anchor` is the point that follows the mouse: the node's square, or the zone's centre.
 export function buildClip(data, sel) {
+  if (Array.isArray(sel)) return sel.length === 1 ? buildClip(data, sel[0]) : buildGroupClip(data, sel);
   if (sel?.type === 'node') {
     const n = data.nodes.find((x) => x.id === sel.id);
     return n && { type: 'node', anchor: [n.position[0], n.position[2]], main: n, nodes: [structuredClone(n)], zones: [], connectors: [], pasted: 0 };
@@ -25,6 +26,31 @@ export function buildClip(data, sel) {
     };
   }
   return null;
+}
+
+// Several things at once: the chosen nodes and zones, whatever sits inside the chosen zones, and the connectors between all of those.
+function buildGroupClip(data, refs) {
+  const nodeIds = new Set(refs.filter((r) => r.type === 'node').map((r) => r.id));
+  const zoneIds = new Set(refs.filter((r) => r.type === 'zone').map((r) => r.id));
+  for (const id of [...zoneIds]) {
+    const z = data.zones.find((x) => x.id === id);
+    if (!z) continue;
+    const inside = zoneContents(z, data);
+    inside.nodes.forEach((n) => nodeIds.add(n));
+    inside.zones.forEach((o) => zoneIds.add(o));
+  }
+  const nodes = data.nodes.filter((n) => nodeIds.has(n.id));
+  const zones = data.zones.filter((z) => zoneIds.has(z.id));
+  if (!nodes.length && !zones.length) return null;
+  const xs = [...nodes.map((n) => n.position[0]), ...zones.flatMap((z) => [z.position[0] - z.size[0] / 2, z.position[0] + z.size[0] / 2])];
+  const zs = [...nodes.map((n) => n.position[2]), ...zones.flatMap((z) => [z.position[2] - z.size[2] / 2, z.position[2] + z.size[2] / 2])];
+  const [x0, x1, z0, z1] = [Math.min(...xs), Math.max(...xs), Math.min(...zs), Math.max(...zs)];
+  return {
+    type: 'group', anchor: [Math.round((x0 + x1) / 2), Math.round((z0 + z1) / 2)], span: [x1 - x0, z1 - z0],
+    main: { label: `${nodes.length + zones.length} items` },
+    nodes: structuredClone(nodes), zones: structuredClone(zones),
+    connectors: structuredClone(data.connectors.filter((c) => nodeIds.has(c.from) && nodeIds.has(c.to))), pasted: 0,
+  };
 }
 
 // Where the anchor lands when the mouse is over grid square (x, z): a zone's centre sits on a half square when its
@@ -57,11 +83,13 @@ export function materialize(clip, dx, dz) {
   const nodes = clip.nodes.map((n) => { const id = uid(); idMap.set(n.id, id); return { ...structuredClone(n), id, position: [n.position[0] + dx, n.position[1], n.position[2] + dz] }; });
   const zones = clip.zones.map((z) => ({ ...structuredClone(z), id: uid(), position: [z.position[0] + dx, z.position[1], z.position[2] + dz] }));
   const connectors = clip.connectors.map((c) => ({ ...structuredClone(c), id: uid(), from: idMap.get(c.from), to: idMap.get(c.to) }));
-  const main = clip.type === 'zone' ? { type: 'zone', id: zones[0].id } : { type: 'node', id: nodes[0].id };
-  return { nodes, zones, connectors, main };
+  const main = clip.type === 'zone' ? { type: 'zone', id: zones[0].id } : clip.type === 'node' ? { type: 'node', id: nodes[0].id } : null;
+  const all = [...nodes.map((n) => ({ type: 'node', id: n.id })), ...zones.map((z) => ({ type: 'zone', id: z.id })), ...connectors.map((c) => ({ type: 'connector', id: c.id }))];
+  return { nodes, zones, connectors, main, all };
 }
 
 export const describe = (clip) => {
+  if (clip.type === 'group') return `${clip.nodes.length + clip.zones.length} items`;
   const name = clip.main.label || 'Untitled';
   if (clip.type === 'node') return `“${name}”`;
   const n = clip.nodes.length, c = clip.connectors.length;

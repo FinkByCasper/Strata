@@ -8,8 +8,9 @@ import { GROUND, UP, camState, placed, pointerCell, press, useHoldMove } from '.
 import { materialFor, partsFor } from './parts';
 import { snapAnchor } from './clipboard';
 import { zoneContents } from './highlight';
+import { groupContents, rectPick } from './selection.js';
 import { LabelLayout, openAddMenu } from './labels';
-import { FloorTiles, NodeLabels, NodesLayer } from './nodes';
+import { FloorTiles, NodeLabels, NodesLayer, additive } from './nodes';
 import { ConnectorsLayer } from './connectors';
 import { RemoteCursors } from './presence';
 
@@ -144,6 +145,68 @@ function ContextHandler() {
   return null;
 }
 
+// Drag a rectangle to pick everything inside it: with Shift held, or in box-select mode. Shift adds to the current group.
+const BOX_SLOP = 6;
+function Marquee({ controls }) {
+  const { gl, camera } = useThree();
+  useEffect(() => {
+    const el = gl.domElement;
+    let drag = null, shade = null;
+    const done = () => {
+      shade?.remove(); shade = null;
+      if (drag?.restore && controls.current) controls.current.mouseButtons.LEFT = drag.restore;
+      drag = null;
+    };
+    const down = (e) => {
+      const st = useStore.getState();
+      if (st.readOnly || drag || e.button !== 0) return;
+      if (!(st.mode === 'box' || (st.mode === 'select' && e.shiftKey && e.pointerType !== 'touch'))) return;
+      if (e.target !== el && e.target.parentNode !== el.parentNode) return;
+      drag = { id: e.pointerId, x: e.clientX, y: e.clientY, add: e.shiftKey, started: false };
+      // OrbitControls pans on Shift + left drag and reads the button when the drag starts, so it is switched off for this drag.
+      if (e.shiftKey && controls.current && controls.current.mouseButtons.LEFT !== NO_ACTION) {
+        drag.restore = controls.current.mouseButtons.LEFT;
+        controls.current.mouseButtons.LEFT = NO_ACTION;
+      }
+    };
+    const move = (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      if (press.hitNode && !drag.started) { done(); return; }   // the press landed on a node: that is a move or a toggle, not a box
+      if (!drag.started && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < BOX_SLOP) return;
+      drag.started = true;
+      if (!shade) {
+        shade = document.createElement('div');
+        Object.assign(shade.style, { position: 'fixed', pointerEvents: 'none', zIndex: 45, border: '1.5px solid var(--primary)', background: 'color-mix(in srgb, var(--primary) 14%, transparent)', borderRadius: '3px' });
+        document.body.appendChild(shade);
+      }
+      Object.assign(shade.style, { left: `${Math.min(drag.x, e.clientX)}px`, top: `${Math.min(drag.y, e.clientY)}px`, width: `${Math.abs(e.clientX - drag.x)}px`, height: `${Math.abs(e.clientY - drag.y)}px` });
+    };
+    const up = (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      const { started, add, x, y } = drag;
+      done();
+      if (!started) return;
+      const rect = el.getBoundingClientRect();
+      const v = new THREE.Vector3();
+      const project = (px, py, pz) => { v.set(px, py, pz).project(camera); return [rect.left + (v.x * 0.5 + 0.5) * rect.width, rect.top + (-v.y * 0.5 + 0.5) * rect.height]; };
+      const st = useStore.getState();
+      const hits = rectPick(st.data, project, { left: Math.min(x, e.clientX), right: Math.max(x, e.clientX), top: Math.min(y, e.clientY), bottom: Math.max(y, e.clientY) });
+      st.selectMany(add ? [...(st.multi.length ? st.multi : st.selection ? [st.selection] : []), ...hits] : hits);
+      placed.at = performance.now();   // the click that ends a drag must not clear what it just picked
+    };
+    window.addEventListener('pointerdown', down, true);
+    window.addEventListener('pointermove', move, true);
+    window.addEventListener('pointerup', up, true);
+    window.addEventListener('pointercancel', done, true);
+    return () => {
+      done();
+      window.removeEventListener('pointerdown', down, true); window.removeEventListener('pointermove', move, true);
+      window.removeEventListener('pointerup', up, true); window.removeEventListener('pointercancel', done, true);
+    };
+  }, [gl, camera, controls]);
+  return null;
+}
+
 // Zones are rounded rectangles lying on the floor.
 const cornerRadius = (w, d) => Math.min(0.8, w / 2, d / 2);
 function roundedRect(w, d, r) {
@@ -243,7 +306,7 @@ const CORNERS = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
 function ZoneView({ zone }) {
   const dark = useTheme((st) => st.dark);
   const nameColor = useMemo(() => (dark ? `#${new THREE.Color(zone.color).lerp(new THREE.Color('#ffffff'), 0.45).getHexString()}` : zone.color), [dark, zone.color]);   // lighter on a dark floor
-  const selected = useStore((s) => s.selection?.type === 'zone' && s.selection.id === zone.id);
+  const selected = useStore((s) => s.picked.zone.has(zone.id));
   const editable = useStore((s) => !s.readOnly && s.mode === 'select');
   const [hovered, setHovered] = useState(false);
   const [w, , d] = zone.size;
@@ -258,10 +321,15 @@ function ZoneView({ zone }) {
     const off = zone.size[axis] % 2 === 0 ? 0.5 : 0;
     return Math.round(v - off) + off;
   };
-  const carry = useRef(null);   // what is inside the zone, captured when it is picked up
+  const carry = useRef(null);   // what is inside the zone (or the whole group it is part of), captured when it is picked up
+  const grouped = useRef(false);
   const hold = useHoldMove(
     () => zone.position,
-    (x, z) => useStore.getState().moveZone(zone.id, x, z, carry.current),
+    (x, z) => {
+      const st = useStore.getState();
+      if (grouped.current) st.moveGroup({ type: 'zone', id: zone.id }, x, z, carry.current);
+      else st.moveZone(zone.id, x, z, carry.current);
+    },
     snapAxis,
   );
   const shape = useMemo(() => roundedRect(w, d, cornerRadius(w, d)), [w, d]);
@@ -274,8 +342,11 @@ function ZoneView({ zone }) {
     const s = useStore.getState();
     if (s.readOnly || s.mode !== 'select' || e.nativeEvent.button !== 0) return;   // view-only selects on click instead (below)
     e.stopPropagation();
-    s.select({ type: 'zone', id: zone.id });
-    carry.current = zoneContents(s.data.zones.find((q) => q.id === zone.id) ?? zone, s.data);
+    if (additive(e.nativeEvent)) { s.toggleSelect({ type: 'zone', id: zone.id }); return; }
+    const inGroup = s.multi.length > 1 && s.picked.zone.has(zone.id);
+    if (!inGroup) s.select({ type: 'zone', id: zone.id });
+    grouped.current = inGroup;
+    carry.current = inGroup ? groupContents(s.data, s.picked) : zoneContents(s.data.zones.find((q) => q.id === zone.id) ?? zone, s.data);
     hold.start(e);
   };
 
@@ -538,10 +609,18 @@ function Sun() {
 }
 let lastData = null, lastLift = null, burst = 0;
 
+const NO_ACTION = -1;
+const TOUCHES = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
+const MOUSE = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
+// In box-select mode a drag with one finger or the left button draws the box instead of moving the camera.
+const BOX_TOUCHES = { ONE: NO_ACTION, TWO: THREE.TOUCH.DOLLY_PAN };
+const BOX_MOUSE = { LEFT: NO_ACTION, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
+
 export function Scene() {
   const data = useStore((s) => s.data);
   const dark = useTheme((s) => s.dark);
   const orbitLocked = useStore((s) => s.dragging || s.hovering);
+  const boxing = useStore((s) => s.mode === 'box');
   const controls = useRef();
   // Clicking empty floor clears the selection, but moving the camera (any drag, however small, or a
   // right-click/drag, or a wheel/rotate) must not: remember where and how the press started.
@@ -552,12 +631,12 @@ export function Scene() {
     return () => window.removeEventListener('pointerdown', down, true);
   }, []);
   const clearOnEmptyClick = (e) => {
-    if (e.type !== 'click' || e.button !== 0) return;
+    if (e.type !== 'click' || e.button !== 0 || e.shiftKey) return;
     if (performance.now() - placed.at < 500) return;   // this click just placed a pasted copy
     const p = press.current;
     if (p && (Math.hypot(e.clientX - p.x, e.clientY - p.y) > 4 || Math.abs(camState.azimuth - p.az) > 1e-3 || Math.abs(camState.zoom - p.zoom) > 1e-3)) return;
     const s = useStore.getState();
-    if (s.mode === 'select') s.select(null);
+    if (s.mode === 'select' || s.mode === 'box') s.select(null);
   };
 
   return (
@@ -580,9 +659,11 @@ export function Scene() {
         ref={controls} makeDefault enableRotate={!orbitLocked} enablePan={!orbitLocked} enableDamping dampingFactor={0.2}
         minPolarAngle={Math.PI / 2 - ELEVATION} maxPolarAngle={Math.PI / 2 - ELEVATION} screenSpacePanning={false}
         zoomToCursor minZoom={8} maxZoom={300}
+        {...(boxing ? { touches: BOX_TOUCHES, mouseButtons: BOX_MOUSE } : { touches: TOUCHES, mouseButtons: MOUSE })}
       />
       <CameraRig controls={controls} />
       <ContextHandler />
+      <Marquee controls={controls} />
       <PointerTracker />
       <PlaceHandler />
       <PasteGhost />

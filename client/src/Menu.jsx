@@ -44,7 +44,7 @@ const tile = (on) => cn(
   on && 'border-primary bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary',
 );
 
-export function ShapePicker({ value, onPick }) {
+export function ShapePicker({ value, onPick, exclude = [] }) {
   const group = (title, list) => (
     <div className="flex flex-col gap-1.5">
       <div className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">{title}</div>
@@ -57,7 +57,7 @@ export function ShapePicker({ value, onPick }) {
       </div>
     </div>
   );
-  return <div className="flex flex-col gap-3">{group('Devices', DEVICE_SHAPES)}{group('Basic shapes', BASIC_SHAPES)}{group('Your own', ['model'])}</div>;
+  return <div className="flex flex-col gap-3">{group('Devices', DEVICE_SHAPES)}{group('Basic shapes', BASIC_SHAPES)}{!exclude.includes('model') && group('Your own', ['model'])}</div>;
 }
 
 export function Swatches({ value, onPick, custom = true }) {
