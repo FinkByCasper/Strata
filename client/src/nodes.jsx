@@ -109,6 +109,7 @@ export function NodesLayer() {
   const connectFrom = useStore((s) => s.connectFrom);
   const activeRef = useRef(null);
   const carry = useRef(null);   // what a dragged group takes along, fixed when it is picked up
+  const origin = useRef([0, 0]);   // the square the drag started from
   const hold = useHoldMove(
     () => useStore.getState().data.nodes.find((n) => n.id === activeRef.current)?.position ?? [0, 0, 0],
     (x, z) => {
@@ -120,7 +121,10 @@ export function NodesLayer() {
     () => {
       const st = useStore.getState();
       carry.current = st.multi.length > 1 && st.picked.node.has(activeRef.current) ? groupContents(st.data, st.picked) : null;
+      const [x, , z] = st.data.nodes.find((n) => n.id === activeRef.current)?.position ?? [0, 0, 0];
+      origin.current = [x, z];
     },
+    () => useStore.getState().settleMove({ type: 'node', id: activeRef.current }, carry.current, origin.current),
   );
   const liftedId = hold.lifted ? activeRef.current : null;
   useEffect(() => { useStore.setState({ liftedId }); }, [liftedId]);
