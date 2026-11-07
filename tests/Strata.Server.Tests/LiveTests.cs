@@ -212,6 +212,46 @@ public class LiveTests
     }
 
     [Fact]
+    public async Task Diagram_wide_connector_defaults_are_shared_live_and_saved()
+    {
+        using var factory = new StrataFactory();
+        var http = factory.CreateClient();
+        var id = await NewDiagram(http);
+        await using var a = await LiveClient.Start(factory);
+        await using var b = await LiveClient.Start(factory);
+        await a.Join(id); await b.Join(id);
+
+        await a.Apply("s1", new { op = "style", item = new { connector = new { arrowHead = "diamond", lineWidth = 5, flowShape = "cube" } } });
+
+        var seen = (await b.Next("Ops")).GetProperty("ops")[0];
+        Assert.Equal("style", seen.GetProperty("op").GetString());
+        Assert.Equal("diamond", seen.GetProperty("item").GetProperty("connector").GetProperty("arrowHead").GetString());
+
+        var late = await (await LiveClient.Start(factory)).Join(id);
+        Assert.Equal(5, late.GetProperty("data").GetProperty("style").GetProperty("connector").GetProperty("lineWidth").GetInt32());
+
+        var stored = await WaitStored(http, id, d => d.GetProperty("data").TryGetProperty("style", out _));
+        Assert.Equal("cube", stored.GetProperty("data").GetProperty("style").GetProperty("connector").GetProperty("flowShape").GetString());
+    }
+
+    [Fact]
+    public async Task Bad_defaults_are_refused_and_leave_the_old_ones_in_place()
+    {
+        using var factory = new StrataFactory();
+        var id = await NewDiagram(factory.CreateClient());
+        await using var a = await LiveClient.Start(factory);
+        await a.Join(id);
+        await a.Apply("ok", new { op = "style", item = new { connector = new { lineWidth = 3 } } });
+
+        await Assert.ThrowsAsync<HubException>(() => a.Apply("bad", new { op = "style", item = new { connector = new { lineWidth = 50 } } }));
+        await Assert.ThrowsAsync<HubException>(() => a.Apply("worse", new { op = "style", item = new[] { 1 } }));
+        await Assert.ThrowsAsync<HubException>(() => a.Apply("mixed", new { op = "style", item = new { connector = new { lineWidth = 6 } } }, new { op = "style", item = new { connector = new { arrowHead = "spike" } } }));
+
+        await using var look = await LiveClient.Start(factory);
+        Assert.Equal(3, (await look.Join(id)).GetProperty("data").GetProperty("style").GetProperty("connector").GetProperty("lineWidth").GetInt32());
+    }
+
+    [Fact]
     public async Task Connectors_may_only_join_nodes_that_exist_even_within_one_batch()
     {
         using var factory = new StrataFactory();

@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { EMPTY, flatten, freeSpot, newConnector, newNode, newZone, uid } from './model';
 import { zoneContents } from './zones.js';
 import { clash, nearestFree, swapPlan } from './overlap.js';
+import { hasLook, mergeLook, withoutLook } from './connectorStyle.js';
 import { NOTHING, everything, groupContents, pruned, refsOf, selectionState, toggled } from './selection.js';
 import { applyOps, prepare } from './liveOps';
 import { buildClip, describe, freeOffset, materialize, snapAnchor } from './clipboard';
@@ -199,6 +200,11 @@ export const useStore = create((set, get) => {
     updateNode: (id, patch) => patchList('nodes', id, patch),
     updateZone: (id, patch) => patchList('zones', id, patch),
     updateConnector: (id, patch) => patchList('connectors', id, patch),
+    // The diagram-wide defaults every connector falls back on; one drag of a slider is one undo step.
+    setConnectorDefaults: (patch) => edit((s) => ({ data: { ...s.data, style: { ...s.data.style, connector: mergeLook(s.data.style?.connector, patch) } } }), `style:${Object.keys(patch).join(',')}`),
+    resetConnectorDefaults: () => edit((s) => ({ data: { ...s.data, style: { ...s.data.style, connector: {} } } })),
+    // Takes every connector back to the defaults by removing what was set on each one.
+    clearConnectorLooks: () => edit((s) => ({ data: { ...s.data, connectors: s.data.connectors.map((c) => (hasLook(c) ? withoutLook(c) : c)) } })),
 
     // Click-to-connect: first click picks the source, second creates the connector.
     connectClick: (nodeId) => {

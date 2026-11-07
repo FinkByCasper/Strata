@@ -15,6 +15,8 @@ public sealed class DiagramDoc
     private readonly List<(string Name, JsonElement Value)> extras = [];
     private long bytes;
 
+    private const string StyleKey = "style";
+
     public string Name { get; private set; } = "";
 
     public static DiagramDoc Parse(string name, string data)
@@ -63,6 +65,7 @@ public sealed class DiagramDoc
     {
         var undo = new Stack<Action>();
         var oldName = Name;
+        var oldStyle = extras.FindIndex(e => e.Name == StyleKey) is var at and >= 0 ? extras[at].Value : (JsonElement?)null;
         var touchedConnectors = new HashSet<string>();
         var nodeDeleted = false;
 
@@ -70,6 +73,7 @@ public sealed class DiagramDoc
         {
             while (undo.Count > 0) undo.Pop()();
             Name = oldName;
+            SetStyle(oldStyle);
             return (message, []);
         }
 
@@ -80,6 +84,12 @@ public sealed class DiagramDoc
                 case "name":
                     if (op.Name is null || op.Name.Length > 200) return Fail("bad name");
                     Name = op.Name;
+                    break;
+
+                case "style":
+                    if (op.Item is not { ValueKind: JsonValueKind.Object } style) return Fail("bad operation");
+                    if (DiagramValidator.ValidateStyle(style) is { } styleProblem) return Fail(styleProblem);
+                    SetStyle(style);
                     break;
 
                 case "put":
@@ -143,6 +153,19 @@ public sealed class DiagramDoc
         return (null, [.. ops, .. extra]);
 
         bool Has(JsonElement connector, string end) => connector.TryGetProperty(end, out var v) && v.ValueKind == JsonValueKind.String && nodes.ContainsKey(v.GetString()!);
+    }
+
+    private void SetStyle(JsonElement? style)
+    {
+        var at = extras.FindIndex(e => e.Name == StyleKey);
+        if (at >= 0)
+        {
+            bytes -= extras[at].Value.GetRawText().Length;
+            extras.RemoveAt(at);
+        }
+        if (style is not { } value) return;
+        extras.Add((StyleKey, value.Clone()));
+        bytes += value.GetRawText().Length;
     }
 
     private OrderedDictionary<string, Entry>? Table(string? kind) => kind switch { "node" => nodes, "connector" => connectors, "zone" => zones, _ => null };

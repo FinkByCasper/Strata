@@ -41,7 +41,7 @@ export function CameraTools() {
 
 const STATUS = { saved: ['bg-success', 'Saved'], saving: ['bg-warning', 'Saving…'], error: ['bg-destructive', 'Save failed'], offline: ['bg-destructive', 'Offline, reconnecting…'] };
 
-export function Topbar({ status, role = 'owner', onHistory, onShare, onExportJson, onExportPng, onImport, onTips }) {
+export function Topbar({ status, role = 'owner', onHistory, onStyle, onShare, onExportJson, onExportPng, onImport, onTips }) {
   const name = useStore((s) => s.name);
   const mode = useStore((s) => s.mode);
   const snap = useStore((s) => s.snap);
@@ -89,6 +89,7 @@ export function Topbar({ status, role = 'owner', onHistory, onShare, onExportJso
           </Hint>
           <DropdownMenuContent>
             {role === 'owner' && <><DropdownMenuItem onSelect={onShare} className="font-medium"><Share2 /> Share &amp; embed…</DropdownMenuItem><DropdownMenuSeparator /></>}
+            {role !== 'viewer' && <DropdownMenuItem onSelect={onStyle}><Spline /> Connection style…</DropdownMenuItem>}
             <DropdownMenuItem onSelect={onHistory}><History /> Version history…</DropdownMenuItem>
             <DropdownMenuItem onSelect={onExportJson}><FileJson /> Export JSON</DropdownMenuItem>
             <DropdownMenuItem onSelect={onExportPng}><ImageDown /> Export PNG</DropdownMenuItem>
