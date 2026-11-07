@@ -51,6 +51,7 @@ export function useHoldMove(getPos, setPos, snapAxis) {
     s.timer = setTimeout(() => {
       s.lifted = true;
       setLifted(true);
+      navigator.vibrate?.(8);
       useStore.getState().setDragging(true);
       try { s.target.setPointerCapture(s.pid); } catch { /* pointer already gone */ }
     }, HOLD_MS);

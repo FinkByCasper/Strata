@@ -24,6 +24,7 @@ as JSON, and can be shared through a view-only link or an embeddable iframe.
 - Autosave to the server, JSON export/import, PNG export of the 3D layer
 - **Share** dialog: view-only link (`/v/<token>`), embed snippet (`/embed/<token>`), and "regenerate" to revoke
 - **Connector routing**: right-angle connectors go around nodes instead of through them, and connectors that would lie on top of each other are spread into parallel lanes
+- **Touch and tablet**: pinch to zoom, twist with two fingers to rotate, drag to pan, tap to select, press and hold a node to move it, press and hold the floor (or tap +) to add
 - **Your own 3D models**: upload a `.glb` or `.gltf` and use it for a node instead of a built-in shape, with its own size and rotation
 - **Real-time editing**: several people can have the same diagram open at once; changes show up live for everyone, with each person's name, colour and cursor
 - **Version history**: Strata keeps a copy of the diagram before a save replaces it, you can save named versions, and any version can be restored (the replaced state is kept, so a restore can be undone)
