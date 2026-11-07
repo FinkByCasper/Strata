@@ -10,6 +10,8 @@ import { Topbar } from './Topbar';
 import { Intro, useIntro } from './Intro';
 import { ReadOnlyDiagram } from './Viewer';
 import { People } from './People';
+import { Field, Segmented } from './fields';
+import { EmbedOptions } from './EmbedOptions';
 import { History } from './History';
 import { ModelPanel } from './ModelPanel';
 import { bundleFor, refreshModels, restoreBundle, uploadModel, useModelSource, useModels } from './models';
@@ -23,7 +25,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { zoneMembers } from './highlight';
@@ -54,22 +55,6 @@ function Panel({ title, subtitle, children }) {
     </aside>
   );
 }
-
-function Field({ label, hint, children, className }) {
-  return (
-    <div className={cn('grid gap-1.5', className)}>
-      <Label>{label}</Label>
-      {hint && <p className="-mt-0.5 text-[11px] leading-snug text-muted-foreground">{hint.replace(/^ · /, '')}</p>}
-      {children}
-    </div>
-  );
-}
-
-const Segmented = ({ value, onChange, options, className }) => (
-  <ToggleGroup type="single" value={value} onValueChange={(v) => v && onChange(v)} className={cn('w-full', className)}>
-    {options.map(([v, l]) => <ToggleGroupItem key={v} value={v}>{l}</ToggleGroupItem>)}
-  </ToggleGroup>
-);
 
 const DeleteButton = ({ children, onClick }) => (
   <Button variant="outline" className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={onClick}><Trash2 /> {children}</Button>
@@ -312,7 +297,6 @@ function Inspector({ sel }) {
 function ShareDialog({ id, viewToken, onClose, onRotate }) {
   const origin = window.location.origin;
   const link = `${origin}/v/${viewToken}`;
-  const embed = `<iframe src="${origin}/embed/${viewToken}" width="800" height="500" style="border:0" allowfullscreen></iframe>`;
   const [copied, setCopied] = useState('');
   const [revoke, setRevoke] = useState(false);
   const accounts = useAuth((a) => a.authEnabled);
@@ -337,14 +321,14 @@ function ShareDialog({ id, viewToken, onClose, onRotate }) {
   return (
     <>
       <Dialog open onOpenChange={(o) => !o && onClose()}>
-        <DialogContent>
+        <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Share</DialogTitle>
             <DialogDescription>{accounts ? 'Give people with an account access, or send the view-only link to anyone.' : 'Anyone with the link can view but not edit.'} Regenerate the link to revoke it and every embed.</DialogDescription>
           </DialogHeader>
           {accounts && <People id={id} />}
           {row('link', 'View-only link', link)}
-          {row('embed', 'Embed', embed)}
+          <EmbedOptions origin={origin} token={viewToken} copy={copy} copied={copied} />
           <DialogFooter className="sm:justify-between">
             <Button variant="outline" className="text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setRevoke(true)}><RefreshCw /> Regenerate link</Button>
             <Button onClick={onClose}>Done</Button>

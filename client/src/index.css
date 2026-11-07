@@ -86,3 +86,9 @@
   button:not(:disabled), [role='button']:not([aria-disabled='true']) { cursor: pointer; }
 }
 
+
+/* An embed with bg=transparent lets the page behind it show through. */
+html.transparent, html.transparent body { background: transparent; }
+
+/* An embed that has not been clicked into lets swipes scroll the page around it. */
+html.embed-idle .stage, html.embed-idle .stage * { touch-action: auto !important; }

@@ -11,6 +11,7 @@ public class WebAppTests : IDisposable
         Directory.CreateDirectory(Path.Combine(dist, "assets"));
         File.WriteAllText(Path.Combine(dist, "index.html"), "<!doctype html><title>Strata</title><div id=root></div>");
         File.WriteAllText(Path.Combine(dist, "assets", "app.js"), "console.log(1)");
+        File.WriteAllText(Path.Combine(dist, "embed.js"), "/* loader */");
     }
 
     public void Dispose() => Directory.Delete(dist, true);
@@ -36,6 +37,29 @@ public class WebAppTests : IDisposable
         var response = await factory.CreateClient().GetAsync("/embed/some-token");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.False(response.Headers.Contains("X-Frame-Options"));
+    }
+
+    [Fact]
+    public async Task The_embed_loader_script_is_a_plain_file_that_other_sites_can_load_and_is_not_the_app_page()
+    {
+        using var factory = new StrataFactory { Dist = dist };
+        var response = await factory.CreateClient().GetAsync("/embed.js");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("/* loader */", await response.Content.ReadAsStringAsync());
+        Assert.Contains("javascript", response.Content.Headers.ContentType!.MediaType);
+        Assert.Equal("public, max-age=0", response.Headers.CacheControl!.ToString());
+    }
+
+    [Fact]
+    public async Task Embed_pages_with_options_in_the_address_are_still_the_app_page_and_can_be_framed()
+    {
+        using var factory = new StrataFactory { Dist = dist };
+        var response = await factory.CreateClient().GetAsync("/embed/some-token?theme=dark&bg=transparent&highlight=NAS");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("<div id=root>", await response.Content.ReadAsStringAsync());
         Assert.False(response.Headers.Contains("X-Frame-Options"));
     }
 
