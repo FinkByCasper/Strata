@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { cleanBundle } from './modelBundle';
+import { cleanBundle } from './modelBundle.js';
 
 // Short random id. crypto.randomUUID() only exists on HTTPS / localhost, and Strata is often served over plain http
 // (a LAN address, an IP behind a proxy), where it is undefined, so fall back to getRandomValues (works everywhere).
