@@ -8,6 +8,7 @@ import { GROUND, UP, camState, placed, pointerCell, press, useHoldMove } from '.
 import { materialFor, partsFor } from './parts';
 import { snapAnchor } from './clipboard';
 import { createTwist } from './twist';
+import { SceneBoundary } from './SceneBoundary';
 import { zoneContents } from './highlight';
 import { groupContents, rectPick } from './selection.js';
 import { LabelLayout, openAddMenu } from './labels';
@@ -438,6 +439,7 @@ function ZoneView({ zone }) {
   };
   const carry = useRef(null);   // what is inside the zone (or the whole group it is part of), captured when it is picked up
   const grouped = useRef(false);
+  const origin = useRef([0, 0]);
   const hold = useHoldMove(
     () => zone.position,
     (x, z) => {
@@ -446,6 +448,8 @@ function ZoneView({ zone }) {
       else st.moveZone(zone.id, x, z, carry.current);
     },
     snapAxis,
+    () => { origin.current = [zone.position[0], zone.position[2]]; },
+    () => useStore.getState().settleMove({ type: 'zone', id: zone.id }, carry.current, origin.current, grouped.current),
   );
   const shape = useMemo(() => roundedRect(w, d, cornerRadius(w, d)), [w, d]);
   const outline = useMemo(() => {
@@ -731,7 +735,7 @@ const MOUSE = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THRE
 const BOX_TOUCHES = { ONE: NO_ACTION, TWO: THREE.TOUCH.DOLLY_PAN };
 const BOX_MOUSE = { LEFT: NO_ACTION, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
 
-export function Scene() {
+function SceneCanvas() {
   const data = useStore((s) => s.data);
   const dark = useTheme((s) => s.dark);
   const orbitLocked = useStore((s) => s.dragging || s.hovering);
@@ -794,3 +798,5 @@ export function Scene() {
     </Canvas>
   );
 }
+
+export const Scene = () => <SceneBoundary><SceneCanvas /></SceneBoundary>;

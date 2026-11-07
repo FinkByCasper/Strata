@@ -6,7 +6,7 @@ import { LineMaterial } from 'three-stdlib';
 import { LineSegments2 } from 'three-stdlib';
 import { LineSegmentsGeometry } from 'three-stdlib';
 import { useStore } from './store';
-import { polylineMidpoint, routePoints, routedPoints } from './model';
+import { isDrawable, polylineMidpoint, sameSpot, routePoints, routedPoints } from './model';
 import { routeAll } from './routing.js';
 import { UP } from './hold';
 import { Label, useLod } from './labels';
@@ -52,11 +52,13 @@ export function ConnectorsLayer() {
     const planned = routeAll(nodes, connectors);
     return connectors.flatMap((c) => {
       const a = byId.get(c.from), b = byId.get(c.to);
-      if (!a || !b) return [];
+      if (!a || !b || sameSpot(a.position, b.position)) return [];
       const plan = planned.get(c.id);
-      if (plan?.poly) return [{ c, pts: routedPoints(plan.poly, a.position[1]) }];
       const [sx, sz] = plan?.shift ?? [0, 0];
-      return [{ c, pts: routePoints([a.position[0] + sx, a.position[1], a.position[2] + sz], [b.position[0] + sx, b.position[1], b.position[2] + sz], c.route) }];
+      const pts = plan?.poly
+        ? routedPoints(plan.poly, a.position[1])
+        : routePoints([a.position[0] + sx, a.position[1], a.position[2] + sz], [b.position[0] + sx, b.position[1], b.position[2] + sz], c.route);
+      return isDrawable(pts) ? [{ c, pts }] : [];
     });
   }, [connectors, nodes]);
 
