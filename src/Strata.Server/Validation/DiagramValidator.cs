@@ -13,6 +13,10 @@ public static class DiagramValidator
     ];
     private static readonly HashSet<string> Routes = ["orthogonal", "orthogonal-z", "straight", "curved"];
     private static readonly HashSet<string> Flows = ["none", "forward", "both"];
+    private static readonly HashSet<string> ArrowHeads = ["cone", "diamond", "dot", "bar"];
+    private static readonly HashSet<string> FlowShapes = ["sphere", "cube", "diamond", "dash"];
+    private static readonly (string Name, double Min, double Max)[] LookRanges =
+        [("arrowSize", 0.5, 3), ("lineWidth", 1, 8), ("flowSize", 0.4, 3), ("flowSpeed", 0.25, 4), ("flowDensity", 0.25, 4)];
     private static readonly HashSet<string> LabelModes = ["edge", "center", "none"];
     private static readonly HashSet<string> LabelEdges = ["back", "front", "left", "right"];
     private static readonly string[] IconPrefixes =
@@ -41,7 +45,15 @@ public static class DiagramValidator
 
         foreach (var z in zones.EnumerateArray())
             if (ValidateZone(z) is { } problem) return problem;
-        return null;
+
+        return Present(d, "style", out var style) ? ValidateStyle(style) : null;
+    }
+
+    /// <summary>The diagram-wide defaults: <c>{ "connector": { ...look } }</c>, where each connector can override any of the look properties.</summary>
+    public static string? ValidateStyle(JsonElement style)
+    {
+        if (style.ValueKind != JsonValueKind.Object) return "bad style";
+        return Present(style, "connector", out var connector) && (connector.ValueKind != JsonValueKind.Object || !IsLook(connector)) ? "bad style" : null;
     }
 
     public static string? ValidateNode(JsonElement n)
@@ -78,8 +90,18 @@ public static class DiagramValidator
             return "bad connector";
         if (Present(c, "flow", out var flow) && !(flow.ValueKind == JsonValueKind.String && Flows.Contains(flow.GetString()!)))
             return "bad connector";
-        if (!OptionalBool(c, "arrow") || !OptionalBool(c, "arrowStart")) return "bad connector";
+        if (!OptionalBool(c, "arrow") || !OptionalBool(c, "arrowStart") || !IsLook(c)) return "bad connector";
         return null;
+    }
+
+    private static bool IsLook(JsonElement look)
+    {
+        if ((Present(look, "arrowHead", out var head) && !IsOneOf(head, ArrowHeads)) || (Present(look, "flowShape", out var shape) && !IsOneOf(shape, FlowShapes)))
+            return false;
+        if (!OptionalText(look, "flowColor", 32) || !OptionalText(look, "flowColor2", 32)) return false;
+        foreach (var (name, min, max) in LookRanges)
+            if (Present(look, name, out var v) && (v.ValueKind != JsonValueKind.Number || !v.TryGetDouble(out var d) || !double.IsFinite(d) || d < min || d > max)) return false;
+        return true;
     }
 
     public static string? ValidateZone(JsonElement z)

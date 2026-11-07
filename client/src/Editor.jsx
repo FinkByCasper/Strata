@@ -12,6 +12,8 @@ import { ReadOnlyDiagram } from './Viewer';
 import { People } from './People';
 import { Field, Segmented } from './fields';
 import { EmbedOptions } from './EmbedOptions';
+import { ConnectorLook } from './ConnectorStyleFields';
+import { ConnectionStyle } from './ConnectionStyle';
 import { History } from './History';
 import { ModelPanel } from './ModelPanel';
 import { bundleFor, refreshModels, restoreBundle, uploadModel, useModelSource, useModels } from './models';
@@ -265,11 +267,11 @@ function Inspector({ sel }) {
           <Segmented value={flow} onChange={(m) => s.updateConnector(c.id, { flow: m })} options={[['none', 'Off'], ['forward', 'One way'], ['both', 'Both ways']]} />
           <p className="text-xs text-muted-foreground">{flow === 'none' ? "Small dots travel along the line in the arrow's direction." : flow === 'both' ? 'Line colour goes forward; the return colour comes back in its own lane.' : 'Dots travel from the source to the target in the line colour.'}</p>
         </Field>
-        {flow === 'both' && <Field label="Return colour"><Swatches value={c.color2 || '#f5a524'} onPick={(color2) => s.updateConnector(c.id, { color2 })} /></Field>}
         <Field label="Arrowheads">
           <label className="flex items-center gap-2 text-sm font-normal"><Checkbox checked={!!c.arrow} onCheckedChange={(v) => s.updateConnector(c.id, { arrow: v === true })} /> At the target ({nodeName(data, c.to)})</label>
           <label className="flex items-center gap-2 text-sm font-normal"><Checkbox checked={!!c.arrowStart} onCheckedChange={(v) => s.updateConnector(c.id, { arrowStart: v === true })} /> At the source ({nodeName(data, c.from)})</label>
         </Field>
+        <ConnectorLook connector={c} showReturn={flow === 'both'} />
         <Button variant="outline" onClick={() => s.updateConnector(c.id, { from: c.to, to: c.from })}><ArrowLeftRight /> Reverse direction</Button>
         <DeleteButton onClick={s.removeSelection}>Delete connector</DeleteButton>
       </Panel>
@@ -379,6 +381,7 @@ export function Editor({ id }) {
   const [status, setStatus] = useState('loading'); // loading | saved | saving | error | missing
   const [sharing, setSharing] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [styling, setStyling] = useState(false);
   const [pendingImport, setPendingImport] = useState(null);   // a parsed file waiting for the "replace?" confirmation
   const importRef = useRef();
   const intro = useIntro(status !== 'loading' && status !== 'missing');
@@ -487,7 +490,7 @@ export function Editor({ id }) {
   return (
     <div className="relative flex h-full flex-col">
       <Topbar status={live === 'live' ? (unsent ? 'saving' : 'saved') : live === 'offline' ? 'offline' : status} role={meta?.role} onShare={() => setSharing(true)} onExportJson={exportJson} onExportPng={exportPng}
-        onImport={() => importRef.current.click()} onTips={intro.replay} onHistory={openHistory} />
+        onImport={() => importRef.current.click()} onTips={intro.replay} onHistory={openHistory} onStyle={() => setStyling(true)} />
       <input ref={importRef} type="file" accept="application/json,.json" hidden onChange={(e) => { importJson(e.target.files[0]); e.target.value = ''; }} />
       <div className="stage relative min-h-0 flex-1">
         <Scene />
@@ -512,6 +515,7 @@ export function Editor({ id }) {
             }}>Replace</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {styling && <ConnectionStyle onClose={() => setStyling(false)} />}
       {historyOpen && <History id={id} canDelete={meta?.role === 'owner'} onRestored={restored} onClose={() => setHistoryOpen(false)} />}
       {sharing && meta?.role === 'owner' && (
         <ShareDialog id={id} viewToken={meta.viewToken} onClose={() => setSharing(false)}

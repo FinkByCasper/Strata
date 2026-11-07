@@ -2,7 +2,7 @@ import * as signalR from '@microsoft/signalr';
 import { create } from 'zustand';
 import { useStore } from './store';
 import { pointerCell } from './hold';
-import { applyToShadow, chunk, diff, keyOf, prepare, snapshot } from './liveOps';
+import { applyToShadow, chunk, diff, keyOf, prepare, sameStyle, snapshot } from './liveOps';
 import { flatten, uid } from './model';
 
 // status: off (not started) | connecting | live | offline (reconnecting) | unavailable (could not connect: plain autosave takes over)
@@ -32,6 +32,7 @@ export function startLive(diagramId, { onKicked, onClosed, onReset, onRejected }
     if (protectedKeys.get(key)) return true;
     if (!shadow) return false;
     if (key === 'name') return useStore.getState().name !== shadow.name;
+    if (key === 'style') return !sameStyle(useStore.getState().data.style, shadow.style);
     const [kind, id] = key.split(':');
     const list = { node: 'nodes', connector: 'connectors', zone: 'zones' }[kind];
     const now = useStore.getState().data[list].find((x) => x.id === id);

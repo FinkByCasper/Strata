@@ -7,10 +7,10 @@ namespace Strata.Server.Live;
 /// as <c>Ops</c>. Operations act on whole entities: two people changing different entities never conflict, and two changing the same one are resolved
 /// in the order the server received them (last write wins).
 /// </summary>
-/// <param name="Op"><c>put</c> adds the entity or replaces it with <c>Item</c>; <c>del</c> removes <c>Id</c>; <c>name</c> renames the diagram.</param>
+/// <param name="Op"><c>put</c> adds the entity or replaces it with <c>Item</c>; <c>del</c> removes <c>Id</c>; <c>name</c> renames the diagram; <c>style</c> replaces the diagram's connector defaults with <c>Item</c>.</param>
 /// <param name="Kind"><c>node</c>, <c>connector</c> or <c>zone</c>. Required for <c>put</c> and <c>del</c>.</param>
 /// <param name="Id">The entity to delete. Required for <c>del</c>.</param>
-/// <param name="Item">The complete entity as stored in the diagram, validated with the same rules as saving. Required for <c>put</c>.</param>
+/// <param name="Item">The complete entity as stored in the diagram, validated with the same rules as saving. Required for <c>put</c>. For <c>style</c>, the whole <c>style</c> object.</param>
 /// <param name="Name">The new diagram name, at most 200 characters. Required for <c>name</c>.</param>
 public record LiveOp(string Op, string? Kind, string? Id, JsonElement? Item, string? Name);
 

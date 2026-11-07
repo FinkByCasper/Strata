@@ -9,13 +9,17 @@ export function flattenItem(kind, item) {
   return item;
 }
 
+// The style object is small, so a change is found by its content: an absent style and an empty one are the same thing.
+export const sameStyle = (a, b) => a === b || JSON.stringify(a ?? {}) === JSON.stringify(b ?? {});
+
 export function snapshot(data, name) {
-  return { name, maps: Object.fromEntries(LISTS.map(([kind, list]) => [kind, new Map(data[list].map((x) => [x.id, x]))])) };
+  return { name, style: data.style, maps: Object.fromEntries(LISTS.map(([kind, list]) => [kind, new Map(data[list].map((x) => [x.id, x]))])) };
 }
 
 export function diff(shadow, data, name) {
   const ops = [];
   if (name !== shadow.name) ops.push({ op: 'name', name });
+  if (!sameStyle(data.style, shadow.style)) ops.push({ op: 'style', item: data.style ?? {} });
   for (const [kind, list] of LISTS) {
     const before = shadow.maps[kind];
     const seen = new Set();
@@ -31,6 +35,7 @@ export function diff(shadow, data, name) {
 export function applyToShadow(shadow, ops) {
   for (const o of ops) {
     if (o.op === 'name') shadow.name = o.name;
+    else if (o.op === 'style') shadow.style = o.item;
     else if (o.op === 'put') shadow.maps[o.kind].set(o.item.id, o.item);
     else shadow.maps[o.kind].delete(o.id);
   }
@@ -38,6 +43,8 @@ export function applyToShadow(shadow, ops) {
 
 export function applyOps(data, ops) {
   let next = data;
+  const style = ops.findLast((o) => o.op === 'style');
+  if (style && !sameStyle(next.style, style.item)) next = { ...next, style: style.item };
   for (const [kind, list] of LISTS) {
     const mine = ops.filter((o) => o.kind === kind);
     if (!mine.length) continue;
@@ -77,4 +84,4 @@ export function chunk(ops) {
   return out;
 }
 
-export const keyOf = (o) => (o.op === 'name' ? 'name' : `${o.kind}:${o.op === 'put' ? o.item.id : o.id}`);
+export const keyOf = (o) => (o.op === 'name' || o.op === 'style' ? o.op : `${o.kind}:${o.op === 'put' ? o.item.id : o.id}`);

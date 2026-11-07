@@ -120,6 +120,45 @@ public class ValidatorTests
         Assert.Equal("bad connector", Check(Diagram(connectors: Connector(extra, route, from, to))));
 
     [Fact]
+    public void Accepts_every_arrow_and_flow_style_within_its_range()
+    {
+        foreach (var head in new[] { "cone", "diamond", "dot", "bar" })
+            Assert.Null(Check(Diagram(connectors: Connector($$""","arrowHead":"{{head}}" """))));
+        foreach (var shape in new[] { "sphere", "cube", "diamond", "dash" })
+            Assert.Null(Check(Diagram(connectors: Connector($$""","flowShape":"{{shape}}" """))));
+        Assert.Null(Check(Diagram(connectors: Connector(""","arrowSize":0.5,"lineWidth":8,"flowSize":3,"flowSpeed":0.25,"flowDensity":4,"flowColor":"#fff","flowColor2":"#000" """))));
+    }
+
+    [Theory]
+    [InlineData(""","arrowHead":"spike" """)]
+    [InlineData(""","arrowHead":3 """)]
+    [InlineData(""","flowShape":"star" """)]
+    [InlineData(""","arrowSize":0.1 """)]
+    [InlineData(""","arrowSize":3.5 """)]
+    [InlineData(""","lineWidth":0 """)]
+    [InlineData(""","lineWidth":9 """)]
+    [InlineData(""","flowSize":"big" """)]
+    [InlineData(""","flowSpeed":5 """)]
+    [InlineData(""","flowDensity":0 """)]
+    [InlineData(""","flowColor":5 """)]
+    public void Rejects_arrow_and_flow_styles_that_are_not_allowed(string extra) =>
+        Assert.Equal("bad connector", Check(Diagram(connectors: Connector(extra))));
+
+    [Fact]
+    public void Accepts_diagram_wide_connector_defaults_and_rejects_bad_ones()
+    {
+        static string With(string style) => $$"""{"nodes":[],"connectors":[],"zones":[],"style":{{style}}}""";
+        Assert.Null(Check(With("""{"connector":{"arrowHead":"dot","arrowSize":1.5,"lineWidth":4,"flowShape":"dash","flowSpeed":2}}""")));
+        Assert.Null(Check(With("{}")));
+        Assert.Null(Check(With("""{"connector":{}}""")));
+        Assert.Equal("bad style", Check(With("[]")));
+        Assert.Equal("bad style", Check(With("3")));
+        Assert.Equal("bad style", Check(With("""{"connector":"thick"}""")));
+        Assert.Equal("bad style", Check(With("""{"connector":{"lineWidth":99}}""")));
+        Assert.Equal("bad style", Check(With("""{"connector":{"arrowHead":"spike"}}""")));
+    }
+
+    [Fact]
     public void Connector_endpoints_must_be_strings()
     {
         Assert.Equal("bad connector", Check(Diagram(connectors: """[{"id":"c","from":1,"to":"a","route":"straight"}]""")));
