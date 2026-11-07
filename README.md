@@ -23,6 +23,7 @@ as JSON, and can be shared through a view-only link or an embeddable iframe.
 - Node labels can carry a second "subtitle" line (IP, port...). Labels are real DOM text (crisp, upright, constant size) with a small safe-markdown description (`**bold**`, `*italic*`, `` `code` ``, `- lists`) shown when a node is selected
 - Autosave to the server, JSON export/import, PNG export of the 3D layer
 - **Share** dialog: view-only link (`/v/<token>`), embed snippet (`/embed/<token>`), and "regenerate" to revoke
+- **Multi-select**: Shift-click or drag a box (Shift-drag, or the box tool, `B`) to pick several things, then move, copy, paste, delete and recolour them together
 - **Touch and tablet**: pinch to zoom, twist with two fingers to rotate, drag to pan, tap to select, press and hold a node to move it, press and hold the floor (or tap +) to add
 - **Your own 3D models**: upload a `.glb` or `.gltf` and use it for a node instead of a built-in shape, with its own size and rotation
 - **Real-time editing**: several people can have the same diagram open at once; changes show up live for everyone, with each person's name, colour and cursor

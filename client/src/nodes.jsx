@@ -4,6 +4,7 @@ import { Html, Line } from '@react-three/drei';
 import * as THREE from 'three';
 import { useStore } from './store';
 import { press, useHoldMove } from './hold';
+import { groupContents } from './selection.js';
 import { BASIC_KINDS, NO_SHADOW, SELECTED_ONLY, TINT_ROLES, labelY, materialFor, partsFor } from './parts';
 import { IconGlyph, Label, lodFor, usePortal } from './labels';
 import { RichText } from './richtext';
@@ -13,10 +14,14 @@ import { ModelNode } from './modelNodes';
 import { modelLabelHeight, useModels } from './models';
 
 // Connect-mode click, or plain selection. Returns whether a press-and-hold pick-up may start.
-export function pickNode(id) {
+export const additive = (e) => !!e && (e.shiftKey || e.ctrlKey || e.metaKey);
+
+export function pickNode(id, e) {
   const s = useStore.getState();
   press.hitNode = true;   // so the click that follows this press does not also select the zone under the node
   if (s.mode === 'connect' && !s.readOnly) { s.connectClick(id); return false; }
+  if (additive(e) && !s.readOnly) { s.toggleSelect({ type: 'node', id }); return false; }
+  if (s.multi.length && s.picked.node.has(id)) return !s.readOnly;   // pressing a member of the group keeps the group, so it can be dragged
   s.select({ type: 'node', id });
   return !s.readOnly;
 }
@@ -100,18 +105,28 @@ function FocusNode({ node, lifted, glow, h }) {
 
 export function NodesLayer() {
   const nodes = useStore((s) => s.data.nodes);
-  const selId = useStore((s) => (s.selection?.type === 'node' ? s.selection.id : null));
+  const picked = useStore((s) => s.picked.node);
   const connectFrom = useStore((s) => s.connectFrom);
   const activeRef = useRef(null);
+  const carry = useRef(null);   // what a dragged group takes along, fixed when it is picked up
   const hold = useHoldMove(
     () => useStore.getState().data.nodes.find((n) => n.id === activeRef.current)?.position ?? [0, 0, 0],
-    (x, z) => useStore.getState().updateNode(activeRef.current, { position: [x, 0, z] }),
+    (x, z) => {
+      const st = useStore.getState();
+      if (carry.current) st.moveGroup({ type: 'node', id: activeRef.current }, x, z, carry.current);
+      else st.updateNode(activeRef.current, { position: [x, 0, z] });
+    },
+    undefined,
+    () => {
+      const st = useStore.getState();
+      carry.current = st.multi.length > 1 && st.picked.node.has(activeRef.current) ? groupContents(st.data, st.picked) : null;
+    },
   );
   const liftedId = hold.lifted ? activeRef.current : null;
   useEffect(() => { useStore.setState({ liftedId }); }, [liftedId]);
 
   const hl = useHighlight();
-  const core = useMemo(() => new Set([selId, connectFrom, liftedId].filter(Boolean)), [selId, connectFrom, liftedId]);
+  const core = useMemo(() => new Set([...picked, connectFrom, liftedId].filter(Boolean)), [picked, connectFrom, liftedId]);
   // spotlighted nodes are drawn as ordinary full-strength meshes, the rest are the (faded) instances
   const focus = useMemo(() => (hl ? new Set([...core, ...hl.nodes]) : core), [core, hl]);
   const byKind = useMemo(() => {
@@ -126,7 +141,7 @@ export function NodesLayer() {
     onDown: (node, e) => {
       e.stopPropagation();
       if (e.nativeEvent.button !== 0) return;
-      if (pickNode(node.id)) { activeRef.current = node.id; hold.start(e); }
+      if (pickNode(node.id, e.nativeEvent)) { activeRef.current = node.id; hold.start(e); }
     },
   };
 
@@ -136,11 +151,11 @@ export function NodesLayer() {
         <PartInstances key={`${kind}-${part.role}`} kind={kind} part={part} list={list} focus={focus} h={h} dim={!!hl} />
       )))}
       {nodes.filter((n) => n.shape === 'model').map((n) => (
-        <ModelNode key={n.id} node={n} lifted={n.id === liftedId} glow={n.id === selId || n.id === connectFrom} dim={!!hl && !focus.has(n.id)} h={h} />
+        <ModelNode key={n.id} node={n} lifted={n.id === liftedId} glow={picked.has(n.id) || n.id === connectFrom} dim={!!hl && !focus.has(n.id)} h={h} />
       ))}
       {nodes.filter((n) => focus.has(n.id)).map((n) => (
         <React.Fragment key={n.id}>
-          {n.shape !== 'model' && <FocusNode node={n} lifted={n.id === liftedId} glow={n.id === selId || n.id === connectFrom} h={h} />}
+          {n.shape !== 'model' && <FocusNode node={n} lifted={n.id === liftedId} glow={picked.has(n.id) || n.id === connectFrom} h={h} />}
           {!core.has(n.id) ? null : n.id === liftedId
             ? <CellMarker position={n.position} size={1} color={n.color} fill={0.45} />
             : <CellMarker position={n.position} size={1} color={n.id === connectFrom ? '#f5a524' : '#4f8cff'} fill={0.22} outline />}
@@ -226,7 +241,8 @@ const MAX_LABELS = 100;
 const MINOR = new Set(['container', 'slab', 'box', 'cache', 'cylinder', 'sphere']);   // shown last when labels compete for space
 export function NodeLabels() {
   const nodes = useStore((s) => s.data.nodes);
-  const selId = useStore((s) => (s.selection?.type === 'node' ? s.selection.id : null));
+  const picked = useStore((s) => s.picked.node);
+  const single = useStore((s) => s.multi.length === 0);
   const connectFrom = useStore((s) => s.connectFrom);
   const liftedId = useStore((s) => s.liftedId);
   const hl = useHighlight();
@@ -243,7 +259,7 @@ export function NodeLabels() {
     const v = new THREE.Vector3(), near = [];
     if (lod !== 'off') {
       for (const n of nodes) {
-        if (lod === 'title' && MINOR.has(n.shape) && n.id !== selId) continue;   // zoomed out: only the important ones are named
+        if (lod === 'title' && MINOR.has(n.shape) && !picked.has(n.id)) continue;   // zoomed out: only the important ones are named
         v.set(n.position[0], 0.3, n.position[2]).project(camera);
         const x = (v.x * 0.5 + 0.5) * size.width, y = (-v.y * 0.5 + 0.5) * size.height;
         if (x < -100 || x > size.width + 100 || y < -100 || y > size.height + 100) continue;
@@ -252,7 +268,7 @@ export function NodeLabels() {
       near.sort((a, b) => a[0] - b[0]);
     }
     const ids = new Set(near.slice(0, MAX_LABELS).map((e) => e[1]));
-    if (selId) ids.add(selId);
+    for (const id of picked) ids.add(id);
     if (connectFrom) ids.add(connectFrom);
     const key = lod + '|' + [...ids].sort().join(',');
     if (key !== prev.current) { prev.current = key; setVis({ ids, lod }); }
@@ -261,11 +277,11 @@ export function NodeLabels() {
   return (
     <>
       {nodes.filter((n) => vis.ids.has(n.id) || hl?.nodes.has(n.id)).map((n) => {
-        const selected = n.id === selId, lift = n.id === liftedId ? 0.5 : 0;
+        const selected = picked.has(n.id), lift = n.id === liftedId ? 0.5 : 0;
         const spot = !hl || hl.nodes.has(n.id);
         // With lots of labels on screen the two-line form is too busy: only the title, unless the item is spotlighted
         const dense = vis.ids.size > 45;
-        const full = (vis.lod === 'full' && !dense) || selected || (!!hl && spot && hl.nodes.size <= 30);
+        const full = (vis.lod === 'full' && !dense) || (selected && picked.size <= 6) || (!!hl && spot && hl.nodes.size <= 30);
         const onShape = n.icon && BASIC_KINDS.includes(n.shape) && n.shape !== 'slab';
         return (
           <React.Fragment key={n.id}>
@@ -277,14 +293,14 @@ export function NodeLabels() {
             <Label
               position={[n.position[0], lift + (n.shape === 'model' ? modelLabelHeight(n) ?? labelY('model') : labelY(n.shape)), n.position[2]]} target={[n.position[0], lift + 0.1, n.position[2]]}
               className={`${selected ? 'selected' : ''} ${full ? '' : 'small'} ${spot ? '' : 'dim'}`} priority={selected ? 3 : hl && spot ? 2.5 : MINOR.has(n.shape) ? 1.8 : 2}
-              onClick={() => pickNode(n.id)}
+              onClick={(e) => pickNode(n.id, e)}
             >
               <div className="title">
                 {n.icon && !onShape && <IconGlyph icon={n.icon} />}
                 {n.label || <em>Untitled</em>}
               </div>
               {full && n.subtitle && <div className="sub">{n.subtitle}</div>}
-              {selected && n.description && <RichText text={n.description} />}
+              {selected && single && n.description && <RichText text={n.description} />}
             </Label>
           </React.Fragment>
         );

@@ -13,7 +13,11 @@ import { RichText } from './richtext';
 import { useHighlight } from './highlight';
 import { useTheme } from './theme';
 
-const selectConnector = (id) => useStore.getState().select({ type: 'connector', id });
+const selectConnector = (id, e) => {
+  const s = useStore.getState();
+  if (e && (e.shiftKey || e.ctrlKey || e.metaKey) && !s.readOnly) s.toggleSelect({ type: 'connector', id });
+  else s.select({ type: 'connector', id });
+};
 
 // Every connector under the pointer, nearest first. Clicking the same spot again steps to the next one, so
 // lines stacked on top of each other can all be reached.
@@ -34,7 +38,8 @@ function pickConnector(raycaster, targets, idOf, current) {
 export function ConnectorsLayer() {
   const connectors = useStore((s) => s.data.connectors);
   const nodes = useStore((s) => s.data.nodes);
-  const selId = useStore((s) => (s.selection?.type === 'connector' ? s.selection.id : null));
+  const picked = useStore((s) => s.picked.connector);
+  const selId = useStore((s) => (s.multi.length === 0 && s.selection?.type === 'connector' ? s.selection.id : null));
   const { size, raycaster } = useThree();
   const lod = useLod();
   const hl = useHighlight();
@@ -94,7 +99,7 @@ export function ConnectorsLayer() {
       d.copy(tip).sub(from).normalize();
       o.position.copy(tip).addScaledVector(d, -0.17);
       o.quaternion.setFromUnitVectors(UP, d);
-      o.scale.setScalar(r.c.id === selId ? 1.25 : 1);
+      o.scale.setScalar(picked.has(r.c.id) ? 1.25 : 1);
       o.updateMatrix();
       m.setMatrixAt(i, o.matrix);
       c.set(r.c.color || '#475569');
@@ -106,18 +111,17 @@ export function ConnectorsLayer() {
     m.computeBoundingSphere();
   });
 
-  const selRoute = routes.find((r) => r.c.id === selId);
   const flowRoutes = useMemo(() => (hl ? routes.filter((r) => hl.connectors.has(r.c.id)) : routes), [routes, hl]);   // faded lines carry no moving dots
   return (
     <>
-      {selRoute && <Line points={selRoute.pts} color="#4f8cff" lineWidth={7} transparent opacity={0.35} raycast={() => null} />}
+      {routes.filter((r) => picked.has(r.c.id)).map((r) => <Line key={r.c.id} points={r.pts} color="#4f8cff" lineWidth={7} transparent opacity={0.35} raycast={() => null} />)}
       {lines.map((l, i) => (
         <primitive
           key={i} object={l}
           onClick={(e) => {
             e.stopPropagation();
             const id = pickConnector(raycaster, [...lines, arrowMesh.current].filter(Boolean), (hit) => (hit.object.userData.map ? routes[hit.object.userData.map[hit.faceIndex]]?.c.id : hit.object === arrowMesh.current ? arrows[hit.instanceId]?.r.c.id : null), selId);
-            if (id) selectConnector(id);
+            if (id) selectConnector(id, e.nativeEvent);
           }}
           onPointerOver={() => { document.body.style.cursor = 'pointer'; }} onPointerOut={() => { document.body.style.cursor = ''; }}
         />
@@ -128,7 +132,7 @@ export function ConnectorsLayer() {
           onClick={(e) => {
             e.stopPropagation();
             const id = pickConnector(raycaster, [...lines, arrowMesh.current].filter(Boolean), (hit) => (hit.object.userData.map ? routes[hit.object.userData.map[hit.faceIndex]]?.c.id : hit.object === arrowMesh.current ? arrows[hit.instanceId]?.r.c.id : null), selId);
-            if (id) selectConnector(id);
+            if (id) selectConnector(id, e.nativeEvent);
           }}
         />
       )}
@@ -136,7 +140,7 @@ export function ConnectorsLayer() {
         const selected = r.c.id === selId, full = lod === 'full' || selected;
         return (
           <Label key={r.c.id} position={polylineMidpoint(r.pts)} className={`line-label ${selected ? 'selected' : ''} ${full ? '' : 'small'}`}
-            onClick={() => selectConnector(r.c.id)} priority={selected ? 3 : 1.2}>
+            onClick={(e) => selectConnector(r.c.id, e)} priority={selected ? 3 : 1.2}>
             <div className="title">{r.c.label || <em>Connection</em>}</div>
             {full && r.c.subtitle && <div className="sub">{r.c.subtitle}</div>}
             {selected && r.c.description && <RichText text={r.c.description} />}
