@@ -11,6 +11,7 @@ as JSON, and can be shared through a view-only link or an embeddable iframe.
 
 - Free orthographic orbit / pan / zoom, plus one-click **Front / Top / Side / Free / Fit** views
 - **Data-flow blobs**: any connector can show small dots travelling along it in the arrow's direction, in the line's colour; "both ways" adds a second stream in a return colour, in its own lane
+- **Free-floating text**: right-click > *Text* puts words on the floor in the same flat style as a zone's name, in any colour, size and turn, over several lines. Drag it anywhere (press and hold, as for a node), or attach it to a node or zone so it moves with it; text lying inside a zone travels with the zone. Deleting a node or zone deletes the text attached to it
 - **Connection style**: arrow head (cone, diamond, dot, bar) and size, line width, and the data-flow dots (shape, size, speed, how many, colour for each direction). Set on a connector in its panel, or as defaults for the whole diagram under *Connection style…* in the Share & file menu; a connector's own setting wins, and the defaults dialog can clear them all at once
 - Built for big diagrams: node models are baked into merged geometry and drawn with GPU instancing (draw calls depend on the number of model kinds, not nodes), connector lines are merged, and DOM labels are only created near the screen and simplify as you zoom out
 - Connectors carry text like nodes do: a label, a subtitle line (e.g. `TCP 5432 · TLS`), and a markdown description shown when selected, including in view-only links

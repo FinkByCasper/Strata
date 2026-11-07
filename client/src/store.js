@@ -4,6 +4,7 @@ import { EMPTY, flatten, freeSpot, newConnector, newNode, newZone, uid } from '.
 import { zoneContents } from './zones.js';
 import { clash, nearestFree, swapPlan } from './overlap.js';
 import { hasLook, mergeLook, withoutLook } from './connectorStyle.js';
+import { attachedToAny, attachedTo, moveTo, newLabel, placeOf, shiftLabels } from './textLabels.js';
 import { NOTHING, everything, groupContents, pruned, refsOf, selectionState, toggled } from './selection.js';
 import { applyOps, prepare } from './liveOps';
 import { buildClip, describe, freeOffset, materialize, snapAnchor } from './clipboard';
@@ -90,6 +91,14 @@ export const useStore = create((set, get) => {
       const node = newNode(shape, [x, position[1], z], get().data.nodes.length);
       edit((s) => ({ data: { ...s.data, nodes: [...s.data.nodes, node] }, selection: { type: 'node', id: node.id }, fresh: node.id }));
     },
+    addLabelAt: (position) => {
+      const label = newLabel(uid, position);
+      edit((s) => ({ data: { ...s.data, labels: [...s.data.labels, label] }, selection: { type: 'label', id: label.id }, fresh: label.id }));
+    },
+    updateLabel: (id, patch) => patchList('labels', id, patch),
+    // Text can hang on a node or a zone (target {type, id}) or be let go (null); either way it stays where it is on screen.
+    attachLabel: (id, target) => edit((s) => ({ data: { ...s.data, labels: s.data.labels.map((l) => (l.id === id ? attachedTo(l, s.data, target) : l)) } })),
+    moveLabel: (id, x, z) => edit((s) => ({ data: { ...s.data, labels: s.data.labels.map((l) => (l.id === id ? moveTo(l, s.data, x, z) : l)) } }), `labelmove:${id}`),
     addZoneAt: (position) => {
       const zone = newZone(position);
       edit((s) => ({ data: { ...s.data, zones: [...s.data.zones, zone] }, selection: { type: 'zone', id: zone.id }, fresh: zone.id }));
@@ -98,12 +107,13 @@ export const useStore = create((set, get) => {
     // so it does not scoop up things it passes over.
     moveGroup: (grabbed, x, z, carry) => {
       const { data } = get();
-      const item = (grabbed.type === 'zone' ? data.zones : data.nodes).find((q) => q.id === grabbed.id);
+      const item = (grabbed.type === 'zone' ? data.zones : grabbed.type === 'label' ? data.labels : data.nodes).find((q) => q.id === grabbed.id);
       if (!item) return;
-      const dx = x - item.position[0], dz = z - item.position[2];
+      const [cx, cz] = grabbed.type === 'label' ? placeOf(item, data) : [item.position[0], item.position[2]];
+      const dx = x - cx, dz = z - cz;
       if (!dx && !dz) return;
       const shift = (o) => ({ ...o, position: [o.position[0] + dx, o.position[1], o.position[2] + dz] });
-      edit((s) => ({ data: { ...s.data, nodes: s.data.nodes.map((n) => (carry.nodes.has(n.id) ? shift(n) : n)), zones: s.data.zones.map((q) => (carry.zones.has(q.id) ? shift(q) : q)) } }), `groupmove:${grabbed.id}`);
+      edit((s) => ({ data: { ...s.data, nodes: s.data.nodes.map((n) => (carry.nodes.has(n.id) ? shift(n) : n)), zones: s.data.zones.map((q) => (carry.zones.has(q.id) ? shift(q) : q)), labels: shiftLabels(s.data.labels, dx, dz, carry) } }), `groupmove:${grabbed.id}`);
     },
     // What happens when a drag ends. A single node dropped on another trades places with it; anything bigger that would land on a node it did
     // not bring goes back where it was picked up, because there is no sensible way to trade places with a group.
@@ -126,7 +136,7 @@ export const useStore = create((set, get) => {
     updateSelected: (patches) => {
       const { picked } = get();
       const apply = (list, ids, patch) => (patch && ids.size ? list.map((x) => (ids.has(x.id) ? { ...x, ...patch } : x)) : list);
-      edit((s) => ({ data: { ...s.data, nodes: apply(s.data.nodes, picked.node, patches.node), zones: apply(s.data.zones, picked.zone, patches.zone), connectors: apply(s.data.connectors, picked.connector, patches.connector) } }),
+      edit((s) => ({ data: { ...s.data, nodes: apply(s.data.nodes, picked.node, patches.node), zones: apply(s.data.zones, picked.zone, patches.zone), connectors: apply(s.data.connectors, picked.connector, patches.connector), labels: apply(s.data.labels, picked.label, patches.label) } }),
         `selected:${Object.entries(patches).map(([k, p]) => `${k}.${Object.keys(p).join(',')}`).join('|')}`);
     },
     // Copy / paste / duplicate for nodes and zones (Ctrl/Cmd+C, Ctrl/Cmd+V, D). A paste lands one square down-right
@@ -151,6 +161,7 @@ export const useStore = create((set, get) => {
           ...s.data,
           zones: s.data.zones.map((q) => (q.id === id ? { ...q, position: [x, q.position[1], z] } : c.zones.has(q.id) ? shift(q) : q)),
           nodes: s.data.nodes.map((n) => (c.nodes.has(n.id) ? shift(n) : n)),
+          labels: shiftLabels(s.data.labels, dx, dz, c),
         },
       }), `zonemove:${id}`);
     },
@@ -175,7 +186,7 @@ export const useStore = create((set, get) => {
       const [dx, dz] = freeOffset(clip, data.nodes, target[0] - clip.anchor[0], target[1] - clip.anchor[1]);
       const made = materialize(clip, dx, dz);
       edit((s) => ({
-        data: { ...s.data, nodes: [...s.data.nodes, ...made.nodes], zones: [...s.data.zones, ...made.zones], connectors: [...s.data.connectors, ...made.connectors] },
+        data: { ...s.data, nodes: [...s.data.nodes, ...made.nodes], zones: [...s.data.zones, ...made.zones], connectors: [...s.data.connectors, ...made.connectors], labels: [...s.data.labels, ...made.labels] },
         ...selectionState(made.main ? [made.main] : made.all), placing: false,
       }));
       placed.at = performance.now();
@@ -220,7 +231,7 @@ export const useStore = create((set, get) => {
 
     removeSelection: () => {
       const { picked } = get();
-      if (!picked.node.size && !picked.zone.size && !picked.connector.size) return;
+      if (!picked.node.size && !picked.zone.size && !picked.connector.size && !picked.label.size) return;
       edit((s) => {
         const d = s.data;
         return {
@@ -230,6 +241,7 @@ export const useStore = create((set, get) => {
             nodes: d.nodes.filter((n) => !picked.node.has(n.id)),
             zones: d.zones.filter((z) => !picked.zone.has(z.id)),
             connectors: d.connectors.filter((c) => !picked.connector.has(c.id) && !picked.node.has(c.from) && !picked.node.has(c.to)),
+            labels: d.labels.filter((l) => !picked.label.has(l.id) && !attachedToAny(l, picked.node, picked.zone)),
           },
         };
       });

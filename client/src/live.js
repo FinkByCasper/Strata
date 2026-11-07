@@ -34,7 +34,7 @@ export function startLive(diagramId, { onKicked, onClosed, onReset, onRejected }
     if (key === 'name') return useStore.getState().name !== shadow.name;
     if (key === 'style') return !sameStyle(useStore.getState().data.style, shadow.style);
     const [kind, id] = key.split(':');
-    const list = { node: 'nodes', connector: 'connectors', zone: 'zones' }[kind];
+    const list = { node: 'nodes', connector: 'connectors', zone: 'zones', label: 'labels' }[kind];
     const now = useStore.getState().data[list].find((x) => x.id === id);
     return now !== shadow.maps[kind].get(id);
   };

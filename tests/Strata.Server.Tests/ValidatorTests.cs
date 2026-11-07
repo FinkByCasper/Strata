@@ -158,6 +158,45 @@ public class ValidatorTests
         Assert.Equal("bad style", Check(With("""{"connector":{"arrowHead":"spike"}}""")));
     }
 
+    private static string Labelled(string label, string zone = "") =>
+        $$"""{"nodes":[{{Node}}],"connectors":[],"zones":[{{zone}}],"labels":[{{label}}]}""";
+
+    private const string AZone = """{"id":"z","label":"Z","position":[0,0,0],"size":[4,0,4],"color":"#fff"}""";
+
+    [Fact]
+    public void Accepts_free_and_attached_text_labels()
+    {
+        Assert.Null(Check(Labelled("""{"id":"t","text":"Hello","position":[1,0,2]}""")));
+        Assert.Null(Check(Labelled("""{"id":"t","text":"","position":[1,0,2],"size":4,"rotation":-90,"color":"#abc"}""")));
+        Assert.Null(Check(Labelled("""{"id":"t","text":"On a node","position":[1,0,2],"attach":{"type":"node","id":"a","offset":[1,0,-1]}}""")));
+        Assert.Null(Check(Labelled("""{"id":"t","text":"On a zone","position":[1,0,2],"attach":{"type":"zone","id":"z","offset":[0,0,0]}}""", AZone)));
+        Assert.Null(Check("""{"nodes":[],"connectors":[],"zones":[]}"""));
+    }
+
+    [Theory]
+    [InlineData("""{"id":"t","text":5,"position":[0,0,0]}""")]
+    [InlineData("""{"id":"t","position":[0,0,0]}""")]
+    [InlineData("""{"id":"t","text":"x"}""")]
+    [InlineData("""{"id":"t","text":"x","position":[0,0]}""")]
+    [InlineData("""{"id":"t","text":"x","position":[0,0,0],"size":0.1}""")]
+    [InlineData("""{"id":"t","text":"x","position":[0,0,0],"size":9}""")]
+    [InlineData("""{"id":"t","text":"x","position":[0,0,0],"rotation":400}""")]
+    [InlineData("""{"id":"t","text":"x","position":[0,0,0],"color":7}""")]
+    [InlineData("""{"id":"t","text":"x","position":[0,0,0],"attach":"a"}""")]
+    [InlineData("""{"id":"t","text":"x","position":[0,0,0],"attach":{"type":"connector","id":"a","offset":[0,0,0]}}""")]
+    [InlineData("""{"id":"t","text":"x","position":[0,0,0],"attach":{"type":"node","id":"ghost","offset":[0,0,0]}}""")]
+    [InlineData("""{"id":"t","text":"x","position":[0,0,0],"attach":{"type":"zone","id":"a","offset":[0,0,0]}}""")]
+    [InlineData("""{"id":"t","text":"x","position":[0,0,0],"attach":{"type":"node","id":"a"}}""")]
+    public void Rejects_bad_text_labels(string label) => Assert.Equal("bad label", Check(Labelled(label)));
+
+    [Fact]
+    public void Labels_must_be_a_list_of_limited_length()
+    {
+        Assert.Equal("labels must be an array", Check("""{"nodes":[],"connectors":[],"zones":[],"labels":{}}"""));
+        var many = string.Join(",", Enumerable.Range(0, 1001).Select(i => $$"""{"id":"t{{i}}","text":"x","position":[0,0,0]}"""));
+        Assert.Equal("diagram too large", Check(Labelled(many)));
+    }
+
     [Fact]
     public void Connector_endpoints_must_be_strings()
     {

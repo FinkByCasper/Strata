@@ -10,10 +10,11 @@ import { Topbar } from './Topbar';
 import { Intro, useIntro } from './Intro';
 import { ReadOnlyDiagram } from './Viewer';
 import { People } from './People';
-import { Field, Segmented } from './fields';
+import { Field, RangeField, Segmented } from './fields';
 import { EmbedOptions } from './EmbedOptions';
 import { ConnectorLook } from './ConnectorStyleFields';
 import { ConnectionStyle } from './ConnectionStyle';
+import { SIZE, placeOf } from './textLabels.js';
 import { History } from './History';
 import { ModelPanel } from './ModelPanel';
 import { bundleFor, refreshModels, restoreBundle, uploadModel, useModelSource, useModels } from './models';
@@ -75,11 +76,12 @@ function MultiPanel() {
   const nodes = data.nodes.filter((n) => picked.node.has(n.id));
   const zones = data.zones.filter((z) => picked.zone.has(z.id));
   const lines = data.connectors.filter((c) => picked.connector.has(c.id));
+  const texts = data.labels.filter((l) => picked.label.has(l.id));
   const colourOf = (list, fallback) => list.map((x) => x.color || fallback);
-  const colours = [...colourOf(nodes), ...colourOf(zones), ...colourOf(lines, '#475569')];
+  const colours = [...colourOf(nodes), ...colourOf(zones), ...colourOf(lines, '#475569'), ...colourOf(texts, '#334155')];
   const commonColour = colours.length && colours.every((c) => c === colours[0]) ? colours[0] : null;
-  const setColour = (color) => s.updateSelected({ node: { color }, zone: { color }, connector: { color } });
-  const total = nodes.length + zones.length + lines.length;
+  const setColour = (color) => s.updateSelected({ node: { color }, zone: { color }, connector: { color }, label: { color } });
+  const total = nodes.length + zones.length + lines.length + texts.length;
   return (
     <Panel title={`${total} selected`} subtitle={summary(picked)}>
       <Field label="Colour" hint={commonColour ? undefined : ' · they differ now'}><Swatches value={commonColour} onPick={setColour} /></Field>
@@ -172,6 +174,17 @@ function LabelInput({ id, value, onChange }) {
   return <Input ref={ref} value={value} onChange={onChange} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); e.currentTarget.blur(); } }} />;
 }
 
+// A new piece of text starts with its words selected, so typing replaces them.
+function TextInput({ id, value, onChange }) {
+  const ref = useRef();
+  useEffect(() => {
+    if (useStore.getState().fresh !== id) return;
+    ref.current?.focus(); ref.current?.select();
+    useStore.setState({ fresh: null });
+  }, [id]);
+  return <Textarea ref={ref} rows={2} maxLength={500} value={value} onChange={onChange} onKeyDown={(e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); e.currentTarget.blur(); } }} />;
+}
+
 const NumberInput = ({ value, onChange }) => (
   <Input type="number" step="1" value={value} onChange={(e) => { const v = Number(e.target.value); if (Number.isFinite(v)) onChange(v); }} />
 );
@@ -242,6 +255,35 @@ function Inspector({ sel }) {
         {pair(n.position, ['X', 'Z'], [0, 2], (p) => s.updateNode(n.id, { position: p }))}
         <Button variant="outline" onClick={s.duplicateSelection}><Copy /> Duplicate</Button>
         <DeleteButton onClick={s.removeSelection}>Delete node</DeleteButton>
+      </Panel>
+    );
+  }
+
+  if (sel.type === 'label') {
+    const l = data.labels.find((x) => x.id === sel.id);
+    if (!l) return null;
+    const [x, z] = placeOf(l, data);
+    const anchor = l.attach ? `${l.attach.type}:${l.attach.id}` : 'none';
+    const attach = (v) => s.attachLabel(l.id, v === 'none' ? null : { type: v.split(':')[0], id: v.slice(v.indexOf(':') + 1) });
+    return (
+      <Panel title="Text" subtitle={l.attach ? `Attached to ${l.attach.type === 'zone' ? 'zone' : 'node'} “${(l.attach.type === 'zone' ? data.zones : data.nodes).find((o) => o.id === l.attach.id)?.label || 'Untitled'}”` : 'Free on the floor'}>
+        <Field label="Text" hint=" · a new line starts a new row"><TextInput id={l.id} value={l.text} onChange={(e) => s.updateLabel(l.id, { text: e.target.value })} /></Field>
+        <Field label="Colour"><Swatches value={l.color || '#334155'} onPick={(color) => s.updateLabel(l.id, { color })} /></Field>
+        <RangeField label="Size" {...SIZE} value={l.size ?? 1} onChange={(size) => s.updateLabel(l.id, { size })} />
+        <RangeField label="Turn" min={0} max={345} step={15} value={((l.rotation ?? 0) % 360 + 360) % 360} onChange={(rotation) => s.updateLabel(l.id, { rotation })} />
+        <Field label="Attached to" hint=" · it moves with the node or zone, and goes when that does">
+          <Select value={anchor} onValueChange={attach}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Nothing (free)</SelectItem>
+              {data.zones.map((o) => <SelectItem key={o.id} value={`zone:${o.id}`}>Zone: {o.label || 'Untitled'}</SelectItem>)}
+              {data.nodes.map((o) => <SelectItem key={o.id} value={`node:${o.id}`}>Node: {o.label || 'Untitled'}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </Field>
+        {pair([x, 0, z], ['X', 'Z'], [0, 2], (p) => s.moveLabel(l.id, p[0], p[2]))}
+        <Button variant="outline" onClick={s.duplicateSelection}><Copy /> Duplicate</Button>
+        <DeleteButton onClick={s.removeSelection}>Delete text</DeleteButton>
       </Panel>
     );
   }

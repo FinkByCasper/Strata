@@ -1,4 +1,5 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Type } from 'lucide-react';
 import { useStore } from './store';
 import { BASIC_SHAPES, DEVICE_SHAPES, PALETTE, freeSpot, shapeName } from './model';
 import { cn } from '@/lib/utils';
@@ -118,6 +119,7 @@ export function ContextMenu() {
       <div className="px-2.5 pt-1 pb-1.5 text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">Add here</div>
       <button role="menuitem" className={item} onClick={done(() => st.addNodeAt('box', where))}><ShapeIcon shape="box" /> Node</button>
       <button role="menuitem" className={item} onClick={done(() => st.addZoneAt(where))}><ZoneIcon /> Zone</button>
+      <button role="menuitem" className={item} onClick={done(() => st.addLabelAt(where))}><Type /> Text</button>
       <Separator className="my-1" />
       <div className="grid grid-cols-4 gap-1">
         {[['rotL', <RotL key="a" />, 'Rotate left'], ['rotR', <RotR key="b" />, 'Rotate right'], ['fit', <Fit key="c" />, 'Fit'], ['reset', <Reset key="d" />, 'Reset']].map(([k, icon, label]) => (
