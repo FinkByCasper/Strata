@@ -101,6 +101,12 @@ export function routePoints(a, b, route) {
 // A route from the router (ground points) turned into the 3D points the scene draws, with both ends pulled back to the node surface.
 export const routedPoints = (ground, y = 0) => trimEnds(ground.map(([x, z]) => new THREE.Vector3(x, y, z)));
 
+// Two nodes on one spot have nothing to connect: a curved line between them would still arc up and back down onto the same point.
+export const sameSpot = (a, b) => Math.hypot(a[0] - b[0], a[2] - b[2]) < 0.02;
+
+// A line between two nodes on the same square has no length and no direction, so there is nothing to draw (or point an arrow along).
+export const isDrawable = (points) => points.length >= 2 && points.reduce((sum, p, i) => sum + (i ? p.distanceTo(points[i - 1]) : 0), 0) > 0.02;
+
 export function polylineMidpoint(points) {
   const total = points.reduce((s, p, i) => s + (i ? p.distanceTo(points[i - 1]) : 0), 0);
   let walk = total / 2;

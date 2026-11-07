@@ -2,6 +2,7 @@ import { placed, pointerCell } from './hold';
 import { create } from 'zustand';
 import { EMPTY, flatten, freeSpot, newConnector, newNode, newZone, uid } from './model';
 import { zoneContents } from './zones.js';
+import { clash, nearestFree, swapPlan } from './overlap.js';
 import { NOTHING, everything, groupContents, pruned, refsOf, selectionState, toggled } from './selection.js';
 import { applyOps, prepare } from './liveOps';
 import { buildClip, describe, freeOffset, materialize, snapAnchor } from './clipboard';
@@ -84,7 +85,8 @@ export const useStore = create((set, get) => {
 
     // Place a node/zone at an explicit grid position (right-click "Add here").
     addNodeAt: (shape, position) => {
-      const node = newNode(shape, position, get().data.nodes.length);
+      const [x, z] = nearestFree(get().data.nodes, [position[0], position[2]]);
+      const node = newNode(shape, [x, position[1], z], get().data.nodes.length);
       edit((s) => ({ data: { ...s.data, nodes: [...s.data.nodes, node] }, selection: { type: 'node', id: node.id }, fresh: node.id }));
     },
     addZoneAt: (position) => {
@@ -101,6 +103,23 @@ export const useStore = create((set, get) => {
       if (!dx && !dz) return;
       const shift = (o) => ({ ...o, position: [o.position[0] + dx, o.position[1], o.position[2] + dz] });
       edit((s) => ({ data: { ...s.data, nodes: s.data.nodes.map((n) => (carry.nodes.has(n.id) ? shift(n) : n)), zones: s.data.zones.map((q) => (carry.zones.has(q.id) ? shift(q) : q)) } }), `groupmove:${grabbed.id}`);
+    },
+    // What happens when a drag ends. A single node dropped on another trades places with it; anything bigger that would land on a node it did
+    // not bring goes back where it was picked up, because there is no sensible way to trade places with a group.
+    settleMove: (grabbed, carry, origin, asGroup = false) => {
+      const { data } = get();
+      if (!carry) {
+        const plan = swapPlan(data.nodes, grabbed.id, origin);
+        if (!plan) return;
+        const other = data.nodes.find((n) => n.id === plan.id), mine = data.nodes.find((n) => n.id === grabbed.id);
+        edit((s) => ({ data: { ...s.data, nodes: s.data.nodes.map((n) => (n.id === plan.id ? { ...n, position: plan.position } : n)) } }), `nodes:${grabbed.id}:position`);
+        get().showToast(`Swapped ${mine?.label || 'node'} and ${other?.label || 'node'}`);
+        return;
+      }
+      if (!clash(data.nodes, carry.nodes)) return;
+      if (grabbed.type === 'zone' && !asGroup) get().moveZone(grabbed.id, origin[0], origin[1], carry);
+      else get().moveGroup(grabbed, origin[0], origin[1], carry);
+      get().showToast('A node is already there, so it went back');
     },
     // One edit, one undo step, for something every chosen item has in common (a colour, a shape, a line style).
     updateSelected: (patches) => {

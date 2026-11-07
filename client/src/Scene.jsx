@@ -10,6 +10,7 @@ import { snapAnchor } from './clipboard';
 import { createTwist } from './twist';
 import { measure } from './framing.js';
 import { useEmbed } from './embedState.js';
+import { SceneBoundary } from './SceneBoundary';
 import { zoneContents } from './highlight';
 import { groupContents, rectPick } from './selection.js';
 import { LabelLayout, openAddMenu } from './labels';
@@ -440,6 +441,7 @@ function ZoneView({ zone }) {
   };
   const carry = useRef(null);   // what is inside the zone (or the whole group it is part of), captured when it is picked up
   const grouped = useRef(false);
+  const origin = useRef([0, 0]);
   const hold = useHoldMove(
     () => zone.position,
     (x, z) => {
@@ -448,6 +450,8 @@ function ZoneView({ zone }) {
       else st.moveZone(zone.id, x, z, carry.current);
     },
     snapAxis,
+    () => { origin.current = [zone.position[0], zone.position[2]]; },
+    () => useStore.getState().settleMove({ type: 'zone', id: zone.id }, carry.current, origin.current, grouped.current),
   );
   const shape = useMemo(() => roundedRect(w, d, cornerRadius(w, d)), [w, d]);
   const outline = useMemo(() => {
@@ -756,7 +760,7 @@ function EmbedGate({ controls }) {
   return null;
 }
 
-export function Scene() {
+function SceneCanvas() {
   const data = useStore((s) => s.data);
   const dark = useTheme((s) => s.dark);
   const clear = useEmbed((s) => s.opts.transparent);
@@ -821,3 +825,5 @@ export function Scene() {
     </Canvas>
   );
 }
+
+export const Scene = () => <SceneBoundary><SceneCanvas /></SceneBoundary>;
