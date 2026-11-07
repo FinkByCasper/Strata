@@ -6,7 +6,8 @@ import { LineMaterial } from 'three-stdlib';
 import { LineSegments2 } from 'three-stdlib';
 import { LineSegmentsGeometry } from 'three-stdlib';
 import { useStore } from './store';
-import { polylineMidpoint, routePoints } from './model';
+import { polylineMidpoint, routePoints, routedPoints } from './model';
+import { routeAll } from './routing.js';
 import { UP } from './hold';
 import { Label, useLod } from './labels';
 import { RichText } from './richtext';
@@ -48,9 +49,14 @@ export function ConnectorsLayer() {
 
   const routes = useMemo(() => {
     const byId = new Map(nodes.map((n) => [n.id, n]));
+    const planned = routeAll(nodes, connectors);
     return connectors.flatMap((c) => {
       const a = byId.get(c.from), b = byId.get(c.to);
-      return a && b ? [{ c, pts: routePoints(a.position, b.position, c.route) }] : [];
+      if (!a || !b) return [];
+      const plan = planned.get(c.id);
+      if (plan?.poly) return [{ c, pts: routedPoints(plan.poly, a.position[1]) }];
+      const [sx, sz] = plan?.shift ?? [0, 0];
+      return [{ c, pts: routePoints([a.position[0] + sx, a.position[1], a.position[2] + sz], [b.position[0] + sx, b.position[1], b.position[2] + sz], c.route) }];
     });
   }, [connectors, nodes]);
 
