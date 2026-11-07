@@ -211,6 +211,71 @@ public class LiveTests
         Assert.Equal(0, (await look.Join(id)).GetProperty("data").GetProperty("nodes").GetArrayLength());
     }
 
+    private static object Text(string id, string text, object? attach = null) =>
+        new { op = "put", kind = "label", item = new { id, text, position = new[] { 1, 0, 1 }, attach } };
+
+    [Fact]
+    public async Task Text_labels_are_shared_live_and_saved_and_can_be_attached_to_things_in_the_same_batch()
+    {
+        using var factory = new StrataFactory();
+        var http = factory.CreateClient();
+        var id = await NewDiagram(http);
+        await using var a = await LiveClient.Start(factory);
+        await using var b = await LiveClient.Start(factory);
+        await a.Join(id); await b.Join(id);
+
+        await a.Apply("1", Put(Samples.Node("n1")), Text("t1", "Gateway", new { type = "node", id = "n1", offset = new[] { 1, 0, 0 } }), Text("t2", "Free"));
+
+        var seen = (await b.Next("Ops")).GetProperty("ops");
+        Assert.Equal(3, seen.GetArrayLength());
+        Assert.Equal("Gateway", seen[1].GetProperty("item").GetProperty("text").GetString());
+
+        var stored = await WaitStored(http, id, d => d.GetProperty("data").TryGetProperty("labels", out var l) && l.GetArrayLength() == 2);
+        Assert.Equal("t2", stored.GetProperty("data").GetProperty("labels")[1].GetProperty("id").GetString());
+    }
+
+    [Fact]
+    public async Task Deleting_a_node_or_zone_also_removes_the_text_attached_to_it_for_everyone()
+    {
+        using var factory = new StrataFactory();
+        var id = await NewDiagram(factory.CreateClient());
+        await using var a = await LiveClient.Start(factory);
+        await using var b = await LiveClient.Start(factory);
+        await a.Join(id); await b.Join(id);
+        await a.Apply("1", Put(Samples.Node("n1")), Put(Samples.Node("n2")),
+            new { op = "put", kind = "zone", item = new { id = "z1", label = "Z", position = new[] { 5, 0, 5 }, size = new[] { 4, 0, 4 }, color = "#fff" } },
+            Text("onNode", "A", new { type = "node", id = "n1", offset = new[] { 0, 0, 1 } }), Text("onZone", "B", new { type = "zone", id = "z1", offset = new[] { 0, 0, 0 } }),
+            Text("keep", "C", new { type = "node", id = "n2", offset = new[] { 0, 0, 1 } }), Text("free", "D"));
+        await b.Next("Ops"); await a.Next("Ops");
+
+        await a.Apply("2", Del("node", "n1"), Del("zone", "z1"));
+
+        var removed = (await b.Next("Ops")).GetProperty("ops").EnumerateArray().Where(o => o.GetProperty("kind").GetString() == "label").Select(o => o.GetProperty("id").GetString()).Order().ToArray();
+        Assert.Equal(["onNode", "onZone"], removed);
+
+        await using var look = await LiveClient.Start(factory);
+        var labels = (await look.Join(id)).GetProperty("data").GetProperty("labels").EnumerateArray().Select(l => l.GetProperty("id").GetString()).Order().ToArray();
+        Assert.Equal(["free", "keep"], labels);
+    }
+
+    [Fact]
+    public async Task Text_labels_that_are_not_valid_are_refused_and_change_nothing()
+    {
+        using var factory = new StrataFactory();
+        var id = await NewDiagram(factory.CreateClient());
+        await using var a = await LiveClient.Start(factory);
+        await a.Join(id);
+
+        await Assert.ThrowsAsync<HubException>(() => a.Apply("1", Text("t", "x", new { type = "node", id = "ghost", offset = new[] { 0, 0, 0 } })));
+        await Assert.ThrowsAsync<HubException>(() => a.Apply("2", Text("t", new string('x', 501))));
+        await Assert.ThrowsAsync<HubException>(() => a.Apply("3", new { op = "put", kind = "label", item = new { id = "t", text = 4, position = new[] { 0, 0, 0 } } }));
+        await Assert.ThrowsAsync<HubException>(() => a.Apply("4", Text("fine", "ok"), Text("bad", "x", new { type = "zone", id = "ghost", offset = new[] { 0, 0, 0 } })));
+
+        await using var look = await LiveClient.Start(factory);
+        var data = (await look.Join(id)).GetProperty("data");
+        Assert.False(data.TryGetProperty("labels", out var labels) && labels.GetArrayLength() > 0);
+    }
+
     [Fact]
     public async Task Diagram_wide_connector_defaults_are_shared_live_and_saved()
     {

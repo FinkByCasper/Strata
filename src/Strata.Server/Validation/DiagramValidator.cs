@@ -17,6 +17,7 @@ public static class DiagramValidator
     private static readonly HashSet<string> FlowShapes = ["sphere", "cube", "diamond", "dash"];
     private static readonly (string Name, double Min, double Max)[] LookRanges =
         [("arrowSize", 0.5, 3), ("lineWidth", 1, 8), ("flowSize", 0.4, 3), ("flowSpeed", 0.25, 4), ("flowDensity", 0.25, 4)];
+    private static readonly HashSet<string> Anchors = ["node", "zone"];
     private static readonly HashSet<string> LabelModes = ["edge", "center", "none"];
     private static readonly HashSet<string> LabelEdges = ["back", "front", "left", "right"];
     private static readonly string[] IconPrefixes =
@@ -33,6 +34,14 @@ public static class DiagramValidator
         if (nodes.GetArrayLength() > 2000 || connectors.GetArrayLength() > 4000 || zones.GetArrayLength() > 500)
             return "diagram too large";
 
+        var texts = new List<JsonElement>();
+        if (Present(d, "labels", out var labelList))
+        {
+            if (labelList.ValueKind != JsonValueKind.Array) return "labels must be an array";
+            if (labelList.GetArrayLength() > 1000) return "diagram too large";
+            texts.AddRange(labelList.EnumerateArray());
+        }
+
         var ids = new HashSet<string>(StringComparer.Ordinal);
         foreach (var n in nodes.EnumerateArray())
         {
@@ -43,8 +52,15 @@ public static class DiagramValidator
         foreach (var c in connectors.EnumerateArray())
             if (ValidateConnector(c, ids.Contains) is { } problem) return problem;
 
+        var zoneIds = new HashSet<string>(StringComparer.Ordinal);
         foreach (var z in zones.EnumerateArray())
+        {
             if (ValidateZone(z) is { } problem) return problem;
+            zoneIds.Add(z.GetProperty("id").GetString()!);
+        }
+
+        foreach (var text in texts)
+            if (ValidateLabel(text, (type, id) => type == "node" ? ids.Contains(id) : zoneIds.Contains(id)) is { } problem) return problem;
 
         return Present(d, "style", out var style) ? ValidateStyle(style) : null;
     }
@@ -102,6 +118,17 @@ public static class DiagramValidator
         foreach (var (name, min, max) in LookRanges)
             if (Present(look, name, out var v) && (v.ValueKind != JsonValueKind.Number || !v.TryGetDouble(out var d) || !double.IsFinite(d) || d < min || d > max)) return false;
         return true;
+    }
+
+    /// <summary>A piece of text lying on the floor. It is either free (at <c>position</c>) or attached to a node or zone, in which case it sits at <c>attach.offset</c> from that anchor and follows it.</summary>
+    public static string? ValidateLabel(JsonElement l, Func<string, string, bool> anchorExists)
+    {
+        if (!Text(l, "id", 64) || !Text(l, "text", 500) || !Vector(l, "position") || !OptionalText(l, "color", 32)) return "bad label";
+        if (Present(l, "size", out var size) && (size.ValueKind != JsonValueKind.Number || !size.TryGetDouble(out var s) || !(s is >= 0.5 and <= 4))) return "bad label";
+        if (Present(l, "rotation", out var turn) && (turn.ValueKind != JsonValueKind.Number || !turn.TryGetDouble(out var r) || !(r is >= -360 and <= 360))) return "bad label";
+        if (!Present(l, "attach", out var attach)) return null;
+        if (attach.ValueKind != JsonValueKind.Object || !OneOf(attach, "type", Anchors) || !Text(attach, "id", 64) || !Vector(attach, "offset")) return "bad label";
+        return anchorExists(attach.GetProperty("type").GetString()!, attach.GetProperty("id").GetString()!) ? null : "bad label";
     }
 
     public static string? ValidateZone(JsonElement z)

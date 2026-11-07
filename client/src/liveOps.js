@@ -1,4 +1,4 @@
-export const LISTS = [['node', 'nodes'], ['connector', 'connectors'], ['zone', 'zones']];
+export const LISTS = [['node', 'nodes'], ['connector', 'connectors'], ['zone', 'zones'], ['label', 'labels']];
 
 const MAX_OPS = 400;
 const MAX_CHARS = 1_000_000;
@@ -6,6 +6,7 @@ const MAX_CHARS = 1_000_000;
 export function flattenItem(kind, item) {
   if (kind === 'node') return { ...item, position: [item.position[0], 0, item.position[2]] };
   if (kind === 'zone') return { ...item, position: [item.position[0], 0, item.position[2]], size: [item.size[0], 0, item.size[2]] };
+  if (kind === 'label') return { ...item, position: [item.position[0], 0, item.position[2]], ...(item.attach ? { attach: { ...item.attach, offset: [item.attach.offset[0], 0, item.attach.offset[2]] } } : {}) };
   return item;
 }
 
@@ -13,7 +14,7 @@ export function flattenItem(kind, item) {
 export const sameStyle = (a, b) => a === b || JSON.stringify(a ?? {}) === JSON.stringify(b ?? {});
 
 export function snapshot(data, name) {
-  return { name, style: data.style, maps: Object.fromEntries(LISTS.map(([kind, list]) => [kind, new Map(data[list].map((x) => [x.id, x]))])) };
+  return { name, style: data.style, maps: Object.fromEntries(LISTS.map(([kind, list]) => [kind, new Map((data[list] ?? []).map((x) => [x.id, x]))])) };
 }
 
 export function diff(shadow, data, name) {
@@ -23,7 +24,7 @@ export function diff(shadow, data, name) {
   for (const [kind, list] of LISTS) {
     const before = shadow.maps[kind];
     const seen = new Set();
-    for (const item of data[list]) {
+    for (const item of data[list] ?? []) {
       seen.add(item.id);
       if (before.get(item.id) !== item) ops.push({ op: 'put', kind, item });
     }
@@ -48,7 +49,7 @@ export function applyOps(data, ops) {
   for (const [kind, list] of LISTS) {
     const mine = ops.filter((o) => o.kind === kind);
     if (!mine.length) continue;
-    const items = next[list].slice();
+    const items = (next[list] ?? []).slice();
     const index = new Map(items.map((x, i) => [x.id, i]));
     let changed = false;
     for (const o of mine) {

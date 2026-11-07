@@ -8,7 +8,7 @@ export const uid = () => {
   crypto.getRandomValues(bytes);
   return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
 };
-export const EMPTY = () => ({ nodes: [], connectors: [], zones: [] });
+export const EMPTY = () => ({ nodes: [], connectors: [], zones: [], labels: [] });
 
 export const BASIC_SHAPES = ['box', 'cylinder', 'sphere', 'slab'];
 export const DEVICE_SHAPES = ['user', 'server', 'router', 'switch', 'firewall', 'accesspoint', 'antenna', 'pc', 'laptop', 'phone', 'printer', 'database', 'cache', 'cloud', 'container', 'pyramid'];
@@ -33,12 +33,18 @@ export const newZone = (position) => ({
   id: uid(), label: 'New zone', color: '#4f8cff', position: [position[0] + 0.5, 0, position[2] + 0.5], size: [6, 0, 6], labelMode: 'edge', labelEdge: 'back', // edges land on cell borders
 });
 
+export const flattenLabel = (l) => ({
+  ...l, position: [l.position[0], 0, l.position[2]],
+  ...(l.attach ? { attach: { ...l.attach, offset: [l.attach.offset[0], 0, l.attach.offset[2]] } } : {}),
+});
+
 // Everything lives on the ground plane. Older diagrams that had heights are flattened on load.
 export function flatten(data) {
   return {
     ...data,
     nodes: data.nodes.map((n) => ({ ...n, position: [n.position[0], 0, n.position[2]] })),
     zones: data.zones.map((z) => ({ ...z, position: [z.position[0], 0, z.position[2]], size: [z.size[0], 0, z.size[2]] })),
+    labels: (data.labels ?? []).map((l) => flattenLabel(l)),
   };
 }
 

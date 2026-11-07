@@ -1,12 +1,13 @@
 import { zoneContents } from './zones.js';
+import { placeOf } from './textLabels.js';
 
-export const NOTHING = Object.freeze({ node: new Set(), zone: new Set(), connector: new Set() });
+export const NOTHING = Object.freeze({ node: new Set(), zone: new Set(), connector: new Set(), label: new Set() });
 
 const same = (a, b) => a.type === b.type && a.id === b.id;
-const LISTS = { node: 'nodes', zone: 'zones', connector: 'connectors' };
+const LISTS = { node: 'nodes', zone: 'zones', connector: 'connectors', label: 'labels' };
 
 export function pickedOf(refs) {
-  const out = { node: new Set(), zone: new Set(), connector: new Set() };
+  const out = { node: new Set(), zone: new Set(), connector: new Set(), label: new Set() };
   for (const r of refs) out[r.type]?.add(r.id);
   return out;
 }
@@ -29,6 +30,7 @@ export function everything(data) {
     ...data.nodes.map((n) => ({ type: 'node', id: n.id })),
     ...data.zones.map((z) => ({ type: 'zone', id: z.id })),
     ...data.connectors.map((c) => ({ type: 'connector', id: c.id })),
+    ...(data.labels ?? []).map((l) => ({ type: 'label', id: l.id })),
   ];
 }
 
@@ -36,14 +38,16 @@ export function everything(data) {
 export function groupContents(data, picked) {
   const nodes = new Set(picked.node);
   const zones = new Set(picked.zone);
+  const labels = new Set(picked.label);
   for (const id of picked.zone) {
     const zone = data.zones.find((z) => z.id === id);
     if (!zone) continue;
     const inside = zoneContents(zone, data);
     for (const n of inside.nodes) nodes.add(n);
     for (const z of inside.zones) zones.add(z);
+    for (const l of inside.labels) labels.add(l);
   }
-  return { nodes, zones };
+  return { nodes, zones, labels };
 }
 
 // Everything whose place on screen falls inside the rectangle: nodes by their centre, zones when all four corners are in, and the
@@ -54,16 +58,18 @@ export function rectPick(data, project, rect) {
   const zones = data.zones.filter((z) => [[-1, -1], [1, -1], [1, 1], [-1, 1]].every(([a, b]) => inside(project(z.position[0] + (a * z.size[0]) / 2, -0.5, z.position[2] + (b * z.size[2]) / 2))));
   const ids = new Set(nodes.map((n) => n.id));
   const links = data.connectors.filter((c) => ids.has(c.from) && ids.has(c.to));
+  const texts = (data.labels ?? []).filter((l) => { const [x, z] = placeOf(l, data); return inside(project(x, 0.05, z)); });
   return [
     ...nodes.map((n) => ({ type: 'node', id: n.id })),
     ...zones.map((z) => ({ type: 'zone', id: z.id })),
     ...links.map((c) => ({ type: 'connector', id: c.id })),
+    ...texts.map((l) => ({ type: 'label', id: l.id })),
   ];
 }
 
 export function summary(picked) {
   const part = (n, one, many) => (n ? [`${n} ${n === 1 ? one : many}`] : []);
-  return [...part(picked.node.size, 'node', 'nodes'), ...part(picked.zone.size, 'zone', 'zones'), ...part(picked.connector.size, 'connection', 'connections')].join(' · ');
+  return [...part(picked.node.size, 'node', 'nodes'), ...part(picked.zone.size, 'zone', 'zones'), ...part(picked.connector.size, 'connection', 'connections'), ...part(picked.label.size, 'text', 'texts')].join(' · ');
 }
 
 // The value every chosen thing shares, or null when they differ.

@@ -11,6 +11,9 @@ import { createTwist } from './twist';
 import { measure } from './framing.js';
 import { useEmbed } from './embedState.js';
 import { SceneBoundary } from './SceneBoundary';
+import { FloorText } from './FloorText';
+import { TextLabels } from './TextLabels';
+import { placeOf } from './textLabels.js';
 import { zoneContents } from './highlight';
 import { groupContents, rectPick } from './selection.js';
 import { LabelLayout, openAddMenu } from './labels';
@@ -287,13 +290,14 @@ function RevealSelection({ controls }) {
       const c = controls.current;
       const sel = useStore.getState().selection;
       const panel = document.querySelector('aside');
-      if (!c || !panel || !sel || (sel.type !== 'node' && sel.type !== 'zone')) return;
-      const { nodes, zones } = useStore.getState().data;
-      const item = (sel.type === 'node' ? nodes : zones).find((x) => x.id === sel.id);
+      if (!c || !panel || !sel || !['node', 'zone', 'label'].includes(sel.type)) return;
+      const data = useStore.getState().data;
+      const item = (sel.type === 'node' ? data.nodes : sel.type === 'zone' ? data.zones : data.labels).find((x) => x.id === sel.id);
       if (!item) return;
+      const [px, pz] = sel.type === 'label' ? placeOf(item, data) : [item.position[0], item.position[2]];
       const rect = gl.domElement.getBoundingClientRect();
       const box = panel.getBoundingClientRect();
-      const at = new THREE.Vector3(item.position[0], 0, item.position[2]).project(camera);
+      const at = new THREE.Vector3(px, 0, pz).project(camera);
       const sx = rect.left + (at.x * 0.5 + 0.5) * rect.width, sy = rect.top + (-at.y * 0.5 + 0.5) * rect.height;
       const margin = 32;
       if (sx < box.left - margin || sx > box.right + margin || sy < box.top - margin || sy > box.bottom + margin) return;
@@ -339,33 +343,6 @@ function roundedRect(w, d, r) {
   s.lineTo(x, y + r);
   s.absarc(x + r, y + r, r, Math.PI, Math.PI * 1.5, false);
   return s;
-}
-
-// Text drawn onto a flat plane lying on the floor (no font files needed: it is painted on a canvas).
-// Reads along +x with its top toward -z, like the zone titles in isometric network diagrams.
-function FloorText({ text, color, maxWidth, maxHeight = 0.85, opacity = 1 }) {
-  const { tex, aspect } = useMemo(() => {
-    const px = 96, pad = 20;
-    const font = `italic 800 ${px}px system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif`;
-    const c = document.createElement('canvas');
-    const g = c.getContext('2d');
-    g.font = font;
-    c.width = Math.min(4096, Math.ceil(g.measureText(text).width) + pad * 2);
-    c.height = Math.round(px * 1.4);
-    g.font = font; g.textBaseline = 'middle'; g.fillStyle = new THREE.Color(color).multiplyScalar(0.45).getStyle();
-    g.fillText(text, pad, c.height / 2 + 2, c.width - pad * 2);
-    const t = new THREE.CanvasTexture(c);
-    t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
-    return { tex: t, aspect: c.width / c.height };
-  }, [text, color]);
-  useEffect(() => () => tex.dispose(), [tex]);
-  const height = Math.min(maxHeight, maxWidth / aspect); // shrink to fit if the space is short
-  return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} raycast={() => null}>
-      <planeGeometry args={[height * aspect, height]} />
-      <meshBasicMaterial map={tex} transparent opacity={opacity} depthWrite={false} toneMapped={false} />
-    </mesh>
-  );
 }
 
 // Corner handle: drag to resize a zone with the opposite corner pinned. Corners snap to cell borders.
@@ -819,6 +796,7 @@ function SceneCanvas() {
       {data.zones.map((z) => <ZoneView key={z.id} zone={z} />)}
       <FloorTiles />
       <ConnectorsLayer />
+      <TextLabels />
       <NodesLayer />
       <NodeLabels />
       <RemoteCursors />
