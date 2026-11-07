@@ -8,6 +8,8 @@ import { GROUND, UP, camState, placed, pointerCell, press, useHoldMove } from '.
 import { materialFor, partsFor } from './parts';
 import { snapAnchor } from './clipboard';
 import { createTwist } from './twist';
+import { measure } from './framing.js';
+import { useEmbed } from './embedState.js';
 import { SceneBoundary } from './SceneBoundary';
 import { zoneContents } from './highlight';
 import { groupContents, rectPick } from './selection.js';
@@ -583,8 +585,9 @@ function CameraRig({ controls }) {
     const cur = Math.atan2(camera.position.x - c.target.x, camera.position.z - c.target.z);
     // Rotations snap to the quarter-turn grid around the default azimuth.
     const snapped = Math.round((cur - RESET_AZIMUTH) / (Math.PI / 2)) * (Math.PI / 2) + RESET_AZIMUTH;
+    const { angle, zoom: zoomBy } = useEmbed.getState().opts;
     const az = name === 'rotL' ? snapped - Math.PI / 2 : name === 'rotR' ? snapped + Math.PI / 2
-      : name === 'fit' ? cur : RESET_AZIMUTH;
+      : name === 'fit' ? cur : RESET_AZIMUTH + THREE.MathUtils.degToRad(angle);
     const recentre = name === 'fit' || name === 'reset';
     let target = recentre ? center.clone() : c.target.clone();
     let zoom = null;
@@ -593,28 +596,17 @@ function CameraRig({ controls }) {
       // *projected* box (not just the 3D centre) and zoom so it fills the viewport with a margin.
       let w = 14, h = 14;
       if (hasContent) {
-        const fwd = dirFor(az).negate();
-        const right = new THREE.Vector3().crossVectors(fwd, UP).normalize();
-        const up = new THREE.Vector3().crossVectors(right, fwd).normalize();
-        const lo = [Infinity, Infinity], hi = [-Infinity, -Infinity];
-        // measure the real content (nodes + zone corners), not the plan's bounding rectangle, so L-shaped
-        // layouts don't leave empty margins
-        const pts = [];
-        for (const n of nodes) for (const dx of [-1, 1]) for (const dz of [-1, 1]) for (const cy of [-0.5, 1.8]) pts.push(new THREE.Vector3(n.position[0] + dx, cy, n.position[2] + dz));
-        for (const z of zones) for (const dx of [-1, 1]) for (const dz of [-1, 1]) pts.push(new THREE.Vector3(z.position[0] + (dx * z.size[0]) / 2, -0.5, z.position[2] + (dz * z.size[2]) / 2));
-        for (const p of pts) {
-          const px = p.dot(right), py = p.dot(up);
-          lo[0] = Math.min(lo[0], px); hi[0] = Math.max(hi[0], px); lo[1] = Math.min(lo[1], py); hi[1] = Math.max(hi[1], py);
-        }
-        w = Math.max(hi[0] - lo[0], 6) + 3; h = Math.max(hi[1] - lo[1], 6) + 3;
+        const m = measure(nodes, zones, az);
+        const right = new THREE.Vector3(...m.right), up = new THREE.Vector3(...m.up);
+        w = m.width; h = m.height;
         // shift the pivot along the floor so the projected box sits in the middle of the screen
-        const mx = (lo[0] + hi[0]) / 2 - center.dot(right);
-        const my = (lo[1] + hi[1]) / 2 - center.dot(up);
+        const mx = m.centre[0] - center.dot(right);
+        const my = m.centre[1] - center.dot(up);
         const ground = new THREE.Vector3(-Math.sin(az), 0, -Math.cos(az)); // away from the camera
         target = center.clone().addScaledVector(right, mx).addScaledVector(ground, my / ground.dot(up));
         target.y = 0;
       }
-      zoom = Math.max(10, Math.min(size.width / w, size.height / h) * 0.94);
+      zoom = Math.max(10, Math.min(size.width / w, size.height / h) * 0.94 * zoomBy);
     }
     c.target.copy(target);
     camera.position.copy(target).addScaledVector(dirFor(az), 60);
@@ -735,9 +727,43 @@ const MOUSE = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THRE
 const BOX_TOUCHES = { ONE: NO_ACTION, TWO: THREE.TOUCH.DOLLY_PAN };
 const BOX_MOUSE = { LEFT: NO_ACTION, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
 
+// In an embed, the page keeps its scroll until the viewer clicks into the diagram: until then the controls are off, so the wheel
+// and a swipe go to the page. Clicking anywhere in the frame turns them on; leaving the frame or pressing Esc turns them off again.
+function EmbedGate({ controls }) {
+  const gated = useEmbed((s) => s.on && s.opts.interact === 'click');
+  useEffect(() => {
+    const c = controls.current;
+    if (!c || !gated) return undefined;
+    // The canvas and the element around it both ask the browser to leave touches alone, and the latter does so after this runs, so
+    // the page's CSS overrides them while idle (see `embed-idle`) rather than changing their styles.
+    const root = document.documentElement;
+    const set = (on) => {
+      c.enabled = on;
+      root.classList.toggle('embed-idle', !on);
+      useEmbed.getState().setActive(on);
+    };
+    const press = () => { if (!c.enabled) set(true); };
+    const leave = () => set(false);
+    const key = (e) => { if (e.key === 'Escape') leave(); };
+    set(false);
+    window.addEventListener('pointerdown', press, true);
+    window.addEventListener('blur', leave);
+    window.addEventListener('keydown', key);
+    return () => {
+      window.removeEventListener('pointerdown', press, true);
+      window.removeEventListener('blur', leave);
+      window.removeEventListener('keydown', key);
+      c.enabled = true;
+      root.classList.remove('embed-idle');
+    };
+  }, [controls, gated]);
+  return null;
+}
+
 function SceneCanvas() {
   const data = useStore((s) => s.data);
   const dark = useTheme((s) => s.dark);
+  const clear = useEmbed((s) => s.opts.transparent);
   const orbitLocked = useStore((s) => s.dragging || s.hovering);
   const boxing = useStore((s) => s.mode === 'box');
   const controls = useRef();
@@ -764,7 +790,7 @@ function SceneCanvas() {
       dpr={[1, 1.5]} gl={{ preserveDrawingBuffer: true, antialias: true }}
       onPointerMissed={clearOnEmptyClick}
     >
-      <color attach="background" args={[dark ? '#0d1017' : '#eceef4']} />
+      {!clear && <color attach="background" args={[dark ? '#0d1017' : '#eceef4']} />}
       <ambientLight intensity={dark ? 0.8 : 1.05} />
       <Sun />
       <directionalLight position={[-6, 4, -8]} intensity={0.45} />
@@ -781,6 +807,7 @@ function SceneCanvas() {
         {...(boxing ? { touches: BOX_TOUCHES, mouseButtons: BOX_MOUSE } : { touches: TOUCHES, mouseButtons: MOUSE })}
       />
       <CameraRig controls={controls} />
+      <EmbedGate controls={controls} />
       <ContextHandler />
       <Marquee controls={controls} />
       <TwistRotate controls={controls} />

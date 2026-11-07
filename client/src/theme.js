@@ -10,10 +10,12 @@ const read = () => {
   try { const v = localStorage.getItem(KEY); return v === 'light' || v === 'dark' ? v : 'system'; } catch { return 'system'; }
 };
 const resolve = (theme) => (theme === 'system' ? !!mq?.matches : theme === 'dark');
+// A transparent embed must not declare a colour scheme: when the frame's scheme differs from the page's, the browser paints it opaque.
+let transparent = false;
 const apply = (dark) => {
   const root = document.documentElement;
   root.classList.toggle('dark', dark);
-  root.style.colorScheme = dark ? 'dark' : 'light';
+  root.style.colorScheme = transparent ? '' : dark ? 'dark' : 'light';
 };
 
 export const useTheme = create((set, get) => {
@@ -27,6 +29,12 @@ export const useTheme = create((set, get) => {
   });
   return {
     theme, dark,
+    // For an embed whose page chose the theme: applied but never saved, so it does not become this visitor's own choice.
+    force: (t, clear = false) => {
+      transparent = clear;
+      const d = resolve(t === 'auto' ? 'system' : t);
+      apply(d); set({ theme: t === 'auto' ? 'system' : t, dark: d });
+    },
     setTheme: (t) => {
       try { t === 'system' ? localStorage.removeItem(KEY) : localStorage.setItem(KEY, t); } catch { /* ignore */ }
       const d = resolve(t);

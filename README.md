@@ -22,7 +22,7 @@ as JSON, and can be shared through a view-only link or an embeddable iframe.
 - Everything lives on a flat grid (no height axis): grid lines are the cell borders, and every node fills exactly one square. Zone edges lie on grid lines too. **Press and hold ~0.25 s** on a node or zone to pick it up, move it, and release to drop it on that grid cell (a zone carries everything inside it; resizing a zone does not move its contents); a quick click just selects. Dropping a node on another node swaps their places (a group or zone that would land on a node it did not bring goes back instead), so two nodes never share a square. In a share link or embed, clicking a node spotlights it and its connections and lists them in the panel (click one to jump to it). Snap can be toggled
 - Node labels can carry a second "subtitle" line (IP, port...). Labels are real DOM text (crisp, upright, constant size) with a small safe-markdown description (`**bold**`, `*italic*`, `` `code` ``, `- lists`) shown when a node is selected
 - Autosave to the server, JSON export/import, PNG export of the 3D layer
-- **Share** dialog: view-only link (`/v/<token>`), embed snippet (`/embed/<token>`), and "regenerate" to revoke
+- **Share** dialog: view-only link (`/v/<token>`), embed snippet (`/embed/<token>`) with options (starting angle, theme, hidden toolbar, highlighted node, transparent background, auto-resize, scroll that waits for a click), and "regenerate" to revoke
 - **Connector routing**: right-angle connectors go around nodes instead of through them, and connectors that would lie on top of each other are spread into parallel lanes
 - **Multi-select**: Shift-click or drag a box (Shift-drag, or the box tool, `B`) to pick several things, then move, copy, paste, delete and recolour them together
 - **Touch and tablet**: pinch to zoom, twist with two fingers to rotate, drag to pan, tap to select, press and hold a node to move it, press and hold the floor (or tap +) to add
@@ -118,6 +118,31 @@ Select a node, choose **Your 3D model** under *Model*, and upload a file. Models
 - A model can only be deleted while neither the diagram nor any saved version uses it, so restoring a version never loses a model.
 - The per-diagram **Export JSON** and `GET /api/export` bundle the models they use. Importing uploads them again, with new ids that the nodes are switched to.
 - Who may see a model follows the diagram: owner, editor and viewer can read; owner and editor can upload and delete; a view link can read the models of its own diagram.
+### Embedding in documentation
+
+**Share** shows an embed snippet and an *Embed options* panel that builds it for you. By hand:
+
+```html
+<iframe src="https://your-strata/embed/TOKEN?theme=dark&highlight=Router" width="100%" height="500"
+        style="border:0" allowfullscreen data-strata-embed></iframe>
+<script src="https://your-strata/embed.js" async></script>
+```
+
+Options go on the address; anything left out behaves as before, so existing embeds are unchanged.
+
+| Option | Values | What it does |
+| --- | --- | --- |
+| `angle` | degrees, e.g. `90` | Starting view: turns the diagram that far, like the rotate buttons (also what *Reset camera* returns to). |
+| `zoom` | `0.25`–`4` | Multiplies the zoom the diagram is fitted to. |
+| `toolbar` | `0` / `1` | Hide the top bar completely, or keep it in view. By default it slides in at the top edge. |
+| `theme` | `light`, `dark`, `auto` | Fix the theme. `auto` follows the visitor's system. Not saved as the visitor's own choice. |
+| `highlight` | a node's name or id; repeat or comma-separate for several | Spotlights those nodes and their connections, as clicking one does. Names ignore capitals. |
+| `bg` | `transparent` | No background, so the page shows through. |
+| `interact` | `always` | Turns off the click gate below. |
+
+- **Scroll stays with the page** until the viewer clicks into the diagram: before that the wheel and swipes go to the page and a "Click to explore" hint shows. Clicking in, or tapping, turns on zoom and pan; clicking elsewhere on the page or pressing Esc gives the scroll back.
+- **Auto-resize**: `embed.js` (one small file, served by Strata) sets each `data-strata-embed` frame's height from its width, using the shape the diagram asks for, and keeps it right when the window or column changes. Give a frame `data-ratio="16/9"` to choose the shape yourself. Without the script the frame keeps the height you gave it. The script only reads a width/height ratio from frames it was told to manage.
+
 ### Real-time editing
 
 Opening a diagram joins its live room. Changes are sent as small operations on whole entities (a node, a connector, a zone, or the name), not as the whole diagram, so two people changing different things never collide. If two change the same entity, the one the server received last wins, and everyone ends up with the same result. Everyone sees who is there (avatars next to the save status) and where their pointer is on the floor. Viewers watch live too but cannot change anything.

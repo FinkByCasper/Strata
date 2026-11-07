@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useStore } from './store';
 
+import { useEmbed } from './embedState.js';
 import { zoneMembers } from './zones.js';
 
 export { inZone, zoneContents, zoneMembers } from './zones.js';
@@ -14,12 +15,13 @@ export function useHighlight() {
   const grouped = useStore((s) => s.multi.length > 1);
   const data = useStore((s) => s.data);
   const readOnly = useStore((s) => s.readOnly);
+  const pins = useEmbed((s) => s.pins);
   return useMemo(() => {
+    if (!sel && pins.length) return around(pins, data);   // an embed whose page asked for some nodes to stand out
     if (!sel || grouped) return null;
     if (sel.type === 'node') {
       if (!readOnly) return null;   // while editing, a selected node is not spotlighted (it would get in the way)
-      const mine = data.connectors.filter((c) => c.from === sel.id || c.to === sel.id);
-      return { nodes: new Set([sel.id, ...mine.flatMap((c) => [c.from, c.to])]), connectors: new Set(mine.map((c) => c.id)) };
+      return around([sel.id], data);
     }
     if (sel.type === 'connector') {
       const c = data.connectors.find((x) => x.id === sel.id);
@@ -36,5 +38,12 @@ export function useHighlight() {
       return { nodes, connectors, inside };
     }
     return null;
-  }, [sel, grouped, data, readOnly]);
+  }, [sel, grouped, data, readOnly, pins]);
+}
+
+// The given nodes, every connection they have, and the nodes on the far ends of those.
+function around(ids, data) {
+  const own = new Set(ids);
+  const mine = data.connectors.filter((c) => own.has(c.from) || own.has(c.to));
+  return { nodes: new Set([...ids, ...mine.flatMap((c) => [c.from, c.to])]), connectors: new Set(mine.map((c) => c.id)) };
 }
