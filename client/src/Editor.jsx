@@ -45,7 +45,7 @@ const nodeName = (data, id) => data.nodes.find((n) => n.id === id)?.label || 'Un
 // The floating inspector card on the right of the stage.
 function Panel({ title, subtitle, children }) {
   return (
-    <aside className="absolute top-3 right-3 z-[35] flex max-h-[calc(100%-1.5rem)] w-[290px] flex-col overflow-hidden rounded-xl border bg-card text-card-foreground shadow-lg max-[720px]:inset-x-2 max-[720px]:top-auto max-[720px]:bottom-2 max-[720px]:max-h-[48%] max-[720px]:w-auto">
+    <aside className="absolute top-3 right-3 z-[35] flex max-h-[calc(100%-1.5rem)] w-[290px] flex-col overflow-hidden rounded-xl border bg-card text-card-foreground shadow-lg max-[900px]:inset-x-2 max-[900px]:top-auto max-[900px]:bottom-2 max-[900px]:max-h-[48%] max-[900px]:w-auto">
       <div className="flex flex-col gap-0.5 border-b px-4 py-3">
         <h3 className="text-sm leading-tight font-semibold">{title}</h3>
         {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
@@ -253,6 +253,7 @@ function Inspector({ sel }) {
           {iconError && <p className="text-xs text-destructive">{iconError}</p>}
         </Field>
         {pair(n.position, ['X', 'Z'], [0, 2], (p) => s.updateNode(n.id, { position: p }))}
+        <Button variant="outline" onClick={s.duplicateSelection}><Copy /> Duplicate</Button>
         <DeleteButton onClick={s.removeSelection}>Delete node</DeleteButton>
       </Panel>
     );

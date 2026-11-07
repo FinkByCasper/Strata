@@ -1,5 +1,5 @@
 import React from 'react';
-import { CircleHelp, Download, FileJson, History, Grid3x3, ImageDown, LayoutGrid, MousePointer2, Orbit, SquareDashedMousePointer, Spline, Redo2, RotateCcw, RotateCw, Scan, Share2, Undo2, Upload } from 'lucide-react';
+import { CircleHelp, Download, Plus, FileJson, History, Grid3x3, ImageDown, LayoutGrid, MousePointer2, Orbit, SquareDashedMousePointer, Spline, Redo2, RotateCcw, RotateCw, Scan, Share2, Undo2, Upload } from 'lucide-react';
 import { Logo } from './Logo';
 import { Presence } from './presence';
 import { Link, navigate } from './App';
@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Hint } from '@/components/ui/tooltip';
+import { openAddMenu } from './labels';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { cn } from '@/lib/utils';
 
@@ -67,6 +68,11 @@ export function Topbar({ status, role = 'owner', onHistory, onShare, onExportJso
           <Hint label="Box select" keys="B"><ToggleGroupItem variant="tool" value="box" aria-label="Box select"><SquareDashedMousePointer /></ToggleGroupItem></Hint>
           <Hint label="Connect" keys="C"><ToggleGroupItem variant="tool" value="connect" aria-label="Connect"><Spline /></ToggleGroupItem></Hint>
         </ToggleGroup>
+        {role !== 'viewer' && (
+          <Strip role="group" aria-label="Add">
+            <Tool icon={<Plus />} label="Add a node or zone" onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); openAddMenu({ clientX: r.left, clientY: r.bottom + 6 }); }} />
+          </Strip>
+        )}
         <Strip role="group" aria-label="History">
           <Tool icon={<Undo2 />} label="Undo" keys="Ctrl+Z" disabled={!canUndo} onClick={() => st.undo()} />
           <Tool icon={<Redo2 />} label="Redo" keys="Ctrl+Shift+Z" disabled={!canRedo} onClick={() => st.redo()} />

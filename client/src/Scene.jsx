@@ -7,6 +7,7 @@ import { useTheme } from './theme';
 import { GROUND, UP, camState, placed, pointerCell, press, useHoldMove } from './hold';
 import { materialFor, partsFor } from './parts';
 import { snapAnchor } from './clipboard';
+import { createTwist } from './twist';
 import { zoneContents } from './highlight';
 import { groupContents, rectPick } from './selection.js';
 import { LabelLayout, openAddMenu } from './labels';
@@ -110,6 +111,8 @@ function PlaceHandler() {
   return null;
 }
 
+const LONG_PRESS_MS = 550;
+
 function ContextHandler() {
   const { gl, camera } = useThree();
   useEffect(() => {
@@ -117,6 +120,14 @@ function ContextHandler() {
     let down = null;
     const raycaster = new THREE.Raycaster();
     const plane = new THREE.Plane(UP, 0);
+    const groundCell = (clientX, clientY) => {
+      const rect = el.getBoundingClientRect();
+      raycaster.setFromCamera(new THREE.Vector2(((clientX - rect.left) / rect.width) * 2 - 1, -((clientY - rect.top) / rect.height) * 2 + 1), camera);
+      const hit = new THREE.Vector3();
+      if (!raycaster.ray.intersectPlane(plane, hit)) return null;
+      const q = useStore.getState().snap ? Math.round : (v) => Math.round(v * 20) / 20;
+      return [q(hit.x), 0, q(hit.z)];
+    };
     const onDown = (e) => { if (e.button === 2) down = { x: e.clientX, y: e.clientY }; };
     const onUp = (e) => {
       if (e.button !== 2 || !down) return;
@@ -124,23 +135,44 @@ function ContextHandler() {
       down = null;
       if (moved) return;
       const { clientX, clientY } = e;
-      setTimeout(() => {
-        const rect = el.getBoundingClientRect();
-        raycaster.setFromCamera(new THREE.Vector2(((clientX - rect.left) / rect.width) * 2 - 1, -((clientY - rect.top) / rect.height) * 2 + 1), camera);
-        const hit = new THREE.Vector3();
-        let world = null;
-        if (raycaster.ray.intersectPlane(plane, hit)) {
-          const q = useStore.getState().snap ? Math.round : (v) => Math.round(v * 20) / 20;
-          world = [q(hit.x), 0, q(hit.z)];
-        }
-        openAddMenu({ clientX, clientY }, world);
-      }, 0);
+      setTimeout(() => openAddMenu({ clientX, clientY }, groundCell(clientX, clientY)), 0);
     };
     const noMenu = (e) => e.preventDefault();
+
+    // iOS never sends a contextmenu event for a long press, so the touch version of "right-click" is made here.
+    const fingers = new Set();
+    let hold = null;
+    const cancel = () => { clearTimeout(hold?.timer); hold = null; };
+    const touchDown = (e) => {
+      if (e.pointerType !== 'touch') return;
+      fingers.add(e.pointerId);
+      cancel();
+      if (fingers.size !== 1) return;
+      hold = { x: e.clientX, y: e.clientY };
+      hold.timer = setTimeout(() => {
+        const { x, y } = hold;
+        hold = null;
+        const st = useStore.getState();
+        if (press.hitNode || st.dragging || st.liftedId) return;
+        navigator.vibrate?.(8);
+        openAddMenu({ clientX: x, clientY: y }, groundCell(x, y));
+      }, LONG_PRESS_MS);
+    };
+    const touchMove = (e) => { if (hold && Math.hypot(e.clientX - hold.x, e.clientY - hold.y) > 8) cancel(); };
+    const touchUp = (e) => { fingers.delete(e.pointerId); cancel(); };
     el.addEventListener('pointerdown', onDown);
     el.addEventListener('pointerup', onUp);
     el.addEventListener('contextmenu', noMenu);
-    return () => { el.removeEventListener('pointerdown', onDown); el.removeEventListener('pointerup', onUp); el.removeEventListener('contextmenu', noMenu); };
+    el.addEventListener('pointerdown', touchDown);
+    window.addEventListener('pointermove', touchMove);
+    window.addEventListener('pointerup', touchUp);
+    window.addEventListener('pointercancel', touchUp);
+    return () => {
+      cancel();
+      el.removeEventListener('pointerdown', onDown); el.removeEventListener('pointerup', onUp); el.removeEventListener('contextmenu', noMenu);
+      el.removeEventListener('pointerdown', touchDown);
+      window.removeEventListener('pointermove', touchMove); window.removeEventListener('pointerup', touchUp); window.removeEventListener('pointercancel', touchUp);
+    };
   }, [gl, camera]);
   return null;
 }
@@ -204,6 +236,89 @@ function Marquee({ controls }) {
       window.removeEventListener('pointerup', up, true); window.removeEventListener('pointercancel', done, true);
     };
   }, [gl, camera, controls]);
+  return null;
+}
+
+// OrbitControls pinches to zoom and drags with two fingers to pan, but has no twist, so the twist is read here.
+function TwistRotate({ controls }) {
+  useEffect(() => {
+    const c = controls.current;
+    if (!c) return undefined;
+    const twist = createTwist();
+    let aim = 0, turning = false;
+    const down = (e) => { if (e.pointerType === 'touch') twist.down(e.pointerId, e.clientX, e.clientY); };
+    const move = (e) => {
+      if (e.pointerType !== 'touch') return;
+      const step = twist.move(e.pointerId, e.clientX, e.clientY);
+      if (!step) return;
+      // Damping spreads a turn over several frames, so the goal is tracked here instead of read back from the camera.
+      aim = (turning ? aim : c.getAzimuthalAngle()) + step;
+      turning = true;
+      c.setAzimuthalAngle(aim);
+    };
+    const up = (e) => { twist.up(e.pointerId); turning = false; };
+    window.addEventListener('pointerdown', down, true);
+    window.addEventListener('pointermove', move, true);
+    window.addEventListener('pointerup', up, true);
+    window.addEventListener('pointercancel', up, true);
+    return () => {
+      window.removeEventListener('pointerdown', down, true); window.removeEventListener('pointermove', move, true);
+      window.removeEventListener('pointerup', up, true); window.removeEventListener('pointercancel', up, true);
+    };
+  }, [controls]);
+  return null;
+}
+
+// The side panel (or the bottom sheet on a narrow screen) opens over part of the canvas. If it would cover what was just
+// selected, slide the view so that item ends up in the part that is still visible.
+function RevealSelection({ controls }) {
+  const { gl, camera } = useThree();
+  useEffect(() => {
+    let tween = 0;
+    const ground = (x, y, rect) => {
+      const ray = new THREE.Raycaster();
+      ray.setFromCamera(new THREE.Vector2(((x - rect.left) / rect.width) * 2 - 1, -((y - rect.top) / rect.height) * 2 + 1), camera);
+      return ray.ray.intersectPlane(new THREE.Plane(UP, 0), new THREE.Vector3());
+    };
+    const reveal = () => {
+      const c = controls.current;
+      const sel = useStore.getState().selection;
+      const panel = document.querySelector('aside');
+      if (!c || !panel || !sel || (sel.type !== 'node' && sel.type !== 'zone')) return;
+      const { nodes, zones } = useStore.getState().data;
+      const item = (sel.type === 'node' ? nodes : zones).find((x) => x.id === sel.id);
+      if (!item) return;
+      const rect = gl.domElement.getBoundingClientRect();
+      const box = panel.getBoundingClientRect();
+      const at = new THREE.Vector3(item.position[0], 0, item.position[2]).project(camera);
+      const sx = rect.left + (at.x * 0.5 + 0.5) * rect.width, sy = rect.top + (-at.y * 0.5 + 0.5) * rect.height;
+      const margin = 32;
+      if (sx < box.left - margin || sx > box.right + margin || sy < box.top - margin || sy > box.bottom + margin) return;
+      const sheet = box.width > rect.width * 0.6;
+      const goal = sheet ? [sx, (rect.top + box.top) / 2] : [(rect.left + box.left) / 2, sy];
+      const from = ground(sx, sy, rect), to = ground(goal[0], goal[1], rect);
+      if (!from || !to) return;
+      const shift = from.sub(to);
+      const start = performance.now();
+      let done = new THREE.Vector3();
+      const step = (now) => {
+        const k = Math.min(1, (now - start) / 220), eased = 1 - (1 - k) ** 3;
+        const next = shift.clone().multiplyScalar(eased), d = next.clone().sub(done);
+        done = next;
+        c.target.add(d); camera.position.add(d); c.update();
+        if (k < 1) tween = requestAnimationFrame(step);
+      };
+      cancelAnimationFrame(tween);
+      tween = requestAnimationFrame(step);
+    };
+    let timer = 0;
+    const off = useStore.subscribe((s, prev) => {
+      if (s.selection?.id === prev.selection?.id || !s.selection) return;
+      clearTimeout(timer);
+      timer = setTimeout(reveal, 80);
+    });
+    return () => { off(); clearTimeout(timer); cancelAnimationFrame(tween); };
+  }, [controls, gl, camera]);
   return null;
 }
 
@@ -411,7 +526,7 @@ function CameraRig({ controls }) {
     if (!c) return;
     const last = c.target.clone(), d = new THREE.Vector3(), f = new THREE.Vector3();
     let panning = false;
-    const down = (e) => { panning = e.button === 2 || e.shiftKey || e.ctrlKey || e.metaKey; };
+    const down = (e) => { panning = e.pointerType === 'touch' || e.button === 2 || e.shiftKey || e.ctrlKey || e.metaKey; };
     const up = () => { panning = false; };
     const onChange = () => {
       if (panning) {
@@ -610,7 +725,7 @@ function Sun() {
 let lastData = null, lastLift = null, burst = 0;
 
 const NO_ACTION = -1;
-const TOUCHES = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
+const TOUCHES = { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_PAN };
 const MOUSE = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
 // In box-select mode a drag with one finger or the left button draws the box instead of moving the camera.
 const BOX_TOUCHES = { ONE: NO_ACTION, TWO: THREE.TOUCH.DOLLY_PAN };
@@ -664,6 +779,8 @@ export function Scene() {
       <CameraRig controls={controls} />
       <ContextHandler />
       <Marquee controls={controls} />
+      <TwistRotate controls={controls} />
+      <RevealSelection controls={controls} />
       <PointerTracker />
       <PlaceHandler />
       <PasteGhost />

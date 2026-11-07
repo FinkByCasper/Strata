@@ -65,11 +65,11 @@ export function Swatches({ value, onPick, custom = true }) {
     <div className="flex flex-wrap items-center gap-1.5">
       {PALETTE.map((c) => (
         <button key={c} aria-label={c} onClick={() => onPick(c)} style={{ background: c }}
-          className={cn('size-6 rounded-full border-2 border-card shadow-[0_0_0_1px_var(--border)] outline-none transition-transform hover:scale-110 focus-visible:ring-[3px] focus-visible:ring-ring/50', value === c && 'shadow-[0_0_0_2px_var(--foreground)]')} />
+          className={cn('size-6 pointer-coarse:size-9 rounded-full border-2 border-card shadow-[0_0_0_1px_var(--border)] outline-none transition-transform hover:scale-110 focus-visible:ring-[3px] focus-visible:ring-ring/50', value === c && 'shadow-[0_0_0_2px_var(--foreground)]')} />
       ))}
       {custom && (
         <input type="color" value={/^#[0-9a-f]{6}$/i.test(value || '') ? value : '#4f8cff'} onChange={(e) => onPick(e.target.value)} aria-label="Custom colour"
-          className="size-6 cursor-pointer rounded-full border-2 border-card bg-transparent p-0 shadow-[0_0_0_1px_var(--border)] [&::-moz-color-swatch]:rounded-full [&::-moz-color-swatch]:border-0 [&::-webkit-color-swatch]:rounded-full [&::-webkit-color-swatch]:border-0 [&::-webkit-color-swatch-wrapper]:p-0" />
+          className="size-6 pointer-coarse:size-9 cursor-pointer rounded-full border-2 border-card bg-transparent p-0 shadow-[0_0_0_1px_var(--border)] [&::-moz-color-swatch]:rounded-full [&::-moz-color-swatch]:border-0 [&::-webkit-color-swatch]:rounded-full [&::-webkit-color-swatch]:border-0 [&::-webkit-color-swatch-wrapper]:p-0" />
       )}
     </div>
   );
